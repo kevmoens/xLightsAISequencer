@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "name": "example-upstream-reference",
+  "repositoryUrl": "https://example.invalid/example-org/example-upstream-reference.git",
+  "commitSha": "a1b2c3d",
+  "commitMessage": "chore: example pinned commit for fixture purposes",
+  "commitDateUtc": "2026-10-04T17:46:40Z",
+  "pinnedUtc": "2026-10-10T00:00:00Z",
+  "defaultBranchAtPinTime": "main",
+  "vendoringStrategy": "git-submodule-pinned-commit",
+  "localReferencePath": "reference/example-upstream-reference",
+  "license": {
+    "spdxId": "",
+    "copyrightHolder": "",
+    "copyrightYear": "2026",
+    "upstreamLicenseFile": "reference/example-upstream-reference/LICENSE",
+    "vendoredLicenseCopy": "",
+    "scopeNote": "deliberately broken fixture for Step001 negative-path test"
+  },
+  "attributionNotice": "",
+  "components": [],
+  "thirdPartyDependencyNotes": [],
+  "knownLicenseRisks": []
+}

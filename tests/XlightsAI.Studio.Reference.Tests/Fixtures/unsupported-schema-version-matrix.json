@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 999,
+  "sourceCommitSha": "a1b2c3d4e5f60718293a4b5c6d7e8f9011121314",
+  "auditedUtc": "2026-10-10T00:00:00Z",
+  "modules": [
+    {
+      "modulePath": "src/themes",
+      "description": "deliberately unsupported schema version for Step002 negative-path test",
+      "decision": "reuse",
+      "riskLevel": "low",
+      "rationale": "fixture rationale",
+      "risks": [],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    }
+  ]
+}

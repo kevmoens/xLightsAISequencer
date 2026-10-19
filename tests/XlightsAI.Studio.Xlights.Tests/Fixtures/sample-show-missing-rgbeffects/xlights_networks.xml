@@ -1,0 +1,7 @@
+<!--
+  PHASE-02 Step 009 fixture: optional controller/output configuration file. Content is a
+  deliberately minimal placeholder; Step 009 proves only that this optional file's presence is
+  detected, not that its contents are parsed (no later phase has reached network/channel parsing).
+-->
+<Networks>
+</Networks>

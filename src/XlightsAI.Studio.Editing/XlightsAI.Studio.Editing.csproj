@@ -1,0 +1,29 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <!-- PHASE-03 Step 017: TimelineRowTreeBuilder binds rows to the imported DisplayGraph/DisplayModel/
+         DisplayModelGroup types, which live in XlightsAI.Studio.Xlights (PHASE-02). An explicit,
+         disclosed architecture decision: Step 016 deliberately kept this project Contracts-only
+         because TimelineViewport had no need for the imported-layout types; Step 017's own required
+         acceptance ("Bind rows to stable imported model IDs and group hierarchy") cannot be met
+         without this reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <!-- PHASE-04 Step 027: WaveformBarLayoutBuilder renders a WaveformPyramidCache (XlightsAI.Studio.Audio,
+         PHASE-04 Step 026) through the same TimelineViewport pixel/tick transform EffectBlockLayoutBuilder
+         already uses. Same "first definition, not a migration" reasoning Step 017 already applied when it
+         added the Xlights reference above: TimelineViewport had no prior need for waveform types until this
+         step's own required acceptance ("Waveform position matches timeline coordinates") needs both. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Audio\XlightsAI.Studio.Audio.csproj" />
+  </ItemGroup>
+
+</Project>

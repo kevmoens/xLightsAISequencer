@@ -1,0 +1,39 @@
+<!--
+  PHASE-02 Step 010 golden fixture: a show directory whose xlights_rgbeffects.xml carries explicit
+  WorldPosX/WorldPosY geometry on every model, two overlapping modelGroups (Arch-01 belongs to both
+  Front-Yard and All-Props; MegaTree-Center belongs only to All-Props), proving group membership is
+  not flattened. Same base models as the Step 009 fixture, with geometry and a second group added.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model
+      name="Arch-01"
+      DisplayAs="Arches"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="1"
+      parm2="50"
+      parm3="1"
+      WindowRows="1"
+      WindowColumns="50"
+      WorldPosX="10.5"
+      WorldPosY="-2.25"
+      Antialiasing="1" />
+    <model
+      name="MegaTree-Center"
+      DisplayAs="Tree 360"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="16"
+      parm2="100"
+      parm3="1"
+      WorldPosX="0"
+      WorldPosY="0"
+      TreeRotation="0"
+      Degrees="360" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Front-Yard" models="Arch-01,MegaTree-Center" />
+    <modelGroup name="All-Props" models="Arch-01, MegaTree-Center" />
+  </modelGroups>
+</xrgb>

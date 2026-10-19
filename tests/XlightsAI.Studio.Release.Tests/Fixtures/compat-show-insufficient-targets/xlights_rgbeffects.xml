@@ -1,0 +1,12 @@
+<!--
+  PHASE-16 Step 098 negative-path fixture: a real, safely-parseable rgbeffects document that genuinely
+  exposes only one targetable model and no groups, fewer than IThreeEffectPlanFactory's required
+  three distinct targets. Exercises CompatibilityMatrixRunner's own "not enough targetable
+  models/groups" failure path, never an exception escaping RunAsync.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model name="Lone-Arch" DisplayAs="Arches" StringType="RGB Nodes" parm1="1" parm2="50" parm3="1" />
+  </models>
+  <modelGroups />
+</xrgb>

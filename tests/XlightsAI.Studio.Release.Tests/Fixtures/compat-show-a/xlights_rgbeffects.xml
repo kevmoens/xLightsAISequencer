@@ -1,0 +1,16 @@
+<!--
+  PHASE-16 Step 098 compatibility-matrix fixture "A": a real, safely-parseable xLights rgbeffects
+  document (correct xLights-authored root element "xrgb", unlike the legacy, never-parsed
+  fixtures/layouts/*.xml fixtures carried from PHASE-01 Step 003, which predate ShowLayoutImporter and
+  use the unverified "xrgbEffects" root name). Two models plus one group give exactly the three
+  distinct targetable entries IThreeEffectPlanFactory requires.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model name="Arch-01" DisplayAs="Arches" StringType="RGB Nodes" parm1="1" parm2="50" parm3="1" />
+    <model name="MegaTree-Center" DisplayAs="Tree 360" StringType="RGB Nodes" parm1="16" parm2="100" parm3="1" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Front-Yard" models="Arch-01,MegaTree-Center" />
+  </modelGroups>
+</xrgb>

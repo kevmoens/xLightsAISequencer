@@ -1,0 +1,410 @@
+[
+  {
+    "phase": "01",
+    "name": "Foundation and Reference Baselines",
+    "step_ids": [
+      "001",
+      "002",
+      "003",
+      "004",
+      "005",
+      "006",
+      "007",
+      "008"
+    ],
+    "spec_file": "phase-specs/PHASE-01.md",
+    "prompt_file": "prompts/PHASE-01-PROMPT.md",
+    "sha256": "ff963af66a1f446f5df7654e1fdc68f9c941986aaa780d714a38edf60cf607a7",
+    "bytes": 31849,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-01-WELCOME",
+      "SCREEN-02-LIBRARY",
+      "SCREEN-03-OVERVIEW",
+      "SCREEN-17-SETTINGS"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Start a fresh install; create “Demo Song”, close/reopen; open a second project; inject a migration failure; show recovery screen, unchanged pre-migration backup and diagnostic log."
+  },
+  {
+    "phase": "02",
+    "name": "First Working xLights Sequence",
+    "step_ids": [
+      "009",
+      "010",
+      "011",
+      "012",
+      "013",
+      "014",
+      "015"
+    ],
+    "spec_file": "phase-specs/PHASE-02.md",
+    "prompt_file": "prompts/PHASE-02-PROMPT.md",
+    "sha256": "d7520017e97810e1215cd4503080537f0accdf96fde7aee46894a7ce4353a1f4",
+    "bytes": 34291,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 3,
+    "screens": [
+      "SCREEN-04-SHOW-IMPORT",
+      "SCREEN-16-EXPORT"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Import a sample layout with Roofline, Arch 1 and Arch 2; click Generate 3 Effects; save into app exports folder; open resulting XSQ in target xLights version and visually verify timing, props, colors and duration."
+  },
+  {
+    "phase": "03",
+    "name": "Visual Timeline and Manual Editing",
+    "step_ids": [
+      "016",
+      "017",
+      "018",
+      "019",
+      "020",
+      "021",
+      "022",
+      "023"
+    ],
+    "spec_file": "phase-specs/PHASE-03.md",
+    "prompt_file": "prompts/PHASE-03-PROMPT.md",
+    "sha256": "3f8a852ed441cf0d6e7442d1c9113a921173b83f086721003fa6140a63392936",
+    "bytes": 31691,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 3,
+    "screens": [
+      "SCREEN-13-TIMELINE"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Open a three-effect sample, drag Arch 1 effect, resize Roofline, undo/redo both operations, lock Arch 2, attempt forbidden modification, export and verify other effects stay bit-for-bit semantically identical."
+  },
+  {
+    "phase": "04",
+    "name": "Audio Waveform and Synchronized Playback",
+    "step_ids": [
+      "024",
+      "025",
+      "026",
+      "027",
+      "028",
+      "029",
+      "030"
+    ],
+    "spec_file": "phase-specs/PHASE-04.md",
+    "prompt_file": "prompts/PHASE-04-PROMPT.md",
+    "sha256": "c86d1845640d5f342e428990e7aa326f77cdfa0615209c2478e0d02c700a921a",
+    "bytes": 29391,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-06-AUDIO",
+      "SCREEN-13-TIMELINE"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Import a click track, display waveforms, drag an effect to a click, loop 1 second, seek to song midpoint and back, close/reopen and confirm saved media identity and correct timing."
+  },
+  {
+    "phase": "05",
+    "name": "Beat Measures and Rhythm Detection",
+    "step_ids": [
+      "031",
+      "032",
+      "033",
+      "034",
+      "035",
+      "036",
+      "037"
+    ],
+    "spec_file": "phase-specs/PHASE-05.md",
+    "prompt_file": "prompts/PHASE-05-PROMPT.md",
+    "sha256": "ebf67ceb9ea83f0a78bf135d82aa5ce1e5c0489359f3707560a3c8599fd05134",
+    "bytes": 30298,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-09-BEAT-GRID",
+      "SCREEN-07-ANALYSIS"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Analyze a click/drum sample, see beat markers, correct an intentionally wrong downbeat, generate restrained pops for two props and play them synchronized while comparing before/after."
+  },
+  {
+    "phase": "06",
+    "name": "Instrument Separation and Activity Detection",
+    "step_ids": [
+      "038",
+      "039",
+      "040",
+      "041",
+      "042",
+      "043",
+      "044"
+    ],
+    "spec_file": "phase-specs/PHASE-06.md",
+    "prompt_file": "prompts/PHASE-06-PROMPT.md",
+    "sha256": "69aab15020b560dafb0455203df1b3c25570a90331f573990ac8b9394508e6a1",
+    "bytes": 31659,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-08-STEMS",
+      "SCREEN-07-ANALYSIS",
+      "SCREEN-17-SETTINGS"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "On CPU-only Windows, install model through app (or use offline pre-provisioned asset), separate a short sample, view aligned stems, solo vocals and drums, abort a long run and verify clean status."
+  },
+  {
+    "phase": "07",
+    "name": "Melody Pitch and Note Analysis",
+    "step_ids": [
+      "045",
+      "046",
+      "047",
+      "048",
+      "049",
+      "050",
+      "051"
+    ],
+    "spec_file": "phase-specs/PHASE-07.md",
+    "prompt_file": "prompts/PHASE-07-PROMPT.md",
+    "sha256": "f4c938047c8e624d169ac674f8b605bb3b58e084e8363b3e9e8870821dc6cf65",
+    "bytes": 30540,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-10-PIANO-ROLL",
+      "SCREEN-13-TIMELINE"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Import trusted MIDI or simple isolated melody, view notes on piano roll, correct an incorrect note, select five arches, preview stepping up and reversing on descent, export and validate in xLights."
+  },
+  {
+    "phase": "08",
+    "name": "Song Structure and Repeated Phrases",
+    "step_ids": [
+      "052",
+      "053",
+      "054",
+      "055",
+      "056",
+      "057",
+      "058"
+    ],
+    "spec_file": "phase-specs/PHASE-08.md",
+    "prompt_file": "prompts/PHASE-08-PROMPT.md",
+    "sha256": "9e055f1ccad572af00078d2204a1606cba54960ba22a2a699cfd4c4132fcc000",
+    "bytes": 30442,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-11-STRUCTURE",
+      "SCREEN-13-TIMELINE"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Analyze a song with repeated chorus; show two matching phrases highlighted; accept the first chorus as a template and propagate only melody movement into the second, preserving destination drums and locked effects."
+  },
+  {
+    "phase": "09",
+    "name": "Spatial Choreography and Display Paths",
+    "step_ids": [
+      "059",
+      "060",
+      "061",
+      "062",
+      "063",
+      "064",
+      "065"
+    ],
+    "spec_file": "phase-specs/PHASE-09.md",
+    "prompt_file": "prompts/PHASE-09-PROMPT.md",
+    "sha256": "14f73e094ddb58f7f3671e05f8726ef84e9cf10f691a10a5fb6a6daecd36d217",
+    "bytes": 29948,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-05-DISPLAY-PATHS",
+      "SCREEN-12-CHOREOGRAPHY"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Load a layout, inspect suggested arch and roofline paths, reverse the arch route manually, preview C-D-E-G-E-D-C across both and prove geometry-aware effects target correct xLights props."
+  },
+  {
+    "phase": "10",
+    "name": "Layered Musical Composition",
+    "step_ids": [
+      "066",
+      "067",
+      "068",
+      "069",
+      "070",
+      "071"
+    ],
+    "spec_file": "phase-specs/PHASE-10.md",
+    "prompt_file": "prompts/PHASE-10-PROMPT.md",
+    "sha256": "e009c4044f5373aab40b05fe1bf11d59d225e58d553f7ce87c789470a49be86f",
+    "bytes": 29161,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-12-CHOREOGRAPHY",
+      "SCREEN-13-TIMELINE"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Choose lead piano on arches, kick/snare on roofline and bass on tree for a 20-second song excerpt; preview verse vs louder chorus, show fewer active props in verse, export and verify relevant effects in xLights."
+  },
+  {
+    "phase": "11",
+    "name": "Selective AI Editing",
+    "step_ids": [
+      "072",
+      "073",
+      "074",
+      "075",
+      "076",
+      "077",
+      "078"
+    ],
+    "spec_file": "phase-specs/PHASE-11.md",
+    "prompt_file": "prompts/PHASE-11-PROMPT.md",
+    "sha256": "c32e3e0a9ed2608c938320ef95a49b2a454fcfab32a7fc5300ace028d1e5f151",
+    "bytes": 30856,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-14-AI-EDIT",
+      "SCREEN-13-TIMELINE"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Select 42–48 seconds on five arches, ask for rising piano pops, inspect affected models/times and before/after visualization; reject, repeat, approve, verify roofline hash unchanged."
+  },
+  {
+    "phase": "12",
+    "name": "Loop-Engineered Refinement",
+    "step_ids": [
+      "079",
+      "080",
+      "081",
+      "082",
+      "083",
+      "084"
+    ],
+    "spec_file": "phase-specs/PHASE-12.md",
+    "prompt_file": "prompts/PHASE-12-PROMPT.md",
+    "sha256": "b667975c55aa34b490a2e8ded69e33c56b2dde6f4eca7054e07e94eb66508eed",
+    "bytes": 29882,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 3,
+    "screens": [
+      "SCREEN-15-COMPARE",
+      "SCREEN-14-AI-EDIT"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Start with a knowingly over-busy 8-bar phrase, generate three candidates, inspect density/timing metrics and previews, accept one, then use Undo and show previous state restored."
+  },
+  {
+    "phase": "13",
+    "name": "xLights Rendering and Visual Evaluation",
+    "step_ids": [
+      "085",
+      "086",
+      "087",
+      "088",
+      "089"
+    ],
+    "spec_file": "phase-specs/PHASE-13.md",
+    "prompt_file": "prompts/PHASE-13-PROMPT.md",
+    "sha256": "eb82416b7272603d0066885a4710e901781233ed464c66a45f39d13ba86b5b35",
+    "bytes": 29275,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-16-EXPORT",
+      "SCREEN-15-COMPARE"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Preview simple arch stepping, export a temp XSQ and render it using a verified installed xLights mode (headless if supported), compare a frame/time metric with the local approximation and show evidence links."
+  },
+  {
+    "phase": "14",
+    "name": "Whole Song Composition and Continuity",
+    "step_ids": [
+      "090",
+      "091",
+      "092",
+      "093"
+    ],
+    "spec_file": "phase-specs/PHASE-14.md",
+    "prompt_file": "prompts/PHASE-14-PROMPT.md",
+    "sha256": "6ad314270185b353c83d2af42ee5337c3645f983189651feb17ad988dc902312",
+    "bytes": 26920,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-03-OVERVIEW",
+      "SCREEN-12-CHOREOGRAPHY",
+      "SCREEN-13-TIMELINE"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Take a song with Intro/Verse/Chorus/Verse/Chorus/Bridge/Final chorus; show section intensity arc and shared motif variants, inspect continuity warnings, resolve one seam and export the entire editable XSQ."
+  },
+  {
+    "phase": "15",
+    "name": "Packaging and Distribution",
+    "step_ids": [
+      "094",
+      "095",
+      "096",
+      "097"
+    ],
+    "spec_file": "phase-specs/PHASE-15.md",
+    "prompt_file": "prompts/PHASE-15-PROMPT.md",
+    "sha256": "c1964628ca2772f9fde3026400c8568d5c7d3dde3b10c0b51fb7cda8077cd9f3",
+    "bytes": 27069,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-01-WELCOME",
+      "SCREEN-17-SETTINGS"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Install on a clean Windows x64 machine, import sample show/song, generate/edit a simple XSQ, optionally download model with consent, disconnect internet and continue playback/export."
+  },
+  {
+    "phase": "16",
+    "name": "Release Validation and Community Testing",
+    "step_ids": [
+      "098",
+      "099",
+      "100"
+    ],
+    "spec_file": "phase-specs/PHASE-16.md",
+    "prompt_file": "prompts/PHASE-16-PROMPT.md",
+    "sha256": "913161a312363e550fcb11e3ff9f882f2d36331a064d8f9e65d14a1c37b781bd",
+    "bytes": 26756,
+    "mermaid_diagrams": 3,
+    "csharp_signature_blocks": 2,
+    "screens": [
+      "SCREEN-03-OVERVIEW",
+      "SCREEN-16-EXPORT",
+      "SCREEN-17-SETTINGS"
+    ],
+    "has_class_diagram": true,
+    "has_flowchart": true,
+    "gate": "Give a non-developer tester only the installer and demo show; observe install, import, song analysis or safe fallback, phrase editing, XSQ export and actual xLights rendering; record real feedback and cleanup effort."
+  }
+]

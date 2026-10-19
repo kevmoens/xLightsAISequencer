@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<rect x="0" y="0" width="1200" height="720" rx="0" fill="#0c1422" opacity="1"/>
+<rect x="0" y="0" width="1200" height="61" rx="0" fill="#111d2e" opacity="1"/>
+<rect x="0" y="61" width="212" height="659" rx="0" fill="#142033" opacity="1"/>
+<text x="23" y="38" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="bold" text-anchor="start" opacity="1">xLIGHTS AI</text>
+<rect x="152" y="17" width="75" height="25" rx="12" fill="#b6a0f5" opacity="0.17"/>
+<text x="189.5" y="34" fill="#b6a0f5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">STUDIO</text>
+<text x="236" y="29" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Winter Show 2026</text>
+<text x="236" y="49" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Example Track  /  Local project</text>
+<rect x="966" y="14" width="78" height="35" rx="7" fill="#20334c" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="1005.0" y="37" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Save</text>
+<rect x="1056" y="14" width="115" height="35" rx="7" fill="#67b8f7" opacity="1"/>
+<text x="1113.5" y="37" fill="#0c1422" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Export</text>
+<text x="30" y="98" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Projects</text>
+<text x="30" y="144" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Overview</text>
+<text x="30" y="190" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Show Layout</text>
+<text x="30" y="236" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Music</text>
+<text x="30" y="282" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Analysis</text>
+<text x="30" y="328" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Structure</text>
+<rect x="10" y="349" width="190" height="37" rx="6" fill="#20334c" opacity="1"/>
+<rect x="10" y="349" width="4" height="37" rx="2" fill="#67b8f7" opacity="1"/>
+<text x="30" y="374" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Choreography</text>
+<text x="30" y="420" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Sequence Editor</text>
+<text x="30" y="466" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Review</text>
+<text x="30" y="512" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Export</text>
+<text x="30" y="558" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Settings</text>
+<text x="20" y="654" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Prototype screens</text>
+<text x="20" y="674" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Desktop / offline first</text>
+<line x1="212" y1="61" x2="212" y2="720" stroke="#304762" stroke-width="1" opacity="1"/>
+<text x="240" y="97" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" text-anchor="start" opacity="1">S12  Choreography Designer</text>
+<text x="240" y="120" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="normal" text-anchor="start" opacity="1">Assign lead, rhythm and atmosphere so every light has a musical job.</text>
+<rect x="212" y="688" width="988" height="32" rx="0" fill="#111d2e" opacity="1"/>
+<text x="232" y="709" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Saved locally  |  20 fps sequence  |  Example data - design concept</text>
+<text x="1175" y="709" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">xLights AI</text>
+<rect x="248" y="152" width="306" height="470" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="262" y="179" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Musical roles</text>
+<rect x="262" y="210" width="276" height="74" rx="6" fill="#20334c" opacity="1"/>
+<text x="277" y="238" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">Lead / Piano</text>
+<rect x="277" y="247" width="170" height="25" rx="12" fill="#59d5b5" opacity="0.17"/>
+<text x="362.0" y="264" fill="#59d5b5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Front Arches</text>
+<rect x="262" y="302" width="276" height="74" rx="6" fill="#20334c" opacity="1"/>
+<text x="277" y="330" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">Rhythm / Snare</text>
+<rect x="277" y="339" width="170" height="25" rx="12" fill="#67b8f7" opacity="0.17"/>
+<text x="362.0" y="356" fill="#67b8f7" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Roofline</text>
+<rect x="262" y="394" width="276" height="74" rx="6" fill="#20334c" opacity="1"/>
+<text x="277" y="422" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">Bass / Kick</text>
+<rect x="277" y="431" width="170" height="25" rx="12" fill="#b6a0f5" opacity="0.17"/>
+<text x="362.0" y="448" fill="#b6a0f5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Mega Tree</text>
+<rect x="262" y="486" width="276" height="74" rx="6" fill="#20334c" opacity="1"/>
+<text x="277" y="514" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">Atmosphere / Chords</text>
+<rect x="277" y="523" width="170" height="25" rx="12" fill="#f6bc69" opacity="0.17"/>
+<text x="362.0" y="540" fill="#f6bc69" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Window outline</text>
+<rect x="565" y="152" width="359" height="470" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="579" y="179" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Phrase arrangement</text>
+<text x="583" y="219" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">Lead: StepAlongPath</text>
+<rect x="588" y="233" width="73" height="30" rx="5" fill="#59d5b5" opacity="0.75"/>
+<rect x="678" y="233" width="73" height="30" rx="5" fill="#59d5b5" opacity="0.75"/>
+<rect x="768" y="233" width="73" height="30" rx="5" fill="#59d5b5" opacity="0.75"/>
+<text x="583" y="301" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">Snare: AccentPop</text>
+<rect x="588" y="315" width="73" height="30" rx="5" fill="#67b8f7" opacity="0.75"/>
+<rect x="678" y="315" width="73" height="30" rx="5" fill="#67b8f7" opacity="0.75"/>
+<rect x="768" y="315" width="73" height="30" rx="5" fill="#67b8f7" opacity="0.75"/>
+<text x="583" y="383" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">Bass: Pulse</text>
+<rect x="588" y="397" width="73" height="30" rx="5" fill="#b6a0f5" opacity="0.75"/>
+<rect x="678" y="397" width="73" height="30" rx="5" fill="#b6a0f5" opacity="0.75"/>
+<rect x="768" y="397" width="73" height="30" rx="5" fill="#b6a0f5" opacity="0.75"/>
+<text x="583" y="465" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">Chords: AmbientHold</text>
+<rect x="588" y="479" width="73" height="30" rx="5" fill="#f6bc69" opacity="0.75"/>
+<rect x="678" y="479" width="73" height="30" rx="5" fill="#f6bc69" opacity="0.75"/>
+<rect x="768" y="479" width="73" height="30" rx="5" fill="#f6bc69" opacity="0.75"/>
+<rect x="588" y="567" width="317" height="9" rx="4" fill="#20334c" opacity="1"/>
+<rect x="588" y="567" width="164" height="9" rx="4" fill="#f6bc69" opacity="1"/>
+<text x="588" y="591" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Visual density budget: 52%</text>
+<rect x="940" y="152" width="205" height="470" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="954" y="179" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Gesture preview</text>
+<rect x="955" y="211" width="175" height="248" rx="6" fill="#0c1422" opacity="1"/>
+<line x1="963.24" y1="311.4" x2="1002.76" y2="276.56" stroke="#67b8f7" stroke-width="2.6" opacity="1"/>
+<line x1="1002.76" y1="276.56" x2="1035.0" y2="297.36" stroke="#67b8f7" stroke-width="2.6" opacity="1"/>
+<line x1="1035.0" y1="297.36" x2="1068.28" y2="268.24" stroke="#67b8f7" stroke-width="2.6" opacity="1"/>
+<line x1="1068.28" y1="268.24" x2="1119.76" y2="311.4" stroke="#67b8f7" stroke-width="2.6" opacity="1"/>
+<rect x="994.44" y="312.96000000000004" width="27.04" height="28.080000000000002" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="1.56"/>
+<rect x="1074.0" y="312.96000000000004" width="27.04" height="28.080000000000002" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="1.56"/>
+<path d="M 1032.4 343.12 L 1032.4 319.2 Q 1042.8 302.04 1053.2 319.2 L 1053.2 343.12" stroke="#b6a0f5" fill="none" stroke-width="2.08"/>
+<path d="M 961.16 353.52 Q 974.16 327.0 987.16 353.52" stroke="#59d5b5" fill="none" stroke-width="2.6"/>
+<path d="M 993.4 353.52 Q 1006.4 327.0 1019.4 353.52" stroke="#59d5b5" fill="none" stroke-width="2.6"/>
+<path d="M 1025.64 353.52 Q 1038.64 327.0 1051.64 353.52" stroke="#f6bc69" fill="none" stroke-width="2.6"/>
+<path d="M 1057.88 353.52 Q 1070.88 327.0 1083.88 353.52" stroke="#59d5b5" fill="none" stroke-width="2.6"/>
+<path d="M 1090.12 353.52 Q 1103.12 327.0 1116.12 353.52" stroke="#59d5b5" fill="none" stroke-width="2.6"/>
+<text x="962" y="482" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Selected Gesture:</text>
+<text x="962" y="504" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Stepping melody</text>
+<rect x="957" y="547" width="170" height="35" rx="7" fill="#67b8f7" opacity="1"/>
+<text x="1042.0" y="570" fill="#0c1422" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Generate Phrase</text>
+</svg>

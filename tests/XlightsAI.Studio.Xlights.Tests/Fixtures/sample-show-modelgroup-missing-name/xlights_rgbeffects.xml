@@ -1,0 +1,13 @@
+<!--
+  PHASE-02 Step 011 negative-path fixture: a <modelGroup> element missing its required "name"
+  attribute. Must fail safely (ShowLayoutMalformedException) rather than producing a group with no
+  identity, and must never rewrite the source file.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model name="Arch-01" DisplayAs="Arches" StringType="RGB Nodes" parm1="1" parm2="50" parm3="1" />
+  </models>
+  <modelGroups>
+    <modelGroup models="Arch-01" />
+  </modelGroups>
+</xrgb>

@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsequence BaseChannel="0" FixedPointTiming="25" ModelBlending="true">
+  <head>
+    <version>2026.03</version>
+    <sequenceType>Animation</sequenceType>
+    <sequenceTiming>25 ms</sequenceTiming>
+    <sequenceDuration>30.000</sequenceDuration>
+  </head>
+  <ColorPalettes>
+    <ColorPalette>C_BUTTON_Palette1=#FFFFFF</ColorPalette>
+  </ColorPalettes>
+  <EffectDB>
+    <Effect></Effect>
+  </EffectDB>
+  <DisplayElements>
+    <Element type="model" name="Roofline" visible="1" />
+    <Element type="model" name="Arch 1" visible="1" />
+    <Element type="model" name="Arch 2" visible="1" />
+  </DisplayElements>
+  <ElementEffects>
+    <Element type="model" name="Roofline">
+      <EffectLayer>
+        <Effect ref="0" name="On" startTime="0" endTime="10000" palette="0" selected="0" />
+      </EffectLayer>
+    </Element>
+    <Element type="model" name="Arch 1">
+      <EffectLayer>
+        <Effect ref="0" name="On" startTime="10000" endTime="20000" palette="0" selected="0" />
+      </EffectLayer>
+    </Element>
+    <Element type="model" name="Arch 2">
+      <EffectLayer>
+        <Effect ref="0" name="On" startTime="20000" endTime="30000" palette="0" selected="0" />
+      </EffectLayer>
+    </Element>
+  </ElementEffects>
+</xsequence>

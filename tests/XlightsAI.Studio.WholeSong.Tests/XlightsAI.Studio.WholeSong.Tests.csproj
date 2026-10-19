@@ -1,0 +1,32 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.WholeSong\XlightsAI.Studio.WholeSong.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Structure\XlightsAI.Studio.Structure.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Composition\XlightsAI.Studio.Composition.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <!-- PHASE-14 Step 091: Step091AcceptanceTests exercises the real PhraseSeamAssembler/EffectLockPolicy/
+         SequenceDocument/ISequenceDocumentStore production types directly (no mocking). -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Editing\XlightsAI.Studio.Editing.csproj" />
+  </ItemGroup>
+
+</Project>

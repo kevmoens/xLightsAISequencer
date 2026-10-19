@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "name": "example-upstream-reference",
+  "repositoryUrl": "https://example.invalid/example-org/example-upstream-reference.git",
+  "commitSha": "a1b2c3d4e5f60718293a4b5c6d7e8f9011121314",
+  "commitMessage": "chore: example pinned commit for fixture purposes",
+  "commitDateUtc": "2026-10-04T17:46:40Z",
+  "pinnedUtc": "2026-10-10T00:00:00Z",
+  "defaultBranchAtPinTime": "main",
+  "vendoringStrategy": "git-submodule-pinned-commit",
+  "localReferencePath": "reference/example-upstream-reference",
+  "license": {
+    "spdxId": "MIT",
+    "copyrightHolder": "Example Upstream Author",
+    "copyrightYear": "2026",
+    "upstreamLicenseFile": "reference/example-upstream-reference/LICENSE",
+    "vendoredLicenseCopy": "reference/UPSTREAM-LICENSE-MIT.txt",
+    "scopeNote": "Example scope note for fixture purposes; not a real license determination."
+  },
+  "attributionNotice": "This is a fixture attribution notice standing in for a real pinned upstream reference's attribution text, used only to exercise the manifest validator.",
+  "components": [
+    { "path": "src/analyzer", "description": "Example audited source boundary for fixture purposes." },
+    { "path": "src/generator", "description": "Example audited source boundary for fixture purposes." }
+  ],
+  "thirdPartyDependencyNotes": [
+    "Example dependency note for fixture purposes; no real third-party dependency is implied."
+  ],
+  "knownLicenseRisks": [
+    "Example known license risk for fixture purposes; no real license risk is implied."
+  ],
+  "verification": {
+    "cloneCommand": "git submodule update --init --recursive -- reference/example-upstream-reference",
+    "pinnedShaVerifyCommand": "git -C reference/example-upstream-reference rev-parse HEAD",
+    "expectedOutput": "a1b2c3d4e5f60718293a4b5c6d7e8f9011121314"
+  }
+}

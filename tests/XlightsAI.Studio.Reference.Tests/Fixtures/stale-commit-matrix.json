@@ -1,0 +1,19 @@
+{
+  "schemaVersion": 1,
+  "sourceCommitSha": "0000000000000000000000000000000000dead",
+  "auditedUtc": "2026-10-10T00:00:00Z",
+  "modules": [
+    {
+      "modulePath": "src/themes",
+      "description": "deliberately stale fixture for Step002 negative-path test",
+      "decision": "reuse",
+      "riskLevel": "low",
+      "rationale": "fixture rationale",
+      "risks": [],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    }
+  ]
+}

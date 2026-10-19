@@ -1,0 +1,193 @@
+{
+  "schemaVersion": 1,
+  "sourceCommitSha": "e3d5b062b0e338f2fbeec47c795386dae33e110e",
+  "auditedUtc": "2026-10-10T00:00:00Z",
+  "modules": [
+    {
+      "modulePath": "src/analyzer",
+      "description": "Audio analysis pipeline: loads audio once, optionally separates Demucs stems, runs ~22 pluggable algorithms (librosa, vamp QM-Vamp/BeatRoot/pYIN/Chordino, madmom RNN+DBN) fanned out across threads and a numpy-ABI-isolated subprocess sidecar, and assembles a 7-level (L0-L6) HierarchyResult (sections, bars, beats, onsets, energy curves, chords/key).",
+      "decision": "port",
+      "riskLevel": "high",
+      "rationale": "The hierarchy data shape, algorithm-registry pattern, and stem-routing design are valuable and portable; the native audio-analysis runtimes themselves are not.",
+      "risks": [
+        "vamp plugin binaries and madmom are GPL/LGPL C++/Python with no native .NET equivalent; a 1:1 port requires either a bundled Python sidecar or materially different .NET-native beat/onset detection with different accuracy.",
+        "Two parallel JSON output schemas coexist upstream (legacy AnalysisResult v1 and HierarchyResult v2); a literal port risks carrying over that duality instead of a single clean C# contract.",
+        "Upstream's schema-version check accepts any '2.x' string and uses required-key KeyErrors for malformed JSON (crash, not validation) — the C# port must replace this with real validation, not copy the looseness."
+      ],
+      "nativeDependencies": [ "vamp (C++ host + plugin .so/.dylib binaries)", "madmom (numpy<2, Python<=3.9)", "demucs/torch", "ffmpeg", "librosa/numpy/scipy/soundfile" ],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": "Data shape and orchestration: Port. Native runtimes (vamp/madmom/demucs/torch): Replace with a .NET-native approach or an isolated sidecar — tracked as a separate, later architecture decision."
+    },
+    {
+      "modulePath": "src/grouper",
+      "description": "Parses xlights_rgbeffects.xml into Prop/Layout models and generates an 8-tier Power Group hierarchy (whole-house, spatial, geometric, beat-chase, density, prop-type, compound, heroes) via name-stemming heuristics, then injects the generated groups back into the XML.",
+      "decision": "port",
+      "riskLevel": "high",
+      "rationale": "The 8-tier grouping design and XML parsing approach are directly reusable concepts, but the write path as implemented upstream is unsafe for this Studio's non-destructive-writes rule.",
+      "risks": [
+        "writer.py overwrites the user's real xlights_rgbeffects.xml in place by default, creating only a ONE-TIME .xml.bak backup that is never refreshed on subsequent runs.",
+        "Tier-6 prop-type name-stemming regexes are brittle, corpus-tuned heuristics (e.g. 'Spiral Tree-1L/2R' conventions) that risk silently misclassifying differently-named real-world layouts.",
+        "Two XML shapes (legacy flat and modern nested xlights_rgbeffects.xml) must both be parsed and kept in sync, doubling the surface area for divergence bugs."
+      ],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": true,
+      "overwriteMitigation": "The C# port must always write a new app-owned file or an explicit, always-fresh backup — never overwrite the original xlights_rgbeffects.xml in place. This is a hard requirement from docs/phase-specs/PHASE-01.md Section 4 ('Original xLights show files are only referenced, never moved or modified') and docs/AGENTS.md's hard constraints.",
+      "mixedStrategyNote": "Tier-generation concept: Port. Write path: Replace — the in-place overwrite default must not be carried over."
+    },
+    {
+      "modulePath": "src/themes",
+      "description": "Theme engine: JSON-defined mood/occasion/genre themes composed of named effect-variant layers with blend modes, validated against the effect and variant libraries, with a 'heal, don't reject' recovery path for malformed custom themes.",
+      "decision": "reuse",
+      "riskLevel": "low",
+      "rationale": "The theme JSON schema is implementation-agnostic domain data (mood/palette/layer composition), directly reusable as this Studio's theme format with only a loader rewritten in C#.",
+      "risks": [
+        "Theme loading has a hard dependency on the effect and variant libraries being loaded first; the C# port must preserve this load order, not allow dangling variant references.",
+        "The upstream 'heal, don't reject' pattern for malformed custom themes was added after a real bug where invalid themes silently vanished; a naive strict-validation C# port would reintroduce that regression."
+      ],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/effects",
+      "description": "Catalog of real xLights RGB effects as typed definitions: xLights storage id, parameters, per-prop-type suitability ratings, and optional analysis-to-parameter mapping rules.",
+      "decision": "reuse",
+      "riskLevel": "medium",
+      "rationale": "This is xLights domain knowledge (effect storage keys, parameter schemas), not Python-specific logic, so the catalog data itself should be reused directly; only the loader needs a C# rewrite.",
+      "risks": [
+        "Catalog coverage is partial against the full 56-effect xLights enum (upstream tracks this explicitly via a CoverageResult); treat the JSON as a starting corpus, not a complete spec.",
+        "storage_name values (E_SLIDER_*, E_CHECKBOX_*, E_TEXTCTRL_*) are xLights' own internal effect-string parameter keys and must be reproduced byte-exact in any XSQ writer or generated sequences will not render correctly in real xLights."
+      ],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/variants",
+      "description": "Library of named, pre-tuned effect-parameter presets (EffectVariant) built on top of base effects, tagged by tier/energy/speed/direction/genre, including hardware-verified corner-case flags (requires_color_mask, companion_base_effect).",
+      "decision": "reuse",
+      "riskLevel": "medium",
+      "rationale": "These presets were mined from a real xLights sequence corpus and verified via live hardware A/B renders; this is calibrated domain knowledge to reuse directly, not logic to reimplement.",
+      "risks": [
+        "requires_color_mask / companion_base_effect encode non-obvious real-hardware rendering quirks (achromatic shaders, Warp-type effects needing a base layer); dropping these flags silently produces blank/wrong-colored effects on real hardware.",
+        "Upstream supports two loading formats (legacy single-file and per-effect-directory); recommend collapsing to one format in the C# port rather than porting both for marginal benefit."
+      ],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/generator",
+      "description": "Sequence generation: builds a per-section effect placement plan (theme selection, impact/crash/drum accents, lyrics, Moving Head DMX, transitions) and serializes it to xLights' native .xsq XML, embedding extensive hand-tuned, live-hardware-verified rendering knowledge (default parameters, hue calibration bands, buffer-style conventions, sparkle clamps).",
+      "decision": "port",
+      "riskLevel": "high",
+      "rationale": "This is the single highest-value module to port faithfully: it encodes hard-won, hardware-verified xLights rendering knowledge that would otherwise require re-deriving through the same trial-and-error process. It never writes to the user's show directory in place (always writes to an explicit output path, only copying referenced media alongside it), so the write-path risk present in src/grouper does not apply here.",
+      "risks": [
+        "Lower effect-layer numbers render in FRONT (opposite of the usual 'higher = on top' intuition, confirmed by upstream via a real bug); easy to get backwards in a re-implementation without the same hardware verification.",
+        "Large numbers of tuning constants (hue-shift bands, pinwheel speed curves, sparkle-frequency clamps, per-effect default tables) are empirically derived against specific xLights versions; porting the numbers without re-verifying against the current target xLights version risks silent visual regressions.",
+        "Many interdependent song-scoped and section-scoped placement lists must all be merged into the unified per-group placement map correctly; a straightforward area to introduce subtle missing-placement bugs during a line-by-line port."
+      ],
+      "nativeDependencies": [ "mutagen (ID3 tags) — transitively required for metadata, not native/binary itself" ],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/review",
+      "description": "Flask + React local-only preview/review dashboard: song library, upload-triggered analysis with SSE progress streaming, audio/stem playback, and an interactive Power Group layout editor.",
+      "decision": "replace",
+      "riskLevel": "medium",
+      "rationale": "Flask + vanilla-JS/React has no place in an Avalonia desktop app; the UI itself must be replaced with native Avalonia views. The endpoint responsibilities and data shapes remain a useful design reference for the Studio's own service/viewmodel layer.",
+      "risks": [
+        "The SSE progress-streaming pattern (threading.Lock-guarded job object + generator polling loop) does not map directly to .NET; needs a proper async/reactive redesign (e.g. IProgress<T>/IObservable<T>), not a line-by-line port.",
+        "A meaningful amount of business logic (title/artist fallback resolution, staleness detection) lives inside Flask route handlers rather than a separate service layer; the Studio design should extract this into real services rather than copying the route-as-business-logic pattern."
+      ],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/story",
+      "description": "Builds a 'song story' (section role classification such as verse/chorus/bridge, energy scoring, lyric-anchored boundary refinement using WhisperX word alignment) consumed directly by src/generator's theme and effect placement decisions.",
+      "decision": "port",
+      "riskLevel": "medium",
+      "rationale": "Not originally in the requested audit list, but found during this audit to be a hard, load-bearing dependency of src/generator, not an optional add-on — recorded here so no later phase is surprised by an unaudited dependency.",
+      "risks": [
+        "Section role classification and boundary refinement are iteratively tuned against real songs (see upstream's own mandatory segment-classification changelog); porting the end result without the same corpus-driven tuning process risks a worse-feeling section story.",
+        "Depends on WhisperX word alignment, which pulls in the same heavyweight optional ML dependency chain flagged for src/analyzer's phoneme features."
+      ],
+      "nativeDependencies": [ "whisperx (optional, for lyric-anchored boundary refinement)" ],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/evaluation",
+      "description": "Developer/QA tooling: 'xlight-evaluate' acceptance gate and visual-quality microscope regression tooling run against a CC0 song corpus.",
+      "decision": "omit",
+      "riskLevel": "low",
+      "rationale": "This is upstream's own developer-facing quality-gate tooling, not runtime logic the shipped Studio application needs; this Studio's own test/CI strategy is Step 008's scope.",
+      "risks": [],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/video",
+      "description": "Optional FSEQ-to-MP4 preview video renderer (separate 'xlight-video' CLI extra), not installed by default.",
+      "decision": "omit",
+      "riskLevel": "low",
+      "rationale": "Explicitly out of this phase's scope (docs/phase-specs/PHASE-01.md Section 1: 'do not... build an effect editor' and no preview-rendering requirement yet); upstream itself treats it as an optional extra.",
+      "risks": [],
+      "nativeDependencies": [ "ffmpeg", "zstandard (optional 'video' extra)" ],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/validation",
+      "description": "Cross-cutting validation helpers referenced in the upstream project layout.",
+      "decision": "omit",
+      "riskLevel": "low",
+      "rationale": "Not independently read beyond confirming the directory exists; no evidence found this session that the .NET port needs a direct analog beyond what src/generator's own plan_validator.py already covers for the ported generator module. Revisit only if a later phase surfaces a concrete gap.",
+      "risks": [ "This entry is a scope placeholder, not a completed audit; do not treat 'omit' here as a confirmed decision if a future phase depends on this module." ],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "src/packaging",
+      "description": "Upstream's own Python-side Tauri + PyInstaller desktop-bundling helpers (bundled_mode.py, stems_paths.py) that package the full Python analysis stack into a native desktop shell.",
+      "decision": "omit",
+      "riskLevel": "low",
+      "rationale": "This is upstream's own release-packaging mechanism for its Python/Rust desktop build; it has no direct .NET artifact to port. It is useful only as precedent that upstream itself already solved 'no separate Python install for the end user' by bundling a Python runtime inside a native shell — relevant context if this Studio ever needs a Python sidecar, but that decision belongs to whichever later phase first requires native audio-analysis runtimes (see src/analyzer above), not this step.",
+      "risks": [],
+      "nativeDependencies": [],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    },
+    {
+      "modulePath": "pyproject.toml (dependency footprint)",
+      "description": "Root dependency manifest: core deps (librosa, click, numpy<2, scipy, soundfile, flask, mutagen) plus optional extras (vamp, madmom, demucs/torch, whisperx, video). A dedicated .venv-vamp sidecar virtualenv (numpy<2) isolates vamp/madmom/demucs/torch from the main venv's numpy>=2 (needed by whisperx/pyannote) — a real, load-bearing ABI-conflict workaround, not incidental.",
+      "decision": "replace",
+      "riskLevel": "high",
+      "rationale": "The numpy/vamp/madmom/demucs/torch/ffmpeg native stack has no .NET equivalent and cannot be referenced as a NuGet package; any equivalent capability requires either a .NET-native replacement or an isolated external process, mirroring the ABI-isolation pattern upstream already had to invent for itself.",
+      "risks": [
+        "Underestimating this dependency footprint risks silently reintroducing a Python runtime requirement into the .NET application, which the phase spec explicitly rules out ('no Python, Docker, Git or mandatory LLM subscription for end users').",
+        "The .venv-vamp ABI-isolation sidecar pattern is real, hard-won engineering, not an arbitrary choice — if a future phase does adopt a Python sidecar for audio analysis, this isolation strategy should be studied rather than re-discovered from scratch."
+      ],
+      "nativeDependencies": [ "numpy<2", "vamp", "madmom", "demucs/torch", "whisperx", "ffmpeg", "soundfile/libsndfile" ],
+      "sourceOverwriteRisk": false,
+      "overwriteMitigation": null,
+      "mixedStrategyNote": null
+    }
+  ]
+}

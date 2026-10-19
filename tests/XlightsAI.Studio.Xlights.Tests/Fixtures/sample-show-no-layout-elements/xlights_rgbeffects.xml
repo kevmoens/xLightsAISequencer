@@ -1,0 +1,8 @@
+<!--
+  PHASE-02 Step 011 fixture: a well-formed, recognized xrgbEffects document with neither a
+  <models> nor a <modelGroups> element at all (as opposed to Step 009/010's empty-root fixture,
+  which has neither child element either, but was never asserted against for this step's explicit
+  "missing layout elements" warning). Proves a document missing these elements still imports
+  successfully (empty Models/Groups) with explicit warnings, not a thrown exception.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="" />

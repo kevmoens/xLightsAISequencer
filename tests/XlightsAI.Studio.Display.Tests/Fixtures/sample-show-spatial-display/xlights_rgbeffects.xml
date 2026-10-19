@@ -1,0 +1,24 @@
+<!--
+  PHASE-09 Step 059 golden fixture: five arches in a left to right row (WorldPosX 0,10,20,30,40;
+  WorldPosY 0) plus a three-segment roofline at a different height (WorldPosX 5,20,35; WorldPosY 8),
+  grouped as "Arches" and "Roofline", both nested under "All-Props" alongside an unresolved reference
+  ("Ghost-Prop") and a submodel reference ("Arch-01/Segment-1"); proves group-membership/nested-group
+  edges are built only for resolvable Model/Group members, never for Submodel/Unresolved ones.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model name="Arch-01" DisplayAs="Arches" StringType="RGB Nodes" Tag="synthetic-fixture" parm1="1" parm2="50" parm3="1" WorldPosX="0" WorldPosY="0" />
+    <model name="Arch-02" DisplayAs="Arches" StringType="RGB Nodes" Tag="synthetic-fixture" parm1="1" parm2="50" parm3="1" WorldPosX="10" WorldPosY="0" />
+    <model name="Arch-03" DisplayAs="Arches" StringType="RGB Nodes" Tag="synthetic-fixture" parm1="1" parm2="50" parm3="1" WorldPosX="20" WorldPosY="0" />
+    <model name="Arch-04" DisplayAs="Arches" StringType="RGB Nodes" Tag="synthetic-fixture" parm1="1" parm2="50" parm3="1" WorldPosX="30" WorldPosY="0" />
+    <model name="Arch-05" DisplayAs="Arches" StringType="RGB Nodes" Tag="synthetic-fixture" parm1="1" parm2="50" parm3="1" WorldPosX="40" WorldPosY="0" />
+    <model name="Roof-01" DisplayAs="Single Line" StringType="RGB Nodes" Tag="synthetic-fixture" parm1="1" parm2="20" parm3="1" WorldPosX="5" WorldPosY="8" />
+    <model name="Roof-02" DisplayAs="Single Line" StringType="RGB Nodes" Tag="synthetic-fixture" parm1="1" parm2="20" parm3="1" WorldPosX="20" WorldPosY="8" />
+    <model name="Roof-03" DisplayAs="Single Line" StringType="RGB Nodes" Tag="synthetic-fixture" parm1="1" parm2="20" parm3="1" WorldPosX="35" WorldPosY="8" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Arches" models="Arch-01,Arch-02,Arch-03,Arch-04,Arch-05" />
+    <modelGroup name="Roofline" models="Roof-01,Roof-02,Roof-03" />
+    <modelGroup name="All-Props" models="Arches,Roofline,Ghost-Prop,Arch-01/Segment-1" />
+  </modelGroups>
+</xrgb>

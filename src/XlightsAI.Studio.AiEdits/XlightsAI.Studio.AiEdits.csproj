@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PHASE-11 Step 075: DpapiCredentialStore is the first credential-storage code in this repository;
+         System.Security.Cryptography.ProtectedData ships the cross-targeting ProtectedData API whose
+         Windows implementation DPAPI-encrypts a BYOK cloud provider's API key before it touches disk. -->
+    <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <!-- PHASE-11 Step 072: SelectionContext wraps the already-accepted PHASE-02 SequenceDocument/
+         EffectInstance and PHASE-03 EditScope/IEffectLockPolicy: a selection snapshot only has
+         meaning against an already-editable document and an already-enforced lock policy. Neither
+         Xlights nor Editing references AiEdits (verified before adding), so this is not a cyclic
+         reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Editing\XlightsAI.Studio.Editing.csproj" />
+    <!-- PHASE-11 Step 073: StructuredCommandInterpreter's own "follow role" role-change grammar
+         resolves against the already-accepted PHASE-10 MusicalRole enum (the smallest possible
+         reference; Composition does not reference AiEdits, verified before adding, so this is not a
+         cyclic reference). -->
+    <ProjectReference Include="..\XlightsAI.Studio.Composition\XlightsAI.Studio.Composition.csproj" />
+  </ItemGroup>
+
+</Project>

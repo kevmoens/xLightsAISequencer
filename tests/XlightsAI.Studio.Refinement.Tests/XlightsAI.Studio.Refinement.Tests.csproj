@@ -1,0 +1,40 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Refinement\XlightsAI.Studio.Refinement.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Editing\XlightsAI.Studio.Editing.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <!-- PHASE-12 Step 080: Step080AcceptanceTests constructs TransitionKind values directly to select a
+         LoopRun.GestureFamily. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Composition\XlightsAI.Studio.Composition.csproj" />
+    <!-- PHASE-12 Step 081: Step081AcceptanceTests constructs real BeatGrid/MelodyTrack/EffectInstance
+         fixtures to exercise the timing/melodic-alignment/legal-effects metrics. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Rhythm\XlightsAI.Studio.Rhythm.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Melody\XlightsAI.Studio.Melody.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <!-- PHASE-13 Step 089: Step089AcceptanceTests constructs real SpatialDisplayGraph/PreviewFrame
+         fixtures and exercises the real LocalGesturePreviewRenderer/DisplayMetricsCalculator to prove the
+         render gate against real (not mocked) renderer/metrics implementations. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Rendering\XlightsAI.Studio.Rendering.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Display\XlightsAI.Studio.Display.csproj" />
+  </ItemGroup>
+
+</Project>

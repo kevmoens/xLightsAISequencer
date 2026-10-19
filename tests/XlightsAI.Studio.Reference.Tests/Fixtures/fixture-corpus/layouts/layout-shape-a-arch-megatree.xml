@@ -1,0 +1,36 @@
+<!--
+  PHASE-01 Step 003 baseline fixture: synthetic layout "shape A".
+  This is a deliberately minimal, hand-authored fixture for Studio development/testing.
+  It is NOT exported from a real xLights installation and is NOT parsed by this Studio's code
+  yet (the phase spec explicitly scopes "do not parse a real xLights layout" out of Phase 01;
+  real import is a later-phase concern). It exists only so later phases have a stable, known,
+  two-model layout "shape" to develop and test an importer against.
+-->
+<xrgbEffects FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model
+      name="Arch-01"
+      DisplayAs="Arches"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="1"
+      parm2="50"
+      parm3="1"
+      WindowRows="1"
+      WindowColumns="50"
+      Antialiasing="1" />
+    <model
+      name="MegaTree-Center"
+      DisplayAs="Tree 360"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="16"
+      parm2="100"
+      parm3="1"
+      TreeRotation="0"
+      Degrees="360" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Front-Yard" models="Arch-01,MegaTree-Center" />
+  </modelGroups>
+</xrgbEffects>

@@ -1,0 +1,35 @@
+<!--
+  PHASE-02 Step 011 golden fixture: a show directory whose xlights_rgbeffects.xml carries one
+  broken/unresolved model-group reference ("Ghost-Prop", which has no matching <model>), one nested
+  group reference ("Front-Yard" listed as a member of "All-Props"), and one submodel reference
+  ("Arch-01/Segment-1", whose model half "Arch-01" does resolve). Proves broken references produce
+  warnings rather than a destructive/partial import, and that nested groups are never flattened.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model
+      name="Arch-01"
+      DisplayAs="Arches"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="1"
+      parm2="50"
+      parm3="1"
+      WorldPosX="10.5"
+      WorldPosY="-2.25" />
+    <model
+      name="MegaTree-Center"
+      DisplayAs="Tree 360"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="16"
+      parm2="100"
+      parm3="1"
+      WorldPosX="0"
+      WorldPosY="0" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Front-Yard" models="Arch-01,MegaTree-Center,Ghost-Prop" />
+    <modelGroup name="All-Props" models="Front-Yard,Arch-01/Segment-1" />
+  </modelGroups>
+</xrgb>

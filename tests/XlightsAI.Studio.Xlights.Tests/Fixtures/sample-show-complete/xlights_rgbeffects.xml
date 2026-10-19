@@ -1,0 +1,35 @@
+<!--
+  PHASE-02 Step 009 fixture: a minimal show directory with both the required and the optional
+  top-level xLights show file present. Content is a deliberately minimal, hand-authored layout
+  (same "shape A" models as the PHASE-01 Step 003 fixture) — Step 009 only proves file *discovery*
+  (existence/boundary), not XML parsing (that is Step 010's scope), so the document body is not
+  exercised by this step's code.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model
+      name="Arch-01"
+      DisplayAs="Arches"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="1"
+      parm2="50"
+      parm3="1"
+      WindowRows="1"
+      WindowColumns="50"
+      Antialiasing="1" />
+    <model
+      name="MegaTree-Center"
+      DisplayAs="Tree 360"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="16"
+      parm2="100"
+      parm3="1"
+      TreeRotation="0"
+      Degrees="360" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Front-Yard" models="Arch-01,MegaTree-Center" />
+  </modelGroups>
+</xrgb>

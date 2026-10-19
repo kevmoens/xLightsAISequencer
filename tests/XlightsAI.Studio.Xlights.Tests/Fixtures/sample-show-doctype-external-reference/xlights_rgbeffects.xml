@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE xrgb SYSTEM "whatever.dtd">
+<xrgb FormatVersion="2" BaseChannel="0">
+  <models>
+    <model name="Arch-01" DisplayAs="Arches" />
+  </models>
+</xrgb>

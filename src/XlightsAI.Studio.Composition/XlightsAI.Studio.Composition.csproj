@@ -1,0 +1,27 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Display\XlightsAI.Studio.Display.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Structure\XlightsAI.Studio.Structure.csproj" />
+    <!-- PHASE-10 Step 071: ChoreographyCompiler compiles admitted candidates into concrete
+         XlightsAI.Studio.Xlights.EffectInstance/SequenceDocument values via the already-accepted
+         IEffectRecipeRegistry (PHASE-02), and enforces XlightsAI.Studio.Editing's already-accepted
+         EditScope/IEffectLockPolicy (PHASE-03) so a composed plan can never silently touch a locked
+         effect. Step 070's own ADR explicitly deferred "concrete xLights effect-recipe compilation/
+         collision resolution" to this step. Neither Xlights nor Editing references Composition
+         (verified before adding), so this is not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Editing\XlightsAI.Studio.Editing.csproj" />
+  </ItemGroup>
+
+</Project>

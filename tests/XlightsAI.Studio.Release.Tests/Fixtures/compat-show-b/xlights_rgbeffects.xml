@@ -1,0 +1,16 @@
+<!--
+  PHASE-16 Step 098 compatibility-matrix fixture "B": a different, structurally distinct real
+  xLights rgbeffects document (pixel matrix plus two star props plus two overlapping groups) so a
+  layout-fixture-choice test has two genuinely different real fixtures to run the matrix against.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model name="Matrix-Porch" DisplayAs="Matrix" StringType="RGB Nodes" parm1="16" parm2="16" parm3="1" />
+    <model name="Star-Left" DisplayAs="Star" StringType="RGB Nodes" parm1="1" parm2="25" parm3="1" />
+    <model name="Star-Right" DisplayAs="Star" StringType="RGB Nodes" parm1="1" parm2="25" parm3="1" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Stars" models="Star-Left,Star-Right" />
+    <modelGroup name="Whole-Display" models="Matrix-Porch,Star-Left,Star-Right" />
+  </modelGroups>
+</xrgb>

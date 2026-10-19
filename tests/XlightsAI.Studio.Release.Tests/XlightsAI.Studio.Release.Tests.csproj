@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Release\XlightsAI.Studio.Release.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Reference\XlightsAI.Studio.Reference.csproj" />
+    <!-- PHASE-16 Step 100: Step100AcceptanceTests drives the real PHASE-15 Step 095 first-run
+         walkthrough (FirstRunViewModel) end to end as this step's own "first-user walkthrough tested"
+         evidence. Shell does not reference Release (verified in XlightsAI.Studio.Shell.csproj), so this
+         is not a cyclic reference. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Shell\XlightsAI.Studio.Shell.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="Fixtures\**\*.xml" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

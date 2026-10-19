@@ -1,0 +1,99 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<rect x="0" y="0" width="1200" height="720" rx="0" fill="#0c1422" opacity="1"/>
+<rect x="0" y="0" width="1200" height="61" rx="0" fill="#111d2e" opacity="1"/>
+<rect x="0" y="61" width="212" height="659" rx="0" fill="#142033" opacity="1"/>
+<text x="23" y="38" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="bold" text-anchor="start" opacity="1">xLIGHTS AI</text>
+<rect x="152" y="17" width="75" height="25" rx="12" fill="#b6a0f5" opacity="0.17"/>
+<text x="189.5" y="34" fill="#b6a0f5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">STUDIO</text>
+<text x="236" y="29" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Winter Show 2026</text>
+<text x="236" y="49" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Example Track  /  Local project</text>
+<rect x="966" y="14" width="78" height="35" rx="7" fill="#20334c" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="1005.0" y="37" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Save</text>
+<rect x="1056" y="14" width="115" height="35" rx="7" fill="#67b8f7" opacity="1"/>
+<text x="1113.5" y="37" fill="#0c1422" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Export</text>
+<text x="30" y="98" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Projects</text>
+<rect x="10" y="119" width="190" height="37" rx="6" fill="#20334c" opacity="1"/>
+<rect x="10" y="119" width="4" height="37" rx="2" fill="#67b8f7" opacity="1"/>
+<text x="30" y="144" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Overview</text>
+<text x="30" y="190" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Show Layout</text>
+<text x="30" y="236" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Music</text>
+<text x="30" y="282" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Analysis</text>
+<text x="30" y="328" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Structure</text>
+<text x="30" y="374" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Choreography</text>
+<text x="30" y="420" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Sequence Editor</text>
+<text x="30" y="466" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Review</text>
+<text x="30" y="512" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Export</text>
+<text x="30" y="558" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Settings</text>
+<text x="20" y="654" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Prototype screens</text>
+<text x="20" y="674" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Desktop / offline first</text>
+<line x1="212" y1="61" x2="212" y2="720" stroke="#304762" stroke-width="1" opacity="1"/>
+<text x="240" y="97" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" text-anchor="start" opacity="1">S03  Project Overview</text>
+<text x="240" y="120" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="normal" text-anchor="start" opacity="1">The readiness of your show, music analysis and exported sequence.</text>
+<rect x="212" y="688" width="988" height="32" rx="0" fill="#111d2e" opacity="1"/>
+<text x="232" y="709" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Saved locally  |  20 fps sequence  |  Example data - design concept</text>
+<text x="1175" y="709" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">xLights AI</text>
+<rect x="249" y="154" width="124" height="81" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="263" y="181" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Display</text>
+<rect x="260" y="192" width="93" height="25" rx="12" fill="#59d5b5" opacity="0.17"/>
+<text x="306.5" y="209" fill="#59d5b5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Ready</text>
+<rect x="381" y="154" width="124" height="81" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="395" y="181" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Audio</text>
+<rect x="392" y="192" width="93" height="25" rx="12" fill="#59d5b5" opacity="0.17"/>
+<text x="438.5" y="209" fill="#59d5b5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Ready</text>
+<rect x="513" y="154" width="124" height="81" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="527" y="181" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Rhythm</text>
+<rect x="524" y="192" width="93" height="25" rx="12" fill="#59d5b5" opacity="0.17"/>
+<text x="570.5" y="209" fill="#59d5b5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Ready</text>
+<rect x="645" y="154" width="124" height="81" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="659" y="181" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Stems</text>
+<rect x="656" y="192" width="93" height="25" rx="12" fill="#59d5b5" opacity="0.17"/>
+<text x="702.5" y="209" fill="#59d5b5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Ready</text>
+<rect x="777" y="154" width="124" height="81" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="791" y="181" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Melody</text>
+<rect x="788" y="192" width="93" height="25" rx="12" fill="#f6bc69" opacity="0.17"/>
+<text x="834.5" y="209" fill="#f6bc69" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Next</text>
+<rect x="909" y="154" width="124" height="81" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="923" y="181" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Choreography</text>
+<rect x="920" y="192" width="93" height="25" rx="12" fill="#f6bc69" opacity="0.17"/>
+<text x="966.5" y="209" fill="#f6bc69" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Next</text>
+<rect x="1041" y="154" width="124" height="81" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="1055" y="181" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Export</text>
+<rect x="1052" y="192" width="93" height="25" rx="12" fill="#f6bc69" opacity="0.17"/>
+<text x="1098.5" y="209" fill="#f6bc69" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Next</text>
+<text x="251" y="275" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="17" font-weight="bold" text-anchor="start" opacity="1">Your Song</text>
+<rect x="253" y="296" width="92.58" height="49" rx="5" fill="#67b8f7" opacity="0.64"/>
+<text x="299.29" y="325" fill="#101b29" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Intro</text>
+<rect x="349.58" y="296" width="154.04" height="49" rx="5" fill="#59d5b5" opacity="0.64"/>
+<text x="426.59999999999997" y="325" fill="#101b29" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Verse A</text>
+<rect x="507.62" y="296" width="162.82" height="49" rx="5" fill="#f6bc69" opacity="0.64"/>
+<text x="589.03" y="325" fill="#101b29" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Chorus A</text>
+<rect x="674.44" y="296" width="145.26000000000002" height="49" rx="5" fill="#59d5b5" opacity="0.64"/>
+<text x="747.07" y="325" fill="#101b29" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Verse B</text>
+<rect x="823.7" y="296" width="145.26000000000002" height="49" rx="5" fill="#f6bc69" opacity="0.64"/>
+<text x="896.33" y="325" fill="#101b29" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Chorus B</text>
+<rect x="972.96" y="296" width="66.24" height="49" rx="5" fill="#b6a0f5" opacity="0.64"/>
+<text x="1006.08" y="325" fill="#101b29" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Bridge</text>
+<rect x="1043.2" y="296" width="83.80000000000001" height="49" rx="5" fill="#e792ba" opacity="0.64"/>
+<text x="1085.1000000000001" y="325" fill="#101b29" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Final</text>
+<rect x="252" y="372" width="563" height="255" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="266" y="399" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Continue where you left off</text>
+<text x="266" y="418" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Working on verse choreography at 00:42-00:48</text>
+<text x="274" y="442" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Next recommended action</text>
+<text x="274" y="472" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="14" font-weight="bold" text-anchor="start" opacity="1">Review piano notes and map movement to arches.</text>
+<rect x="273" y="526" width="197" height="35" rx="7" fill="#67b8f7" opacity="1"/>
+<text x="371.5" y="549" fill="#0c1422" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Continue Editing</text>
+<rect x="830" y="372" width="309" height="255" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="844" y="399" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Project health</text>
+<line x1="850" y1="451" x2="1110" y2="451" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="858" y="440" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Display models</text>
+<text x="1090" y="440" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">42 models</text>
+<line x1="850" y1="494" x2="1110" y2="494" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="858" y="483" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Audio loaded</text>
+<text x="1090" y="483" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">03:18 total</text>
+<line x1="850" y1="537" x2="1110" y2="537" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="858" y="526" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Beat confidence</text>
+<text x="1090" y="526" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">High</text>
+<line x1="850" y1="580" x2="1110" y2="580" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="858" y="569" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Warnings</text>
+<text x="1090" y="569" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">2 to review</text>
+</svg>

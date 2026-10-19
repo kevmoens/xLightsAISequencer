@@ -1,0 +1,30 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- PHASE-14 Step 090: song-level creative direction links existing SongStructure.Structure section
+         ids/motif groups (XlightsAI.Studio.Structure) and reuses XlightsAI.Studio.Composition's own
+         MusicalRole (focal role per section) rather than duplicating either concept. Neither Structure nor
+         Composition references WholeSong (verified before adding), so this is not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Structure\XlightsAI.Studio.Structure.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Composition\XlightsAI.Studio.Composition.csproj" />
+    <!-- PHASE-14 Step 091: PhraseSeamAssembler compiles accepted phrase candidates into concrete
+         XlightsAI.Studio.Xlights.EffectInstance/SequenceDocument values and enforces
+         XlightsAI.Studio.Editing's already-accepted EditScope/IEffectLockPolicy (PHASE-03), the same
+         direct dependency ChoreographyCompiler (PHASE-10 Step 071) already takes on both projects.
+         Neither Xlights nor Editing references WholeSong (verified before adding), so this is not a
+         cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Editing\XlightsAI.Studio.Editing.csproj" />
+  </ItemGroup>
+
+</Project>

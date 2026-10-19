@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE html>
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model name="Arch-01" DisplayAs="Arches" StringType="RGB Nodes" parm1="1" parm2="50" parm3="1" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Front-Yard" models="Arch-01" />
+  </modelGroups>
+</xrgb>

@@ -1,0 +1,93 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<rect x="0" y="0" width="1200" height="720" rx="0" fill="#0c1422" opacity="1"/>
+<rect x="0" y="0" width="1200" height="61" rx="0" fill="#111d2e" opacity="1"/>
+<rect x="0" y="61" width="212" height="659" rx="0" fill="#142033" opacity="1"/>
+<text x="23" y="38" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="bold" text-anchor="start" opacity="1">xLIGHTS AI</text>
+<rect x="152" y="17" width="75" height="25" rx="12" fill="#b6a0f5" opacity="0.17"/>
+<text x="189.5" y="34" fill="#b6a0f5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">STUDIO</text>
+<text x="236" y="29" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Winter Show 2026</text>
+<text x="236" y="49" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Example Track  /  Local project</text>
+<rect x="966" y="14" width="78" height="35" rx="7" fill="#20334c" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="1005.0" y="37" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Save</text>
+<rect x="1056" y="14" width="115" height="35" rx="7" fill="#67b8f7" opacity="1"/>
+<text x="1113.5" y="37" fill="#0c1422" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Export</text>
+<text x="30" y="98" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Projects</text>
+<text x="30" y="144" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Overview</text>
+<text x="30" y="190" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Show Layout</text>
+<text x="30" y="236" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Music</text>
+<rect x="10" y="257" width="190" height="37" rx="6" fill="#20334c" opacity="1"/>
+<rect x="10" y="257" width="4" height="37" rx="2" fill="#67b8f7" opacity="1"/>
+<text x="30" y="282" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Analysis</text>
+<text x="30" y="328" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Structure</text>
+<text x="30" y="374" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Choreography</text>
+<text x="30" y="420" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Sequence Editor</text>
+<text x="30" y="466" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Review</text>
+<text x="30" y="512" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Export</text>
+<text x="30" y="558" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Settings</text>
+<text x="20" y="654" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Prototype screens</text>
+<text x="20" y="674" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Desktop / offline first</text>
+<line x1="212" y1="61" x2="212" y2="720" stroke="#304762" stroke-width="1" opacity="1"/>
+<text x="240" y="97" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" text-anchor="start" opacity="1">S10  Piano Roll and Note Editor</text>
+<text x="240" y="120" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="normal" text-anchor="start" opacity="1">Follow actual melody direction, note durations, leaps and rests.</text>
+<rect x="212" y="688" width="988" height="32" rx="0" fill="#111d2e" opacity="1"/>
+<text x="232" y="709" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Saved locally  |  20 fps sequence  |  Example data - design concept</text>
+<text x="1175" y="709" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">xLights AI</text>
+<rect x="250" y="148" width="891" height="87" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="264" y="175" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Lead Piano - melody events</text>
+<text x="264" y="194" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Source: piano stem   |   Pitch tracking: confidence-aware</text>
+<rect x="269" y="186" width="75" height="25" rx="12" fill="#59d5b5" opacity="0.17"/>
+<text x="306.5" y="203" fill="#59d5b5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Notes</text>
+<rect x="356" y="186" width="91" height="25" rx="12" fill="#67b8f7" opacity="0.17"/>
+<text x="401.5" y="203" fill="#67b8f7" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Contour</text>
+<rect x="464" y="186" width="134" height="25" rx="12" fill="#f6bc69" opacity="0.17"/>
+<text x="531.0" y="203" fill="#f6bc69" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Correct events</text>
+<rect x="250" y="251" width="891" height="359" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="264" y="278" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Piano roll</text>
+<rect x="267" y="291" width="77" height="36" rx="2" fill="#20334c" opacity="1"/>
+<text x="295" y="315" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">G4</text>
+<line x1="346" y1="291" x2="1123" y2="291" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<rect x="267" y="329" width="77" height="36" rx="2" fill="#20334c" opacity="1"/>
+<text x="295" y="353" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">F4</text>
+<line x1="346" y1="329" x2="1123" y2="329" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<rect x="267" y="367" width="77" height="36" rx="2" fill="#20334c" opacity="1"/>
+<text x="295" y="391" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">E4</text>
+<line x1="346" y1="367" x2="1123" y2="367" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<rect x="267" y="405" width="77" height="36" rx="2" fill="#20334c" opacity="1"/>
+<text x="295" y="429" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">D4</text>
+<line x1="346" y1="405" x2="1123" y2="405" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<rect x="267" y="443" width="77" height="36" rx="2" fill="#20334c" opacity="1"/>
+<text x="295" y="467" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">C4</text>
+<line x1="346" y1="443" x2="1123" y2="443" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<rect x="267" y="481" width="77" height="36" rx="2" fill="#20334c" opacity="1"/>
+<text x="295" y="505" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">B3</text>
+<line x1="346" y1="481" x2="1123" y2="481" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<rect x="267" y="519" width="77" height="36" rx="2" fill="#20334c" opacity="1"/>
+<text x="295" y="543" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="start" opacity="1">A3</text>
+<line x1="346" y1="519" x2="1123" y2="519" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="348" y1="290" x2="348" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="391" y1="290" x2="391" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="434" y1="290" x2="434" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="477" y1="290" x2="477" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="520" y1="290" x2="520" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="563" y1="290" x2="563" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="606" y1="290" x2="606" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="649" y1="290" x2="649" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="692" y1="290" x2="692" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="735" y1="290" x2="735" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="778" y1="290" x2="778" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="821" y1="290" x2="821" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="864" y1="290" x2="864" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="907" y1="290" x2="907" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="950" y1="290" x2="950" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="993" y1="290" x2="993" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="1036" y1="290" x2="1036" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<line x1="1079" y1="290" x2="1079" y2="565" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<rect x="351" y="444" width="82" height="29" rx="4" fill="#59d5b5" opacity="1"/>
+<rect x="437" y="406" width="82" height="29" rx="4" fill="#59d5b5" opacity="1"/>
+<rect x="523" y="368" width="82" height="29" rx="4" fill="#59d5b5" opacity="1"/>
+<rect x="609" y="292" width="125" height="29" rx="4" fill="#59d5b5" opacity="1"/>
+<rect x="738" y="368" width="82" height="29" rx="4" fill="#59d5b5" opacity="1"/>
+<rect x="824" y="406" width="82" height="29" rx="4" fill="#59d5b5" opacity="1"/>
+<rect x="910" y="444" width="125" height="29" rx="4" fill="#59d5b5" opacity="1"/>
+<text x="271" y="635" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Gesture: Rise -&gt; peak -&gt; descend   |   Correct note placement before generating.</text>
+</svg>

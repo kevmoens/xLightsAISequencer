@@ -1,0 +1,41 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\XlightsAI.Studio.Projects\XlightsAI.Studio.Projects.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Editing\XlightsAI.Studio.Editing.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Audio\XlightsAI.Studio.Audio.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Stems\XlightsAI.Studio.Stems.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Melody\XlightsAI.Studio.Melody.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Structure\XlightsAI.Studio.Structure.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Display\XlightsAI.Studio.Display.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Composition\XlightsAI.Studio.Composition.csproj" />
+    <!-- PHASE-11 Step 072: SelectionContextEditorViewModel binds directly to the new
+         ISelectionContextCaptureService/ISelectionContextStore boundary. Neither Xlights nor Editing
+         references AiEdits (verified in XlightsAI.Studio.AiEdits.csproj's own doc comment), so this is
+         not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.AiEdits\XlightsAI.Studio.AiEdits.csproj" />
+    <!-- PHASE-12 Step 084: CandidateCompareViewModel/CandidateGalleryRow bind directly to the new
+         IRefinementRunStore/IChoreographyQualityEvaluator/IRefinementCandidateCommitService boundary.
+         Refinement does not reference Shell (verified in XlightsAI.Studio.Refinement.csproj), so this is
+         not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Refinement\XlightsAI.Studio.Refinement.csproj" />
+    <!-- PHASE-13 Step 085: RenderPreviewViewModel binds directly to the new ILocalPreviewRenderer
+         boundary. Rendering does not reference Shell, so this is not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Rendering\XlightsAI.Studio.Rendering.csproj" />
+    <!-- PHASE-15 Step 095: FirstRunViewModel binds directly to the Step 094 IRuntimeCapabilityDetector/
+         IStartupHealthChecks boundary. Distribution does not reference Shell (it only references
+         Contracts), so this is not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Distribution\XlightsAI.Studio.Distribution.csproj" />
+  </ItemGroup>
+
+</Project>

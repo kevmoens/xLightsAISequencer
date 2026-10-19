@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [main, master]
+  pull_request:
+    branches: [main, master]
+
+jobs:
+  build-test:
+    name: Build, format, test (Windows)
+    runs-on: windows-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "10.0.x"
+
+      - name: Restore
+        run: dotnet restore XlightsAI.Studio.slnx
+
+      - name: Format check (no Python required)
+        run: dotnet format XlightsAI.Studio.slnx --verify-no-changes
+
+      - name: Build (Release)
+        run: dotnet build XlightsAI.Studio.slnx -c Release --no-restore
+
+      - name: Test - Golden (pinned reference / fixture-corpus)
+        if: always()
+        run: >
+          dotnet test XlightsAI.Studio.slnx -c Release --no-build
+          --filter "Category=Golden"
+          --logger "trx;LogFileName=golden.trx"
+          --results-directory TestResults
+
+      - name: Test - Unit
+        if: always()
+        run: >
+          dotnet test XlightsAI.Studio.slnx -c Release --no-build
+          --filter "Category=Unit"
+          --logger "trx;LogFileName=unit.trx"
+          --results-directory TestResults
+
+      - name: Test - Integration
+        if: always()
+        run: >
+          dotnet test XlightsAI.Studio.slnx -c Release --no-build
+          --filter "Category=Integration"
+          --logger "trx;LogFileName=integration.trx"
+          --results-directory TestResults
+
+      - name: Publish test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-reports
+          path: TestResults/**/*.trx
+          if-no-files-found: error

@@ -1,0 +1,42 @@
+<!--
+  PHASE-01 Step 003 baseline fixture: synthetic layout "shape B".
+  Deliberately a different model shape/count than layout-shape-a (a pixel matrix plus several
+  single-string star props, vs. shape A's arch + mega tree) so a later importer/grouper has two
+  structurally distinct fixtures to be tested against. See layout-shape-a-arch-megatree.xml for
+  the "not a real xLights export, not yet parsed" scope note; it applies here identically.
+-->
+<xrgbEffects FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model
+      name="Matrix-Porch"
+      DisplayAs="Matrix"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="16"
+      parm2="16"
+      parm3="1"
+      PixelSize="2" />
+    <model
+      name="Star-Left"
+      DisplayAs="Star"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="1"
+      parm2="25"
+      parm3="1"
+      Points="5" />
+    <model
+      name="Star-Right"
+      DisplayAs="Star"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      parm1="1"
+      parm2="25"
+      parm3="1"
+      Points="5" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Stars" models="Star-Left,Star-Right" />
+    <modelGroup name="Whole-Display" models="Matrix-Porch,Star-Left,Star-Right" />
+  </modelGroups>
+</xrgbEffects>

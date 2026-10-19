@@ -1,0 +1,9 @@
+<?xml version="1.0"?>
+<!DOCTYPE xrgbEffects [
+  <!ENTITY xxe SYSTEM "file:///etc/passwd">
+]>
+<xrgbEffects FormatVersion="2" BaseChannel="0">
+  <models>
+    <model name="Arch-01" DisplayAs="&xxe;" />
+  </models>
+</xrgbEffects>

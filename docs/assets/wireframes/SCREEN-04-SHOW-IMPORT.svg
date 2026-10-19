@@ -1,0 +1,79 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<rect x="0" y="0" width="1200" height="720" rx="0" fill="#0c1422" opacity="1"/>
+<rect x="0" y="0" width="1200" height="61" rx="0" fill="#111d2e" opacity="1"/>
+<rect x="0" y="61" width="212" height="659" rx="0" fill="#142033" opacity="1"/>
+<text x="23" y="38" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="bold" text-anchor="start" opacity="1">xLIGHTS AI</text>
+<rect x="152" y="17" width="75" height="25" rx="12" fill="#b6a0f5" opacity="0.17"/>
+<text x="189.5" y="34" fill="#b6a0f5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">STUDIO</text>
+<text x="236" y="29" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Winter Show 2026</text>
+<text x="236" y="49" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Example Track  /  Local project</text>
+<rect x="966" y="14" width="78" height="35" rx="7" fill="#20334c" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="1005.0" y="37" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Save</text>
+<rect x="1056" y="14" width="115" height="35" rx="7" fill="#67b8f7" opacity="1"/>
+<text x="1113.5" y="37" fill="#0c1422" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Export</text>
+<text x="30" y="98" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Projects</text>
+<text x="30" y="144" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Overview</text>
+<rect x="10" y="165" width="190" height="37" rx="6" fill="#20334c" opacity="1"/>
+<rect x="10" y="165" width="4" height="37" rx="2" fill="#67b8f7" opacity="1"/>
+<text x="30" y="190" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Show Layout</text>
+<text x="30" y="236" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Music</text>
+<text x="30" y="282" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Analysis</text>
+<text x="30" y="328" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Structure</text>
+<text x="30" y="374" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Choreography</text>
+<text x="30" y="420" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Sequence Editor</text>
+<text x="30" y="466" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Review</text>
+<text x="30" y="512" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Export</text>
+<text x="30" y="558" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Settings</text>
+<text x="20" y="654" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Prototype screens</text>
+<text x="20" y="674" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Desktop / offline first</text>
+<line x1="212" y1="61" x2="212" y2="720" stroke="#304762" stroke-width="1" opacity="1"/>
+<text x="240" y="97" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" text-anchor="start" opacity="1">S04  xLights Show Import</text>
+<text x="240" y="120" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="normal" text-anchor="start" opacity="1">Connect an existing show without modifying source layout XML.</text>
+<rect x="212" y="688" width="988" height="32" rx="0" fill="#111d2e" opacity="1"/>
+<text x="232" y="709" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Saved locally  |  20 fps sequence  |  Example data - design concept</text>
+<text x="1175" y="709" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">xLights AI</text>
+<rect x="251" y="149" width="893" height="83" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="265" y="176" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Selected xLights show folder</text>
+<rect x="270" y="187" width="652" height="30" rx="5" fill="#20334c" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="283" y="207" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">C:/xLights/Shows/Winter-2026</text>
+<rect x="949" y="182" width="150" height="35" rx="7" fill="#20334c" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="1024.0" y="205" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Browse</text>
+<rect x="251" y="245" width="521" height="375" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="265" y="272" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Imported models</text>
+<text x="265" y="291" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Found 42 models, 12 groups, 0 critical errors</text>
+<line x1="264" y1="348" x2="758" y2="348" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="272" y="337" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Roofline Top</text>
+<text x="738" y="337" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">Spatial line</text>
+<line x1="264" y1="391" x2="758" y2="391" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="272" y="380" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Window Left</text>
+<text x="738" y="380" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">Rectangle</text>
+<line x1="264" y1="434" x2="758" y2="434" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="272" y="423" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Window Right</text>
+<text x="738" y="423" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">Rectangle</text>
+<line x1="264" y1="477" x2="758" y2="477" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="272" y="466" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Arches (group)</text>
+<text x="738" y="466" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">5 members</text>
+<line x1="264" y1="520" x2="758" y2="520" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="272" y="509" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Mega Tree</text>
+<text x="738" y="509" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">Tree</text>
+<line x1="264" y1="563" x2="758" y2="563" stroke="#304762" stroke-width="0.8" opacity="1"/>
+<text x="272" y="552" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Singing Faces</text>
+<text x="738" y="552" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">Submodels</text>
+<rect x="786" y="245" width="358" height="375" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="800" y="272" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Approximate display preview</text>
+<rect x="804" y="310" width="322" height="262" rx="6" fill="#0c1422" opacity="1"/>
+<line x1="818.4" y1="464.75" x2="890.6" y2="401.1" stroke="#67b8f7" stroke-width="4.75" opacity="1"/>
+<line x1="890.6" y1="401.1" x2="949.5" y2="439.1" stroke="#67b8f7" stroke-width="4.75" opacity="1"/>
+<line x1="949.5" y1="439.1" x2="1010.3" y2="385.9" stroke="#67b8f7" stroke-width="4.75" opacity="1"/>
+<line x1="1010.3" y1="385.9" x2="1104.35" y2="464.75" stroke="#67b8f7" stroke-width="4.75" opacity="1"/>
+<rect x="875.4" y="467.6" width="49.4" height="51.3" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="2.8499999999999996"/>
+<rect x="1020.75" y="467.6" width="49.4" height="51.3" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="2.8499999999999996"/>
+<path d="M 944.75 522.7 L 944.75 479.0 Q 963.75 447.65 982.75 479.0 L 982.75 522.7" stroke="#b6a0f5" fill="none" stroke-width="3.8"/>
+<path d="M 814.6 541.7 Q 838.35 493.25 862.1 541.7" stroke="#59d5b5" fill="none" stroke-width="4.75"/>
+<path d="M 873.5 541.7 Q 897.25 493.25 921.0 541.7" stroke="#59d5b5" fill="none" stroke-width="4.75"/>
+<path d="M 932.4 541.7 Q 956.15 493.25 979.9 541.7" stroke="#f6bc69" fill="none" stroke-width="4.75"/>
+<path d="M 991.3 541.7 Q 1015.05 493.25 1038.8 541.7" stroke="#59d5b5" fill="none" stroke-width="4.75"/>
+<path d="M 1050.2 541.7 Q 1073.95 493.25 1097.7 541.7" stroke="#59d5b5" fill="none" stroke-width="4.75"/>
+<rect x="818" y="578" width="206" height="25" rx="12" fill="#f6bc69" opacity="0.17"/>
+<text x="921.0" y="595" fill="#f6bc69" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">Geometry approximate</text>
+</svg>

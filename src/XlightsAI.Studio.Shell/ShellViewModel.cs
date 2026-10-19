@@ -1,0 +1,1078 @@
+using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Projects;
+using XlightsAI.Studio.Xlights;
+using XlightsAI.Studio.Display;
+using XlightsAI.Studio.Distribution;
+
+namespace XlightsAI.Studio.Shell;
+
+/// <summary>
+/// Root view model for the Avalonia shell. Composes the startup/navigation state machine with
+/// the screens shipped so far (Welcome, Projects, Settings, Diagnostics). The Avalonia MainWindow
+/// binds to this type only; it contains no Avalonia types itself, so it is fully unit-testable.
+///
+/// <paramref name="settingsStore"/> and <paramref name="diagnostics"/> are new in Step 005 and
+/// default to no-op implementations (<see cref="NullSettingsStore"/>, <see cref="NullAppDiagnostics"/>)
+/// specifically so Step 004's existing two-argument call sites and tests keep compiling and
+/// behaving identically (always starts on Welcome, nothing persisted) without modification — an
+/// explicit compatibility decision rather than a breaking contract change. Real composition (the
+/// App project) always supplies the real implementations.
+///
+/// <paramref name="projectService"/> is new in Step 006 and follows the exact same compatibility
+/// pattern: it defaults to <see cref="NullProjectService"/>, so Step 004/005's existing call sites
+/// and tests keep compiling and behaving identically (Create/Open simply report "no project
+/// service is configured" rather than succeeding) without modification.
+/// </summary>
+public sealed class ShellViewModel : ObservableObject
+{
+    private readonly IShellNavigator _navigator;
+    private readonly Func<IReadOnlyList<string>> _projectNamesSource;
+    private readonly ISettingsStore _settingsStore;
+    private readonly IAppDiagnostics _diagnostics;
+    private readonly IProjectService _projectService;
+    private readonly IShowDirectoryDiscoveryService _showDirectoryDiscoveryService;
+    private readonly IShowLayoutImporter _showLayoutImporter;
+    private readonly IThreeEffectPlanFactory _threeEffectPlanFactory;
+    private readonly IEffectRecipeRegistry _effectRecipeRegistry;
+    private readonly ISequenceDocumentStore _sequenceDocumentStore;
+    private readonly IXsqExporter _xsqExporter;
+    private readonly IXlightsLauncher _xlightsLauncher;
+    private readonly IAudioDecoder _audioDecoder;
+    private readonly ISongAssetStore _songAssetStore;
+    private readonly IAudioTransport _audioTransport;
+    private readonly IWaveformPyramidStore _waveformPyramidStore;
+    private readonly IWaveformBuilder _waveformBuilder;
+    private readonly MasterPlaybackClock _masterClock;
+    private readonly IRuntimeCapabilityDetector _runtimeCapabilityDetector;
+    private readonly IStartupHealthChecks _startupHealthChecks;
+    private readonly IAssetInstaller _assetInstaller;
+    private readonly DownloadableAsset? _optionalModelAsset;
+    private bool _isRestoringLastScreen;
+
+    /// <summary>PHASE-03 Step 016: how many pixels <see cref="TimelineScrollLeftCommand"/>/<see cref="TimelineScrollRightCommand"/> scroll per click.</summary>
+    public const double TimelineScrollStepPixels = 80d;
+
+    public ShellViewModel(
+        IShellNavigator navigator,
+        Func<IReadOnlyList<string>> projectNamesSource,
+        ISettingsStore? settingsStore = null,
+        IAppDiagnostics? diagnostics = null,
+        IProjectService? projectService = null,
+        IShowDirectoryDiscoveryService? showDirectoryDiscoveryService = null,
+        IShowLayoutImporter? showLayoutImporter = null,
+        IThreeEffectPlanFactory? threeEffectPlanFactory = null,
+        IEffectRecipeRegistry? effectRecipeRegistry = null,
+        ISequenceDocumentStore? sequenceDocumentStore = null,
+        IXsqExporter? xsqExporter = null,
+        IXlightsLauncher? xlightsLauncher = null,
+        IAudioDecoder? audioDecoder = null,
+        ISongAssetStore? songAssetStore = null,
+        IAudioTransport? audioTransport = null,
+        IWaveformPyramidStore? waveformPyramidStore = null,
+        IWaveformBuilder? waveformBuilder = null,
+        IRuntimeCapabilityDetector? runtimeCapabilityDetector = null,
+        IStartupHealthChecks? startupHealthChecks = null,
+        IAssetInstaller? assetInstaller = null,
+        DownloadableAsset? optionalModelAsset = null)
+    {
+        _navigator = navigator ?? throw new ArgumentNullException(nameof(navigator));
+        _projectNamesSource = projectNamesSource ?? throw new ArgumentNullException(nameof(projectNamesSource));
+        _settingsStore = settingsStore ?? NullSettingsStore.Instance;
+        _diagnostics = diagnostics ?? NullAppDiagnostics.Instance;
+        _projectService = projectService ?? NullProjectService.Instance;
+        _showDirectoryDiscoveryService = showDirectoryDiscoveryService ?? NullShowDirectoryDiscoveryService.Instance;
+
+        // Deliberately NOT the NullShowLayoutImporter compatibility pattern used by the other
+        // optional collaborators above: ShowLayoutImporter is a pure, stateless, read-only XML
+        // parser with no external configuration (no path/service to wire up), so there is nothing
+        // "unconfigured" about omitting it — unlike IProjectService/IShowDirectoryDiscoveryService,
+        // which need a real caller-supplied target before they can do anything meaningful. Defaulting
+        // to a real instance here also means Step 009's own already-accepted Discover flow keeps
+        // parsing (now also successfully round-tripping Step 010's own Layout) without every one of
+        // Step 009's existing tests needing to start passing an explicit importer. See
+        // implementation-evidence/PHASE-02/STEP-10.md Section 9 for the full architecture note.
+        _showLayoutImporter = showLayoutImporter ?? new ShowLayoutImporter();
+
+        // PHASE-02 Step 012: same "pure, stateless domain logic, nothing to configure" reasoning as
+        // _showLayoutImporter above — both default to a real instance rather than the throwing
+        // NullX pattern used by collaborators that need external configuration (below).
+        _threeEffectPlanFactory = threeEffectPlanFactory ?? new ThreeEffectPlanFactory();
+        _effectRecipeRegistry = effectRecipeRegistry ?? new EffectRecipeRegistry();
+
+        // Unlike the two collaborators above, a sequence-document store needs a real output
+        // directory before it can do anything meaningful (same reasoning as
+        // _showDirectoryDiscoveryService/_projectService): defaults to the throwing
+        // NullSequenceDocumentStore, so Step 009-011's existing call sites keep compiling and
+        // behaving identically, and a caller that omits it gets an explicit, disclosed failure
+        // rather than a silently-succeeding fake save.
+        _sequenceDocumentStore = sequenceDocumentStore ?? NullSequenceDocumentStore.Instance;
+
+        // PHASE-02 Step 013: same "pure, stateless domain logic, nothing to configure" reasoning as
+        // _showLayoutImporter/_threeEffectPlanFactory/_effectRecipeRegistry above — XsqExporter takes
+        // its output path as a per-call argument rather than needing a configured directory, so it
+        // defaults to a real instance rather than a throwing NullX stub.
+        _xsqExporter = xsqExporter ?? new XsqExporter();
+
+        // PHASE-02 Step 014: same "pure, stateless domain logic, nothing to configure" reasoning as
+        // _xsqExporter above — XlightsLauncher takes both the executable path and the xsq path as
+        // per-call arguments rather than needing a configured directory, so it defaults to a real
+        // instance rather than a throwing NullX stub.
+        _xlightsLauncher = xlightsLauncher ?? new XlightsLauncher();
+
+        // PHASE-04 Step 024: same "pure, stateless domain logic, nothing to configure" reasoning as
+        // _xsqExporter/_xlightsLauncher above — WavAudioDecoder probes/decodes a per-call file path
+        // rather than needing a configured directory, so it defaults to a real instance.
+        _audioDecoder = audioDecoder ?? new WavAudioDecoder();
+
+        // Unlike _audioDecoder above, a song-asset store needs a real output directory before it
+        // can do anything meaningful (same reasoning as _sequenceDocumentStore): defaults to the
+        // throwing NullSongAssetStore, so a caller that omits it gets an explicit, disclosed
+        // failure rather than a silently-succeeding fake save.
+        _songAssetStore = songAssetStore ?? NullSongAssetStore.Instance;
+
+        // PHASE-04 Step 025: same "pure, stateless, nothing external to configure" reasoning as
+        // _audioDecoder — a real WaveOutAudioTransport opens no OS resource at construction time
+        // (only OpenAsync does), so it is safe to default to a real instance rather than a throwing
+        // NullX stub. On any non-Windows platform (no real backend exists yet — see
+        // docs/ARCHITECTURE-AND-GUARDRAILS.md's "Platform coverage" rule) this defaults instead to
+        // UnsupportedPlatformAudioTransport, which throws a clear, typed message naming the gap on
+        // first use rather than letting a raw native-interop failure surface.
+        _audioTransport = audioTransport ?? CreateDefaultAudioTransport(_audioDecoder);
+
+        // PHASE-04 Step 026: same "needs a real output directory before it can do anything
+        // meaningful" reasoning as _songAssetStore above: defaults to the throwing
+        // NullWaveformPyramidStore so a caller that omits it gets an explicit, disclosed failure
+        // rather than a silently-succeeding fake build.
+        _waveformPyramidStore = waveformPyramidStore ?? NullWaveformPyramidStore.Instance;
+
+        // Unlike _waveformPyramidStore, WaveformPyramidBuilder itself is pure, stateless-at-
+        // construction domain logic (same reasoning as _audioDecoder) once handed its two
+        // collaborators, so it defaults to a real instance built from whichever decoder/store this
+        // constructor ended up with above — including the throwing Null store, if the caller never
+        // configured one; the failure then surfaces from the first real BuildPyramidAsync call,
+        // not from construction.
+        _waveformBuilder = waveformBuilder ?? new WaveformPyramidBuilder(_audioDecoder, _waveformPyramidStore);
+
+        // PHASE-04 Step 028: the one authoritative playhead/master clock, wrapping whichever real
+        // (or, off-Windows, stub) transport this instance resolved to above — there is exactly one
+        // MasterPlaybackClock per ShellViewModel, so the Audio screen's own position display and the
+        // Timeline screen's playhead/scrub preview always read the same real, sample-rate-accurate
+        // conversion (never two independently-computed estimates that could disagree or drift).
+        _masterClock = new MasterPlaybackClock(_audioTransport);
+
+        // PHASE-15 Step 095: same "pure, stateless domain logic, nothing to configure" reasoning as
+        // _showLayoutImporter/_xsqExporter/_xlightsLauncher above — RuntimeCapabilityDetector opens
+        // no external resource at construction, so it defaults to a real instance. Unlike that
+        // detector, a real IStartupHealthChecks needs a concrete bundle directory and ReleaseManifest
+        // this layer does not yet own (PHASE-15 Step 094 Section 6 deliberately deferred that
+        // wiring), so it defaults to the non-throwing NullStartupHealthChecks — first-run reports
+        // zero asset-verification issues until a real release composition root supplies one, rather
+        // than crashing for a collaborator this step has no real bundle to check.
+        _runtimeCapabilityDetector = runtimeCapabilityDetector ?? new RuntimeCapabilityDetector();
+        _startupHealthChecks = startupHealthChecks ?? NullStartupHealthChecks.Instance;
+
+        // PHASE-15 Step 096: same "needs a real output/install directory this layer does not yet own"
+        // reasoning as _sequenceDocumentStore/_songAssetStore above — a real AssetInstaller needs a
+        // concrete install directory only a real published release's own composition root can supply,
+        // which does not exist yet at the Shell/first-run layer (same disclosed deferral as
+        // _startupHealthChecks). Defaults to the throwing NullAssetInstaller so a caller that omits it
+        // gets an explicit, disclosed failure rather than a silently-succeeding fake install;
+        // _optionalModelAsset defaults to null ("no optional asset declared for this build yet"),
+        // surfaced as its own explained message by FirstRunViewModel.InstallOptionalAssetAsync rather
+        // than fabricated.
+        _assetInstaller = assetInstaller ?? NullAssetInstaller.Instance;
+        _optionalModelAsset = optionalModelAsset;
+
+        Welcome = new WelcomeViewModel();
+        Projects = new ProjectsViewModel();
+        Settings = new SettingsViewModel();
+        Diagnostics = new DiagnosticsViewModel();
+        ShowImport = new ShowImportViewModel();
+        Timeline = new TimelineViewModel();
+        Audio = new AudioImportViewModel();
+        PianoRoll = new PianoRollViewModel();
+        StructureInspector = new PhraseRelationshipInspectorViewModel();
+        DisplayPathEditor = new DisplayPathEditorViewModel();
+        FirstRun = new FirstRunViewModel();
+
+        NavigateToProjectsCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.Projects),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToWelcomeCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.Welcome),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToSettingsCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.Settings),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToDiagnosticsCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.Diagnostics),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToShowImportCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.ShowImport),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToTimelineCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.Timeline),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToAudioCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.Audio),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToPianoRollCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.PianoRoll),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToStructureInspectorCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.StructureInspector),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToDisplayPathEditorCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.DisplayPathEditor),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToFirstRunCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.FirstRun),
+            () => _navigator.State == StartupState.Ready);
+        CompleteFirstRunCommand = new DelegateCommand(
+            () => LastCompleteFirstRunCommandTask = RunCompleteFirstRunAsync(),
+            () => _navigator.State == StartupState.Ready && !FirstRun.IsBusy);
+        InstallOptionalAssetCommand = new DelegateCommand(
+            () => LastInstallOptionalAssetCommandTask = RunInstallOptionalAssetAsync(),
+            () => _navigator.State == StartupState.Ready && !FirstRun.IsInstallingOptionalAsset);
+        LoadTimelineCommand = new DelegateCommand(
+            // PHASE-03 Step 017: pass through the already-imported layout (if any) so Load Timeline
+            // also binds the prop rows, not just the time ruler; null when no Discover has
+            // succeeded yet, which LoadTimeline itself treats as "no rows" rather than an error.
+            // PHASE-03 Step 018: also pass through the already-generated plan (if any), so Load
+            // Timeline binds real effect blocks too; null when no plan has been generated yet,
+            // which LoadTimeline itself treats as "no effect blocks" rather than an error.
+            // PHASE-04 Step 027: also pass through the most recently built/reopened waveform
+            // pyramid (if any) and its source song's OriginTicks, so Load Timeline also renders the
+            // synchronized waveform beneath the ruler; null/0 when no waveform cache has been built
+            // yet, which LoadTimeline itself treats as "no waveform strip" rather than an error.
+            () => Timeline.LoadTimeline(
+                ShowImport.Layout, ShowImport.Plan, Audio.LoadedWaveformCache, Audio.ProbedAsset?.OriginTicks ?? 0),
+            () => _navigator.State == StartupState.Ready);
+        TimelineZoomInCommand = new DelegateCommand(
+            () => Timeline.ZoomIn(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineZoomOutCommand = new DelegateCommand(
+            () => Timeline.ZoomOut(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineScrollLeftCommand = new DelegateCommand(
+            () => Timeline.ScrollByPixels(-TimelineScrollStepPixels),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineScrollRightCommand = new DelegateCommand(
+            () => Timeline.ScrollByPixels(TimelineScrollStepPixels),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineSelectNextEffectCommand = new DelegateCommand(
+            () => Timeline.SelectNextEffect(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineSelectPreviousEffectCommand = new DelegateCommand(
+            () => Timeline.SelectPreviousEffect(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineClearSelectionCommand = new DelegateCommand(
+            () => Timeline.ClearSelection(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineApplyRangeSelectionCommand = new DelegateCommand(
+            () => Timeline.ApplyRangeSelection(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineClearRangeSelectionCommand = new DelegateCommand(
+            () => Timeline.ClearRangeSelection(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        DiscoverShowDirectoryCommand = new DelegateCommand(
+            () => LastShowImportCommandTask = RunDiscoverShowDirectoryAsync(),
+            () => _navigator.State == StartupState.Ready && !ShowImport.IsBusy);
+        GenerateEffectPlanCommand = new DelegateCommand(
+            () => LastGenerateEffectPlanCommandTask = ShowImport.GenerateEffectPlanAsync(
+                _threeEffectPlanFactory, _effectRecipeRegistry, _sequenceDocumentStore),
+            () => _navigator.State == StartupState.Ready && !ShowImport.IsPlanBusy);
+        ExportXsqCommand = new DelegateCommand(
+            () => LastExportXsqCommandTask = ShowImport.ExportXsqAsync(_xsqExporter),
+            () => _navigator.State == StartupState.Ready && !ShowImport.IsExportBusy);
+        LaunchXlightsCommand = new DelegateCommand(
+            () => LastLaunchXlightsCommandTask = ShowImport.LaunchXlightsAsync(_xlightsLauncher),
+            () => _navigator.State == StartupState.Ready && !ShowImport.IsLaunchBusy);
+        CreateProjectCommand = new DelegateCommand(
+            () => LastProjectCommandTask = RunCreateProjectAsync(),
+            () => _navigator.State == StartupState.Ready && !Projects.IsBusy);
+        OpenProjectCommand = new DelegateCommand(
+            () => LastProjectCommandTask = RunOpenProjectAsync(),
+            () => _navigator.State == StartupState.Ready && !Projects.IsBusy);
+        ProbeAudioFileCommand = new DelegateCommand(
+            () => LastProbeAudioFileCommandTask = Audio.ProbeAudioFileAsync(_audioDecoder, _songAssetStore),
+            () => _navigator.State == StartupState.Ready && !Audio.IsBusy);
+        OpenAudioPlaybackCommand = new DelegateCommand(
+            () => LastOpenAudioPlaybackCommandTask = Audio.OpenPlaybackAsync(_audioTransport),
+            () => _navigator.State == StartupState.Ready && Audio.HasProbedAsset);
+        PlayAudioCommand = new DelegateCommand(
+            () => LastPlayAudioCommandTask = Audio.PlayAsync(_audioTransport),
+            () => _navigator.State == StartupState.Ready && Audio.IsPlaybackOpen && !Audio.IsPlaying);
+        PauseAudioCommand = new DelegateCommand(
+            () => LastPauseAudioCommandTask = Audio.PauseAsync(_audioTransport),
+            () => _navigator.State == StartupState.Ready && Audio.IsPlaybackOpen && Audio.IsPlaying);
+        SeekAudioCommand = new DelegateCommand(
+            () => LastSeekAudioCommandTask = Audio.SeekAsync(_audioTransport),
+            () => _navigator.State == StartupState.Ready && Audio.IsPlaybackOpen);
+        RefreshAudioPositionCommand = new DelegateCommand(
+            () => Audio.RefreshPlaybackPosition(_audioTransport),
+            () => _navigator.State == StartupState.Ready && Audio.IsPlaybackOpen);
+        BuildWaveformCacheCommand = new DelegateCommand(
+            () => LastBuildWaveformCacheCommandTask = Audio.BuildWaveformCacheAsync(_waveformBuilder, _waveformPyramidStore),
+            () => _navigator.State == StartupState.Ready && Audio.HasProbedAsset && !Audio.IsBuildingWaveform);
+        ScrubTimelinePlayheadCommand = new DelegateCommand(
+            () => LastScrubTimelinePlayheadCommandTask = RunScrubTimelinePlayheadAsync(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        TimelineZoomToSelectionCommand = new DelegateCommand(
+            () => Timeline.ZoomToSelection(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded && Timeline.SelectedRangeScope is not null);
+        SetTimelineLoopFromSelectionCommand = new DelegateCommand(
+            () => RunSetLoopFromSelection(),
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded && Timeline.SelectedRangeScope is not null);
+        ClearTimelineLoopCommand = new DelegateCommand(
+            () => RunClearLoop(),
+            () => _navigator.State == StartupState.Ready && Timeline.HasLoop);
+        SetTimelineSnapNoneCommand = new DelegateCommand(
+            () => Timeline.SnapPolicy = XlightsAI.Studio.Editing.SnapPolicy.None,
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+        SetTimelineSnapFrameCommand = new DelegateCommand(
+            () => Timeline.SnapPolicy = XlightsAI.Studio.Editing.SnapPolicy.Frame,
+            () => _navigator.State == StartupState.Ready && Timeline.IsLoaded);
+
+        _navigator.Changed += OnNavigatorChanged;
+
+        // Raise CanExecuteChanged exactly when IsBusy actually flips, not just before/after the
+        // async call — IsBusy becomes true synchronously inside Projects.CreateProjectAsync/
+        // OpenProjectAsync, so without this the buttons would appear enabled for the full duration
+        // of the operation (see RunCreateProjectAsync's own history: the previous implementation
+        // raised CanExecuteChanged only before IsBusy was set, which never actually disabled them).
+        Projects.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ProjectsViewModel.IsBusy))
+            {
+                CreateProjectCommand.RaiseCanExecuteChanged();
+                OpenProjectCommand.RaiseCanExecuteChanged();
+            }
+        };
+
+        ShowImport.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(ShowImportViewModel.IsBusy))
+            {
+                DiscoverShowDirectoryCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName == nameof(ShowImportViewModel.IsPlanBusy))
+            {
+                GenerateEffectPlanCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName == nameof(ShowImportViewModel.IsExportBusy))
+            {
+                ExportXsqCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName == nameof(ShowImportViewModel.IsLaunchBusy))
+            {
+                LaunchXlightsCommand.RaiseCanExecuteChanged();
+            }
+        };
+
+        FirstRun.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(FirstRunViewModel.IsBusy))
+            {
+                CompleteFirstRunCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName == nameof(FirstRunViewModel.IsInstallingOptionalAsset))
+            {
+                InstallOptionalAssetCommand.RaiseCanExecuteChanged();
+            }
+        };
+
+        Audio.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(AudioImportViewModel.IsBusy))
+            {
+                ProbeAudioFileCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName == nameof(AudioImportViewModel.HasProbedAsset))
+            {
+                OpenAudioPlaybackCommand.RaiseCanExecuteChanged();
+                BuildWaveformCacheCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName is nameof(AudioImportViewModel.IsPlaybackOpen) or nameof(AudioImportViewModel.IsPlaying))
+            {
+                PlayAudioCommand.RaiseCanExecuteChanged();
+                PauseAudioCommand.RaiseCanExecuteChanged();
+                SeekAudioCommand.RaiseCanExecuteChanged();
+                RefreshAudioPositionCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName == nameof(AudioImportViewModel.IsBuildingWaveform))
+            {
+                BuildWaveformCacheCommand.RaiseCanExecuteChanged();
+            }
+
+            // PHASE-04 Step 028: every time the Audio screen's own bindable position/open-state
+            // (itself always set from the real transport by OpenPlaybackAsync/PlayAsync/PauseAsync/
+            // SeekAsync/RefreshPlaybackPosition) changes, push the exact same MasterPlaybackClock
+            // reading into the Timeline's own playhead — the one place both screens' playhead state
+            // is ever written, so they can never disagree.
+            if (e.PropertyName is nameof(AudioImportViewModel.PlaybackPositionTicks) or nameof(AudioImportViewModel.IsPlaybackOpen))
+            {
+                Timeline.SetPlayhead(_masterClock.CanonicalPositionTicks, Audio.IsPlaybackOpen);
+            }
+        };
+
+        Timeline.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(TimelineViewModel.IsLoaded))
+            {
+                TimelineZoomInCommand.RaiseCanExecuteChanged();
+                TimelineZoomOutCommand.RaiseCanExecuteChanged();
+                TimelineScrollLeftCommand.RaiseCanExecuteChanged();
+                TimelineScrollRightCommand.RaiseCanExecuteChanged();
+                TimelineSelectNextEffectCommand.RaiseCanExecuteChanged();
+                TimelineSelectPreviousEffectCommand.RaiseCanExecuteChanged();
+                TimelineClearSelectionCommand.RaiseCanExecuteChanged();
+                TimelineApplyRangeSelectionCommand.RaiseCanExecuteChanged();
+                TimelineClearRangeSelectionCommand.RaiseCanExecuteChanged();
+                ScrubTimelinePlayheadCommand.RaiseCanExecuteChanged();
+                TimelineZoomToSelectionCommand.RaiseCanExecuteChanged();
+                SetTimelineLoopFromSelectionCommand.RaiseCanExecuteChanged();
+                ClearTimelineLoopCommand.RaiseCanExecuteChanged();
+                SetTimelineSnapNoneCommand.RaiseCanExecuteChanged();
+                SetTimelineSnapFrameCommand.RaiseCanExecuteChanged();
+            }
+
+            // PHASE-04 Step 029: zoom-to-selection and set-loop are only ever meaningful against the
+            // currently selected range, so their CanExecute tracks SelectedRangeScope directly (not
+            // just IsLoaded above) — same "button reflects real preconditions" convention every other
+            // command in this project already follows.
+            if (e.PropertyName == nameof(TimelineViewModel.SelectedRangeScope))
+            {
+                TimelineZoomToSelectionCommand.RaiseCanExecuteChanged();
+                SetTimelineLoopFromSelectionCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName == nameof(TimelineViewModel.HasLoop))
+            {
+                ClearTimelineLoopCommand.RaiseCanExecuteChanged();
+            }
+        };
+    }
+
+    public WelcomeViewModel Welcome { get; }
+
+    public ProjectsViewModel Projects { get; }
+
+    public SettingsViewModel Settings { get; }
+
+    public DiagnosticsViewModel Diagnostics { get; }
+
+    public ShowImportViewModel ShowImport { get; }
+
+    /// <summary>PHASE-03 Step 016: SCREEN 13 TIMELINE.</summary>
+    public TimelineViewModel Timeline { get; }
+
+    /// <summary>PHASE-04 Step 024: SCREEN 06 AUDIO.</summary>
+    public AudioImportViewModel Audio { get; }
+
+    /// <summary>PHASE-07 Step 049: SCREEN 10 PIANO ROLL.</summary>
+    public PianoRollViewModel PianoRoll { get; }
+
+    /// <summary>PHASE-08 Step 058: SCREEN 11 STRUCTURE.</summary>
+    public PhraseRelationshipInspectorViewModel StructureInspector { get; }
+
+    /// <summary>PHASE-09 Step 061: SCREEN 05 DISPLAY PATHS.</summary>
+    public DisplayPathEditorViewModel DisplayPathEditor { get; }
+
+    /// <summary>PHASE-15 Step 095: first-run onboarding wizard.</summary>
+    public FirstRunViewModel FirstRun { get; }
+
+    public DelegateCommand NavigateToProjectsCommand { get; }
+
+    public DelegateCommand NavigateToWelcomeCommand { get; }
+
+    public DelegateCommand NavigateToSettingsCommand { get; }
+
+    public DelegateCommand NavigateToDiagnosticsCommand { get; }
+
+    public DelegateCommand NavigateToShowImportCommand { get; }
+
+    public DelegateCommand NavigateToTimelineCommand { get; }
+
+    public DelegateCommand NavigateToAudioCommand { get; }
+
+    public DelegateCommand NavigateToPianoRollCommand { get; }
+
+    public DelegateCommand NavigateToStructureInspectorCommand { get; }
+
+    public DelegateCommand NavigateToDisplayPathEditorCommand { get; }
+
+    /// <summary>PHASE-15 Step 095: navigates to the first-run onboarding wizard (also entered automatically on a fresh install — see <see cref="RunStartup"/>).</summary>
+    public DelegateCommand NavigateToFirstRunCommand { get; }
+
+    /// <summary>PHASE-15 Step 095 "Complete First Run" action: validates/creates <see cref="FirstRunViewModel.WorkspaceDirectory"/>, probes runtime capability and startup health, then — on success — persists <see cref="AppSettings.WorkspaceDirectory"/>/<see cref="AppSettings.HasCompletedFirstRun"/> and returns to Welcome.</summary>
+    public DelegateCommand CompleteFirstRunCommand { get; }
+
+    /// <summary>PHASE-15 Step 096 "Install Optional Asset" action: installs <see cref="_optionalModelAsset"/> (if any) via the real <see cref="_assetInstaller"/> only when <see cref="FirstRunViewModel.OptionalAssetConsent"/> is set, and records the real, human-readable outcome to <see cref="IAppDiagnostics"/>.</summary>
+    public DelegateCommand InstallOptionalAssetCommand { get; }
+
+    /// <summary>PHASE-03 Step 016 "Load Timeline" action, against <see cref="TimelineViewModel.TotalDurationTicks"/>.</summary>
+    public DelegateCommand LoadTimelineCommand { get; }
+
+    public DelegateCommand TimelineZoomInCommand { get; }
+
+    public DelegateCommand TimelineZoomOutCommand { get; }
+
+    public DelegateCommand TimelineScrollLeftCommand { get; }
+
+    public DelegateCommand TimelineScrollRightCommand { get; }
+
+    /// <summary>PHASE-03 Step 018 keyboard navigation: selects the next/previous effect in visual order.</summary>
+    public DelegateCommand TimelineSelectNextEffectCommand { get; }
+
+    public DelegateCommand TimelineSelectPreviousEffectCommand { get; }
+
+    public DelegateCommand TimelineClearSelectionCommand { get; }
+
+    /// <summary>PHASE-03 Step 021: builds <see cref="TimelineViewModel.SelectedRangeScope"/> from the current drag-rectangle inputs.</summary>
+    public DelegateCommand TimelineApplyRangeSelectionCommand { get; }
+
+    public DelegateCommand TimelineClearRangeSelectionCommand { get; }
+
+    public DelegateCommand CreateProjectCommand { get; }
+
+    public DelegateCommand OpenProjectCommand { get; }
+
+    /// <summary>PHASE-04 Step 024 "Probe Audio File" action.</summary>
+    public DelegateCommand ProbeAudioFileCommand { get; }
+
+    /// <summary>PHASE-04 Step 025 "Open Playback" action: opens the real device transport against the most recently probed asset.</summary>
+    public DelegateCommand OpenAudioPlaybackCommand { get; }
+
+    /// <summary>PHASE-04 Step 025 "Play" action.</summary>
+    public DelegateCommand PlayAudioCommand { get; }
+
+    /// <summary>PHASE-04 Step 025 "Pause" action.</summary>
+    public DelegateCommand PauseAudioCommand { get; }
+
+    /// <summary>PHASE-04 Step 025 "Seek" action, against <see cref="AudioImportViewModel.SeekTargetTicksText"/>.</summary>
+    public DelegateCommand SeekAudioCommand { get; }
+
+    /// <summary>PHASE-04 Step 025 "Refresh Position" action: re-reads the real device position without issuing a new transport command.</summary>
+    public DelegateCommand RefreshAudioPositionCommand { get; }
+
+    /// <summary>PHASE-04 Step 026 "Build Waveform Cache" action: builds (or reopens an already-valid) the multiresolution waveform peaks pyramid for the most recently probed asset.</summary>
+    public DelegateCommand BuildWaveformCacheCommand { get; }
+
+    /// <summary>
+    /// PHASE-04 Step 028 "Scrub Playhead" action, against <see cref="TimelineViewModel.ScrubTargetTicksText"/>:
+    /// validates the target against the loaded timeline's own content bounds
+    /// (<see cref="TimelineViewModel.ValidateScrubTarget"/>), then seeks the one real
+    /// <see cref="MasterPlaybackClock"/> both the Audio and Timeline screens share — never a
+    /// standalone, Timeline-only seek that could disagree with the Audio screen's own position.
+    /// </summary>
+    public DelegateCommand ScrubTimelinePlayheadCommand { get; }
+
+    /// <summary>
+    /// PHASE-04 Step 029 "Zoom to Selection" action: rezooms/scrolls the Timeline so
+    /// <see cref="TimelineViewModel.SelectedRangeScope"/>'s own time window exactly fills the
+    /// viewport. Disabled whenever nothing is selected.
+    /// </summary>
+    public DelegateCommand TimelineZoomToSelectionCommand { get; }
+
+    /// <summary>
+    /// PHASE-04 Step 029 "Set Loop (A/B)" action: arms the loop window from the currently selected
+    /// time range on the one real shared <see cref="IAudioTransport"/> both the Audio and Timeline
+    /// screens already play through, then mirrors the result into
+    /// <see cref="TimelineViewModel.LoopWindow"/>. Disabled whenever nothing is selected.
+    /// </summary>
+    public DelegateCommand SetTimelineLoopFromSelectionCommand { get; }
+
+    /// <summary>PHASE-04 Step 029 "Clear Loop" action. Disabled whenever no loop is currently armed.</summary>
+    public DelegateCommand ClearTimelineLoopCommand { get; }
+
+    /// <summary>PHASE-04 Step 030 "Snap: None" action — sets <see cref="TimelineViewModel.SnapPolicy"/> to <see cref="XlightsAI.Studio.Editing.SnapPolicy.None"/>. Disabled while no timeline is loaded (the "stale" case).</summary>
+    public DelegateCommand SetTimelineSnapNoneCommand { get; }
+
+    /// <summary>PHASE-04 Step 030 "Snap: Frame" action — sets <see cref="TimelineViewModel.SnapPolicy"/> to <see cref="XlightsAI.Studio.Editing.SnapPolicy.Frame"/>. Disabled while no timeline is loaded (the "stale" case).</summary>
+    public DelegateCommand SetTimelineSnapFrameCommand { get; }
+
+    public DelegateCommand DiscoverShowDirectoryCommand { get; }
+
+    /// <summary>PHASE-02 Step 012 "Generate 3 Effects" action.</summary>
+    public DelegateCommand GenerateEffectPlanCommand { get; }
+
+    /// <summary>PHASE-02 Step 013 "Export XSQ" action.</summary>
+    public DelegateCommand ExportXsqCommand { get; }
+
+    /// <summary>PHASE-02 Step 014 "Open in xLights" action.</summary>
+    public DelegateCommand LaunchXlightsCommand { get; }
+
+    /// <summary>
+    /// The in-flight task started by the most recent <see cref="CreateProjectCommand"/>/
+    /// <see cref="OpenProjectCommand"/> execution. <see cref="DelegateCommand"/>/<see cref="System.Windows.Input.ICommand"/>
+    /// has no async member, so a real UI click cannot await this; it exists so an automated test
+    /// (or, if a future step wants it, a UI busy-overlay) can deterministically await completion
+    /// instead of polling <see cref="ProjectsViewModel.IsBusy"/>, which can momentarily read
+    /// <see langword="false"/> after the service call finishes but before the resulting list
+    /// refresh has run.
+    /// </summary>
+    public Task? LastProjectCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="DiscoverShowDirectoryCommand"/>.</summary>
+    public Task? LastShowImportCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="GenerateEffectPlanCommand"/>.</summary>
+    public Task? LastGenerateEffectPlanCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="ExportXsqCommand"/>.</summary>
+    public Task? LastExportXsqCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="LaunchXlightsCommand"/>.</summary>
+    public Task? LastLaunchXlightsCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="ProbeAudioFileCommand"/>.</summary>
+    public Task? LastProbeAudioFileCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="OpenAudioPlaybackCommand"/>.</summary>
+    public Task? LastOpenAudioPlaybackCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="PlayAudioCommand"/>.</summary>
+    public Task? LastPlayAudioCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="PauseAudioCommand"/>.</summary>
+    public Task? LastPauseAudioCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="SeekAudioCommand"/>.</summary>
+    public Task? LastSeekAudioCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="BuildWaveformCacheCommand"/>.</summary>
+    public Task? LastBuildWaveformCacheCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="ScrubTimelinePlayheadCommand"/>.</summary>
+    public Task? LastScrubTimelinePlayheadCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="CompleteFirstRunCommand"/>.</summary>
+    public Task? LastCompleteFirstRunCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="InstallOptionalAssetCommand"/>.</summary>
+    public Task? LastInstallOptionalAssetCommandTask { get; private set; }
+
+    public StartupState State => _navigator.State;
+
+    public StartupFailure? Failure => _navigator.Failure;
+
+    public ShellScreen CurrentScreen => _navigator.CurrentScreen;
+
+    public bool IsStarting => State == StartupState.Starting;
+
+    public bool IsFailed => State == StartupState.Failed;
+
+    public bool IsShowingWelcome => State == StartupState.Ready && CurrentScreen == ShellScreen.Welcome;
+
+    public bool IsShowingProjects => State == StartupState.Ready && CurrentScreen == ShellScreen.Projects;
+
+    public bool IsShowingSettings => State == StartupState.Ready && CurrentScreen == ShellScreen.Settings;
+
+    public bool IsShowingDiagnostics => State == StartupState.Ready && CurrentScreen == ShellScreen.Diagnostics;
+
+    public bool IsShowingShowImport => State == StartupState.Ready && CurrentScreen == ShellScreen.ShowImport;
+
+    public bool IsShowingTimeline => State == StartupState.Ready && CurrentScreen == ShellScreen.Timeline;
+
+    public bool IsShowingAudio => State == StartupState.Ready && CurrentScreen == ShellScreen.Audio;
+
+    public bool IsShowingPianoRoll => State == StartupState.Ready && CurrentScreen == ShellScreen.PianoRoll;
+
+    public bool IsShowingStructureInspector => State == StartupState.Ready && CurrentScreen == ShellScreen.StructureInspector;
+
+    public bool IsShowingDisplayPathEditor => State == StartupState.Ready && CurrentScreen == ShellScreen.DisplayPathEditor;
+
+    public bool IsShowingFirstRun => State == StartupState.Ready && CurrentScreen == ShellScreen.FirstRun;
+
+    /// <summary>
+    /// Runs the (synchronous, for this step) startup sequence. Any thrown exception is captured
+    /// as an explicit <see cref="StartupState.Failed"/> transition and recorded to
+    /// <see cref="IAppDiagnostics"/> (crash handling: the failure is reported, not silently
+    /// swallowed and not a process crash), rather than propagating.
+    ///
+    /// On a successful startup, restores the previously persisted screen (if any) from
+    /// <see cref="ISettingsStore"/> — the "restart restores settings" acceptance for this step.
+    /// </summary>
+    public void RunStartup(Action? startupWork = null)
+    {
+        try
+        {
+            startupWork?.Invoke();
+
+            // Load settings before completing startup: CompleteStartup() itself raises Changed
+            // (CurrentScreen == Welcome at that point), and without this guard that transition
+            // would save "Welcome" and clobber the very value being restored below.
+            var settings = _settingsStore.Load();
+
+            _isRestoringLastScreen = true;
+            try
+            {
+                _navigator.CompleteStartup();
+
+                // PHASE-15 Step 095 required acceptance, verbatim: "User completes first run
+                // without command line." A fresh install (no persisted HasCompletedFirstRun yet)
+                // always lands on the onboarding wizard first, taking priority over restoring
+                // whatever LastScreen a pre-Step-095 settings file happened to record — there is no
+                // meaningful "last screen" to return to before a workspace has ever been chosen.
+                if (!settings.HasCompletedFirstRun)
+                {
+                    _navigator.NavigateTo(ShellScreen.FirstRun);
+                }
+                else if (settings.LastScreen != ShellScreen.Welcome)
+                {
+                    _navigator.NavigateTo(settings.LastScreen);
+                }
+            }
+            finally
+            {
+                _isRestoringLastScreen = false;
+            }
+        }
+        catch (Exception ex)
+        {
+            _diagnostics.RecordFailure("startup-failed", ex);
+            _navigator.FailStartup("startup-failed", ex.Message);
+        }
+    }
+
+    private void OnNavigatorChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChangedAll();
+
+        if (_navigator.State == StartupState.Ready)
+        {
+            switch (_navigator.CurrentScreen)
+            {
+                case ShellScreen.Projects:
+                    Projects.Load(_projectNamesSource);
+                    break;
+                case ShellScreen.Settings:
+                    Settings.Load(_settingsStore.Load);
+                    break;
+                case ShellScreen.Diagnostics:
+                    Diagnostics.Load(() => _diagnostics.RecentEvents);
+                    break;
+                case ShellScreen.ShowImport:
+                    ShowImport.RestoreLastDirectory(_settingsStore.Load().LastShowDirectory);
+                    break;
+                case ShellScreen.Timeline:
+                    // Deliberately does not auto-load: the required failure/edge case ("missing
+                    // media must be handled explicitly") means navigating to this screen with no
+                    // media loaded yet must show the real Empty state, not a silently-populated
+                    // default viewport — the user explicitly clicks Load Timeline (same "nothing
+                    // happens until an explicit user action" convention as ShowImport's Discover).
+                    break;
+                case ShellScreen.Audio:
+                    // Same "nothing happens until an explicit user action" convention as Timeline
+                    // above: navigating here never auto-probes a stale/previous path.
+                    break;
+                case ShellScreen.PianoRoll:
+                    // Same "nothing happens until an explicit user action" convention as Timeline/
+                    // Audio above: navigating here never auto-loads a stale previous track/session.
+                    break;
+                case ShellScreen.StructureInspector:
+                    // Same "nothing happens until an explicit user action" convention as PianoRoll
+                    // above: navigating here never auto-opens a stale previous song's structure.
+                    break;
+                case ShellScreen.DisplayPathEditor:
+                    // Same "nothing happens until an explicit user action" convention as PianoRoll/
+                    // StructureInspector above: navigating here never auto-opens a stale previous
+                    // layout.
+                    break;
+                case ShellScreen.FirstRun:
+                    // Restore (never re-create) a previously entered-but-not-yet-completed workspace
+                    // choice, same "restore, never re-run" convention as ShowImport above.
+                    FirstRun.RestoreLastWorkspaceDirectory(_settingsStore.Load().WorkspaceDirectory);
+                    break;
+            }
+
+            if (!_isRestoringLastScreen)
+            {
+                // Preserve LastShowDirectory (Step 009) / WorkspaceDirectory + HasCompletedFirstRun
+                // (Step 095) across a plain screen-navigation save — this save path only ever
+                // intends to update LastScreen. Uses `with` (not positional reconstruction) so a
+                // future additive field is preserved automatically too.
+                var existing = _settingsStore.Load();
+                _settingsStore.Save(existing with { SchemaVersion = AppSettings.CurrentSchemaVersion, LastScreen = _navigator.CurrentScreen });
+            }
+        }
+
+        NavigateToProjectsCommand.RaiseCanExecuteChanged();
+        NavigateToWelcomeCommand.RaiseCanExecuteChanged();
+        NavigateToSettingsCommand.RaiseCanExecuteChanged();
+        NavigateToDiagnosticsCommand.RaiseCanExecuteChanged();
+        NavigateToShowImportCommand.RaiseCanExecuteChanged();
+        NavigateToTimelineCommand.RaiseCanExecuteChanged();
+        NavigateToAudioCommand.RaiseCanExecuteChanged();
+        NavigateToPianoRollCommand.RaiseCanExecuteChanged();
+        NavigateToStructureInspectorCommand.RaiseCanExecuteChanged();
+        NavigateToDisplayPathEditorCommand.RaiseCanExecuteChanged();
+        NavigateToFirstRunCommand.RaiseCanExecuteChanged();
+        CompleteFirstRunCommand.RaiseCanExecuteChanged();
+        ProbeAudioFileCommand.RaiseCanExecuteChanged();
+        OpenAudioPlaybackCommand.RaiseCanExecuteChanged();
+        PlayAudioCommand.RaiseCanExecuteChanged();
+        PauseAudioCommand.RaiseCanExecuteChanged();
+        SeekAudioCommand.RaiseCanExecuteChanged();
+        RefreshAudioPositionCommand.RaiseCanExecuteChanged();
+        BuildWaveformCacheCommand.RaiseCanExecuteChanged();
+        LoadTimelineCommand.RaiseCanExecuteChanged();
+        TimelineZoomInCommand.RaiseCanExecuteChanged();
+        TimelineZoomOutCommand.RaiseCanExecuteChanged();
+        TimelineScrollLeftCommand.RaiseCanExecuteChanged();
+        TimelineScrollRightCommand.RaiseCanExecuteChanged();
+        TimelineSelectNextEffectCommand.RaiseCanExecuteChanged();
+        TimelineSelectPreviousEffectCommand.RaiseCanExecuteChanged();
+        TimelineClearSelectionCommand.RaiseCanExecuteChanged();
+        TimelineApplyRangeSelectionCommand.RaiseCanExecuteChanged();
+        TimelineClearRangeSelectionCommand.RaiseCanExecuteChanged();
+        ScrubTimelinePlayheadCommand.RaiseCanExecuteChanged();
+        TimelineZoomToSelectionCommand.RaiseCanExecuteChanged();
+        SetTimelineLoopFromSelectionCommand.RaiseCanExecuteChanged();
+        ClearTimelineLoopCommand.RaiseCanExecuteChanged();
+        CreateProjectCommand.RaiseCanExecuteChanged();
+        OpenProjectCommand.RaiseCanExecuteChanged();
+        DiscoverShowDirectoryCommand.RaiseCanExecuteChanged();
+        GenerateEffectPlanCommand.RaiseCanExecuteChanged();
+        ExportXsqCommand.RaiseCanExecuteChanged();
+        LaunchXlightsCommand.RaiseCanExecuteChanged();
+    }
+
+    /// <summary>
+    /// PHASE-04 Step 025 (updated for Mac/Linux stub coverage): the real <see cref="WaveOutAudioTransport"/>
+    /// backend only exists for Windows; every other platform gets <see cref="UnsupportedPlatformAudioTransport"/>
+    /// instead, so calling an audio playback action on an unsupported platform throws one clear,
+    /// typed, actionable message rather than a raw <c>DllNotFoundException</c> from winmm.dll. Uses
+    /// an explicit <c>if</c> guard (not a ternary) so the CA1416 platform-compatibility analyzer
+    /// recognizes the guard and the <see cref="WaveOutAudioTransport"/> construction needs no warning
+    /// suppression.
+    /// </summary>
+    private static IAudioTransport CreateDefaultAudioTransport(IAudioDecoder audioDecoder)
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            return new WaveOutAudioTransport(audioDecoder);
+        }
+
+        return new UnsupportedPlatformAudioTransport();
+    }
+
+    /// <summary>
+    /// Creates a project from <see cref="ProjectsViewModel.WorkspaceDirectory"/>/
+    /// <see cref="ProjectsViewModel.NewProjectName"/>, then — on success — reloads the Projects
+    /// list from the same <paramref name="_projectNamesSource"/> the screen already uses, so the
+    /// newly created project is immediately visible without a separate manual refresh.
+    /// </summary>
+    private async Task RunCreateProjectAsync()
+    {
+        var succeeded = await Projects.CreateProjectAsync(_projectService).ConfigureAwait(true);
+        if (succeeded)
+        {
+            Projects.Load(_projectNamesSource);
+        }
+    }
+
+    /// <summary>Opens the project at <see cref="ProjectsViewModel.WorkspaceDirectory"/>; same reload-on-success contract as <see cref="RunCreateProjectAsync"/>.</summary>
+    private async Task RunOpenProjectAsync()
+    {
+        var succeeded = await Projects.OpenProjectAsync(_projectService).ConfigureAwait(true);
+        if (succeeded)
+        {
+            Projects.Load(_projectNamesSource);
+        }
+    }
+
+    /// <summary>
+    /// Runs discovery against <see cref="ShowImportViewModel.ShowDirectory"/>; on success, persists
+    /// it as the new "last successful folder selection" (Step 009 required behavior) — a failed
+    /// discovery (missing folder/required file, cancellation, invalid input) never updates the
+    /// persisted value, so a prior good selection survives a later failed attempt.
+    /// </summary>
+    private async Task RunDiscoverShowDirectoryAsync()
+    {
+        var succeeded = await ShowImport.DiscoverAsync(_showDirectoryDiscoveryService, _showLayoutImporter).ConfigureAwait(true);
+        if (succeeded)
+        {
+            var existing = _settingsStore.Load();
+            _settingsStore.Save(existing with { SchemaVersion = AppSettings.CurrentSchemaVersion, LastShowDirectory = ShowImport.ShowDirectory });
+        }
+    }
+
+    /// <summary>
+    /// Runs <see cref="FirstRunViewModel.CompleteFirstRunAsync"/> against the real Step 094
+    /// <see cref="_runtimeCapabilityDetector"/>/<see cref="_startupHealthChecks"/> collaborators;
+    /// on success, persists the chosen workspace folder and marks first-run complete (Step 095's
+    /// own "saved-state verification" requirement — a restart must never show this wizard again for
+    /// the same installation), then returns to Welcome. A failed attempt (invalid/admin-only folder,
+    /// cancellation, I/O error) never touches persisted settings and leaves the wizard on screen so
+    /// the user can correct it — same "no mutation on failure" convention as
+    /// <see cref="RunDiscoverShowDirectoryAsync"/>.
+    /// </summary>
+    private async Task RunCompleteFirstRunAsync()
+    {
+        var succeeded = await FirstRun.CompleteFirstRunAsync(_runtimeCapabilityDetector, _startupHealthChecks).ConfigureAwait(true);
+        if (succeeded)
+        {
+            var existing = _settingsStore.Load();
+            _settingsStore.Save(existing with
+            {
+                SchemaVersion = AppSettings.CurrentSchemaVersion,
+                WorkspaceDirectory = FirstRun.WorkspaceDirectory,
+                HasCompletedFirstRun = true,
+            });
+            _navigator.NavigateTo(ShellScreen.Welcome);
+        }
+    }
+
+    /// <summary>
+    /// PHASE-15 Step 096 ("Add opt-in model asset installs, offline validation, logs and update
+    /// notices"): installs <see cref="_optionalModelAsset"/> (if any) through the real
+    /// <see cref="FirstRunViewModel.InstallOptionalAssetAsync"/>/<see cref="_assetInstaller"/>
+    /// pipeline, then records the real, human-readable outcome (success, declined consent, no asset
+    /// declared yet, or a recoverable failure) to <see cref="_diagnostics"/> — this step's own
+    /// "...logs..." requirement, verbatim, realized by reusing the existing <see cref="IAppDiagnostics"/>
+    /// sink rather than a second, parallel logging mechanism.
+    /// </summary>
+    private async Task RunInstallOptionalAssetAsync()
+    {
+        var succeeded = await FirstRun
+            .InstallOptionalAssetAsync(_optionalModelAsset, FirstRun.OptionalAssetConsent, _assetInstaller)
+            .ConfigureAwait(true);
+
+        if (FirstRun.OptionalAssetMessage is { } message)
+        {
+            _diagnostics.RecordEvent(
+                succeeded ? DiagnosticEventLevel.Info : DiagnosticEventLevel.Warning,
+                "optional-asset-install",
+                message);
+        }
+    }
+
+    /// <summary>
+    /// PHASE-04 Step 028: validates <see cref="TimelineViewModel.ScrubTargetTicksText"/> against the
+    /// loaded timeline's own content bounds <em>before</em> touching the real transport, then seeks
+    /// the one shared <see cref="_masterClock"/> and pushes its resulting
+    /// <see cref="MasterPlaybackClock.CanonicalPositionTicks"/> into
+    /// <see cref="TimelineViewModel.PlayheadTicks"/>. Any failure (an unparsable value, an
+    /// out-of-scope target, or no playback session currently open — the "stale" case) sets
+    /// <see cref="TimelineViewModel.ScrubErrorMessage"/> and leaves <see cref="TimelineViewModel.PlayheadTicks"/>
+    /// completely untouched — never a partial mutation — same "catch, set an error property, never
+    /// let an exception reach the UI" convention every other screen action in this project already
+    /// follows.
+    /// </summary>
+    private async Task RunScrubTimelinePlayheadAsync()
+    {
+        if (!long.TryParse(Timeline.ScrubTargetTicksText, out var requestedTicks))
+        {
+            Timeline.SetScrubError("Scrub target must be a whole number of 100 ns ticks.");
+            return;
+        }
+
+        // PHASE-04 Step 030 ("Add frame/beat/off-grid snapping..."): the real scrub/drag entry point
+        // this step's own "snap policy... as dependency not baked into drag math" implementation
+        // guidance targets — Timeline.SnapPolicy is an injected dependency (defaults to
+        // Editing.SnapPolicy.None, so pre-Step-030 scrub behavior is unchanged), applied here, once,
+        // *before* validation/seek, never a second hardcoded rounding call elsewhere.
+        var ticks = Timeline.SnapPolicy.Snap(requestedTicks);
+
+        try
+        {
+            Timeline.ValidateScrubTarget(ticks);
+            await _masterClock.SeekToCanonicalAsync(ticks, CancellationToken.None).ConfigureAwait(true);
+
+            // Refresh the Audio screen's own bindable position too, from the exact same transport
+            // this scrub just moved — its PropertyChanged handler (above) then pushes the identical
+            // MasterPlaybackClock reading into Timeline.PlayheadTicks, so both screens observe the
+            // one real seek result rather than two independently-computed values.
+            Audio.RefreshPlaybackPosition(_audioTransport);
+            Timeline.SetPlayhead(_masterClock.CanonicalPositionTicks, Audio.IsPlaybackOpen);
+            Timeline.SetScrubError(null);
+
+            // This step's own "gather sync/drift telemetry" (implementation guidance): the real,
+            // observed difference between the already-snapped requested tick and what the device
+            // actually ended up reporting afterward (real sample-rate quantization, never an estimate)
+            // — recorded only on success, so a rejected/out-of-scope scrub never overwrites the last
+            // real telemetry with a value that was never actually sent to the transport.
+            Timeline.RecordScrubTelemetry(ticks, _masterClock.CanonicalPositionTicks);
+        }
+        catch (Exception ex)
+        {
+            Timeline.SetScrubError(ex.Message);
+        }
+    }
+
+    /// <summary>
+    /// PHASE-04 Step 029 ("A/B loop playback"): arms the real shared transport's loop window from
+    /// <see cref="TimelineViewModel.SelectedRangeScope"/>'s own time range. Rejects, before ever
+    /// touching the real transport, both named failure/edge cases: **"stale"** — no playback session
+    /// is currently open (<c>_audioTransport.CurrentSong</c> is <see langword="null"/>), or nothing is
+    /// selected at all; **"out-of-scope"** — the selected window falls outside the loaded timeline's
+    /// own content bounds (<see cref="TimelineViewModel.ValidateLoopWindow"/>) or, independently,
+    /// outside the open song's own duration (the real transport's own <c>IAudioTransport.SetLoop</c>
+    /// validation). Any rejection sets <see cref="TimelineViewModel.LoopErrorMessage"/> and leaves
+    /// <see cref="TimelineViewModel.LoopWindow"/> and the real transport's own loop state completely
+    /// untouched — never a partial mutation, same convention as <see cref="RunScrubTimelinePlayheadAsync"/>.
+    /// </summary>
+    private void RunSetLoopFromSelection()
+    {
+        if (Timeline.SelectedRangeScope is not { } scope)
+        {
+            Timeline.SetLoopError("Select a time range before setting a loop.");
+            return;
+        }
+
+        if (_audioTransport.CurrentSong is null)
+        {
+            Timeline.SetLoopError("No playback session open. Open Playback on the Audio screen first.");
+            return;
+        }
+
+        try
+        {
+            Timeline.ValidateLoopWindow(scope.Time);
+            _audioTransport.SetLoop(scope.Time);
+            Timeline.SetLoop(scope.Time);
+            Timeline.SetLoopError(null);
+        }
+        catch (Exception ex)
+        {
+            Timeline.SetLoopError(ex.Message);
+        }
+    }
+
+    /// <summary>Clears the real shared transport's loop window (never fails) and mirrors the clear into <see cref="TimelineViewModel.LoopWindow"/>.</summary>
+    private void RunClearLoop()
+    {
+        _audioTransport.SetLoop(null);
+        Timeline.SetLoop(null);
+        Timeline.SetLoopError(null);
+    }
+
+    private void OnPropertyChangedAll()
+    {
+        OnPropertyChanged(nameof(State));
+        OnPropertyChanged(nameof(Failure));
+        OnPropertyChanged(nameof(CurrentScreen));
+        OnPropertyChanged(nameof(IsStarting));
+        OnPropertyChanged(nameof(IsFailed));
+        OnPropertyChanged(nameof(IsShowingWelcome));
+        OnPropertyChanged(nameof(IsShowingProjects));
+        OnPropertyChanged(nameof(IsShowingSettings));
+        OnPropertyChanged(nameof(IsShowingDiagnostics));
+        OnPropertyChanged(nameof(IsShowingShowImport));
+        OnPropertyChanged(nameof(IsShowingTimeline));
+        OnPropertyChanged(nameof(IsShowingAudio));
+        OnPropertyChanged(nameof(IsShowingPianoRoll));
+        OnPropertyChanged(nameof(IsShowingStructureInspector));
+        OnPropertyChanged(nameof(IsShowingDisplayPathEditor));
+        OnPropertyChanged(nameof(IsShowingFirstRun));
+    }
+}

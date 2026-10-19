@@ -1,0 +1,598 @@
+[
+  {
+    "phase": "01",
+    "name": "Foundation and Reference Baselines",
+    "steps": [
+      {
+        "id": "001",
+        "task": "Fork or vendor upstream source at an immutable commit; document license and downstream notices",
+        "acceptance": "Record URL, SHA, license and attribution; clean checkout resolves reference."
+      },
+      {
+        "id": "002",
+        "task": "Audit upstream analysis, layout, theme, effects, XSQ writer, preview and dependency boundaries",
+        "acceptance": "Create a module-by-module reuse/port/replace/omit matrix with implementation risks."
+      },
+      {
+        "id": "003",
+        "task": "Create baseline fixture corpus: synthetic notes, drum pulse, instrumental, complex mixed song and 2 layouts",
+        "acceptance": "Record input hashes, permitted usage, outputs and repeatable invocation."
+      },
+      {
+        "id": "004",
+        "task": "Create .NET 10 Avalonia solution with basic navigation and no Python runtime",
+        "acceptance": "Launch Windows desktop executable on a clean build."
+      },
+      {
+        "id": "005",
+        "task": "Add structured logging, crash handling, settings and diagnostics page",
+        "acceptance": "Restart restores settings and an injected error is reported without silent data loss."
+      },
+      {
+        "id": "006",
+        "task": "Implement create/open/save project with versioned manifest and no direct writes to show folder",
+        "acceptance": "Round-trip sample project and reject newer unsupported schema safely."
+      },
+      {
+        "id": "007",
+        "task": "Add SQLite persistence with transactional migrations and backups",
+        "acceptance": "Migration tests on fresh and prior-version databases succeed."
+      },
+      {
+        "id": "008",
+        "task": "Add CI, unit/integration/golden test projects, formatting and artifact publishing",
+        "acceptance": "Clean checkout builds, runs fixtures, and stores test reports."
+      }
+    ]
+  },
+  {
+    "phase": "02",
+    "name": "First Working xLights Sequence",
+    "steps": [
+      {
+        "id": "009",
+        "task": "Implement show-folder picker with read-only initial discovery",
+        "acceptance": "Missing folder/file produces actionable error; no mutation."
+      },
+      {
+        "id": "010",
+        "task": "Parse xlights_rgbeffects.xml into normalized stable model IDs/groups/geometry where present",
+        "acceptance": "Golden fixture verifies model names, groups and positions."
+      },
+      {
+        "id": "011",
+        "task": "Validate referenced models, channel/network data where relevant and missing layout elements",
+        "acceptance": "Fixture with broken references generates warnings rather than partial destructive output."
+      },
+      {
+        "id": "012",
+        "task": "Create effect plan containing three hardcoded simple effects on selected real props",
+        "acceptance": "Plan is serialized and inspectable independently of XSQ."
+      },
+      {
+        "id": "013",
+        "task": "Port minimal editable XSQ writer and required sequencing metadata",
+        "acceptance": "Generated file passes XML/structural tests and round-trip parser."
+      },
+      {
+        "id": "014",
+        "task": "Open output in installed xLights; verify duration, timing, models and visible effects",
+        "acceptance": "Human-attested integration test with screenshot/render notes."
+      },
+      {
+        "id": "015",
+        "task": "Implement atomic export, filename safety, backups and golden XSQ regression tests",
+        "acceptance": "Never overwrite source without explicit approval; no regression in fixture output."
+      }
+    ]
+  },
+  {
+    "phase": "03",
+    "name": "Visual Timeline and Manual Editing",
+    "steps": [
+      {
+        "id": "016",
+        "task": "Build time ruler, horizontal scroll and zoom",
+        "acceptance": "Pixel-to-time conversion tests at zoom extremes."
+      },
+      {
+        "id": "017",
+        "task": "Build prop rows, group expansion and stable mapping to model IDs",
+        "acceptance": "Visual rows match loaded layout including group nesting."
+      },
+      {
+        "id": "018",
+        "task": "Render effect blocks and inspector selection",
+        "acceptance": "Selection maps exactly to effect ID and time span."
+      },
+      {
+        "id": "019",
+        "task": "Drag effect starts with optional snap",
+        "acceptance": "Start time persists after save/reopen and XSQ export."
+      },
+      {
+        "id": "020",
+        "task": "Resize duration and edit supported effect parameters",
+        "acceptance": "Edited parameters survive project reload and xLights import."
+      },
+      {
+        "id": "021",
+        "task": "Multi-row time-range selection with inclusive/exclusive boundary semantics",
+        "acceptance": "Selected model IDs and time range match UI; edge-case tests."
+      },
+      {
+        "id": "022",
+        "task": "Undo/redo transactions and lock semantics for approved effects",
+        "acceptance": "Undo restores exact snapshot; locked effects reject programmatic edits."
+      },
+      {
+        "id": "023",
+        "task": "Scope-aware export and regeneration contract",
+        "acceptance": "Hash unaffected effects before/after scoped edit; no changes outside scope."
+      }
+    ]
+  },
+  {
+    "phase": "04",
+    "name": "Audio Waveform and Synchronized Playback",
+    "steps": [
+      {
+        "id": "024",
+        "task": "Import supported local audio and compute canonical audio metadata and hash",
+        "acceptance": "Invalid/corrupt files fail clearly; duration/sample-rate verified."
+      },
+      {
+        "id": "025",
+        "task": "Add audio playback abstraction and actual desktop audio backend",
+        "acceptance": "Play/pause/seek works without Python; missing output device handled."
+      },
+      {
+        "id": "026",
+        "task": "Generate zoom-independent multiresolution waveform peaks cache",
+        "acceptance": "Cache reopens without recompute; envelope sample checks."
+      },
+      {
+        "id": "027",
+        "task": "Render synchronized waveform beneath ruler",
+        "acceptance": "Waveform position matches timeline coordinates."
+      },
+      {
+        "id": "028",
+        "task": "Use one master media time clock for playback and playhead",
+        "acceptance": "Repeated seeks do not accumulate drift."
+      },
+      {
+        "id": "029",
+        "task": "Add zoom-to-selection, A/B loop playback and keyboard navigation",
+        "acceptance": "Selected short range loops within agreed timing tolerance."
+      },
+      {
+        "id": "030",
+        "task": "Add frame/beat/off-grid snapping and timing-diagnostics panel",
+        "acceptance": "Time-to-frame conversion and boundary rounding golden tests."
+      }
+    ]
+  },
+  {
+    "phase": "05",
+    "name": "Beat Measures and Rhythm Detection",
+    "steps": [
+      {
+        "id": "031",
+        "task": "Implement RMS/energy envelope with baseline comparison",
+        "acceptance": "Synthetic envelope matches expected energy peaks."
+      },
+      {
+        "id": "032",
+        "task": "Implement onset/transient detection with configurable sensitivity",
+        "acceptance": "Onset precision/recall measured on annotated fixtures."
+      },
+      {
+        "id": "033",
+        "task": "Implement BPM candidate detection including half/double-time alternatives",
+        "acceptance": "120 BPM and 60/120 ambiguity tests pass."
+      },
+      {
+        "id": "034",
+        "task": "Generate beats, likely downbeats, bars and confidence intervals",
+        "acceptance": "Tempo fixture aligns events within configured threshold."
+      },
+      {
+        "id": "035",
+        "task": "Add beat-grid manual correction and dependency invalidation",
+        "acceptance": "Move beat, dependent effects refresh only when authorized."
+      },
+      {
+        "id": "036",
+        "task": "Create beat-pop and alternating-chase recipe to real selected props",
+        "acceptance": "Rendered/exported effects follow detected beats."
+      },
+      {
+        "id": "037",
+        "task": "Add confidence/quality gate and diagnostics",
+        "acceptance": "Low-confidence results are flagged and correction is possible."
+      }
+    ]
+  },
+  {
+    "phase": "06",
+    "name": "Instrument Separation and Activity Detection",
+    "steps": [
+      {
+        "id": "038",
+        "task": "Evaluate separation model licensing, .NET inference options, CPU baseline and memory profile",
+        "acceptance": "Decision document includes at least two feasible alternatives or explicit blocker."
+      },
+      {
+        "id": "039",
+        "task": "Implement model asset manifest, verified download, consent and checksum validation",
+        "acceptance": "Tampered models rejected and clean offline restart supported."
+      },
+      {
+        "id": "040",
+        "task": "Integrate selected ONNX/native inference via .NET with deterministic preprocessing/postprocessing",
+        "acceptance": "Output stem count/shape and audio sync assertions pass."
+      },
+      {
+        "id": "041",
+        "task": "Add chunking/overlap, caching, progress, cancellation and bounded resource usage",
+        "acceptance": "Long fixture cancels cleanly and partial output never marked complete."
+      },
+      {
+        "id": "042",
+        "task": "Add waveform tracks, solo/mute and synchronized stem playback",
+        "acceptance": "Audibly isolated stems stay aligned with source."
+      },
+      {
+        "id": "043",
+        "task": "Detect instrument activity segments with scores",
+        "acceptance": "Known quiet/active regions appear correctly on timeline."
+      },
+      {
+        "id": "044",
+        "task": "Compare reference outputs, audio metrics and listening tests; establish supported hardware",
+        "acceptance": "Measured separation quality/performance is documented and acceptance threshold met."
+      }
+    ]
+  },
+  {
+    "phase": "07",
+    "name": "Melody Pitch and Note Analysis",
+    "steps": [
+      {
+        "id": "045",
+        "task": "Define pitch/note/onset and relative melodic gesture contracts, with source/confidence",
+        "acceptance": "Fixture JSON round-trips with units and source IDs."
+      },
+      {
+        "id": "046",
+        "task": "Implement fundamental-frequency/pitch tracking for isolated lead source",
+        "acceptance": "Synthetic sine/recorded single notes within cents and timing tolerance."
+      },
+      {
+        "id": "047",
+        "task": "Derive up/down/repeat/hold/leap/rest from melodic contour with noise filtering",
+        "acceptance": "Synthetic melodic shapes classify correctly."
+      },
+      {
+        "id": "048",
+        "task": "Support MIDI import and evaluate transcription backend behind an interface",
+        "acceptance": "Imported MIDI note timings map to canonical event structure."
+      },
+      {
+        "id": "049",
+        "task": "Implement editable piano roll and low-confidence markers",
+        "acceptance": "User corrections persist and regenerate only dependent phrases."
+      },
+      {
+        "id": "050",
+        "task": "Compile melody to stepping, holding, jumping choreography across ordered props",
+        "acceptance": "Five/seven-note fixtures produce correct path order and durations."
+      },
+      {
+        "id": "051",
+        "task": "Handle polyphony, rests, note gaps, variable durations and frame quantization gracefully",
+        "acceptance": "Fallback to contour or onsets when pitch unreliable; no invalid effects."
+      }
+    ]
+  },
+  {
+    "phase": "08",
+    "name": "Song Structure and Repeated Phrases",
+    "steps": [
+      {
+        "id": "052",
+        "task": "Compute normalized bar/phrase feature fingerprints from audio and events",
+        "acceptance": "Similar motifs compare consistently across changed gain."
+      },
+      {
+        "id": "053",
+        "task": "Detect candidate novelty/section boundaries with confidence",
+        "acceptance": "Annotated song has useful boundaries and error report."
+      },
+      {
+        "id": "054",
+        "task": "Assign candidate intro/verse/chorus/bridge labels and support overrides",
+        "acceptance": "UI shows provenance/confidence; overrides survive restart."
+      },
+      {
+        "id": "055",
+        "task": "Segment sections into phrase units with manual corrections",
+        "acceptance": "Phrase boundaries align to bars or user-chosen events."
+      },
+      {
+        "id": "056",
+        "task": "Cluster exact and similar motifs with tolerance for variation",
+        "acceptance": "Repeated eight-bar fixture shares motif ID; distinct passage does not."
+      },
+      {
+        "id": "057",
+        "task": "Create parameterized choreography template and instance overrides",
+        "acceptance": "Edit master/motif occurrence without surprising cross-section changes."
+      },
+      {
+        "id": "058",
+        "task": "Build phrase relationship/propagation inspector",
+        "acceptance": "User links/unlinks motifs and previews related effects."
+      }
+    ]
+  },
+  {
+    "phase": "09",
+    "name": "Spatial Choreography and Display Paths",
+    "steps": [
+      {
+        "id": "059",
+        "task": "Normalize coordinates, model groups and relationships into display graph",
+        "acceptance": "Fixtures map consistent physical positions and stable IDs."
+      },
+      {
+        "id": "060",
+        "task": "Infer neighbors, left/right, center and vertical relations with confidence",
+        "acceptance": "Expected order recognized; uncertain order flagged."
+      },
+      {
+        "id": "061",
+        "task": "Create graphical layout/path editor with position correction",
+        "acceptance": "Drag and reorder saves across restart."
+      },
+      {
+        "id": "062",
+        "task": "Define named custom paths and semantic spatial motions",
+        "acceptance": "Left-right, outside-in and vertical previews match ordered props."
+      },
+      {
+        "id": "063",
+        "task": "Persist role tags: lead, rhythm, ambient, hero and accent",
+        "acceptance": "Role assignments are available in choreography UI."
+      },
+      {
+        "id": "064",
+        "task": "Map pitch intervals/movement to jumps, holds and path traversal",
+        "acceptance": "Ascending/descending tests preserve contour and reach boundaries safely."
+      },
+      {
+        "id": "065",
+        "task": "Add route validation, conflicting-write checks and incompatible prop fallback",
+        "acceptance": "Invalid path cannot silently produce mis-targeted XSQ effects."
+      }
+    ]
+  },
+  {
+    "phase": "10",
+    "name": "Layered Musical Composition",
+    "steps": [
+      {
+        "id": "066",
+        "task": "Define semantic musical roles and event precedence rules",
+        "acceptance": "Synthetic role mapping yields deterministic priorities."
+      },
+      {
+        "id": "067",
+        "task": "Add configurable instrument-to-role and role-to-prop routing UI",
+        "acceptance": "Mappings persist and can change per section."
+      },
+      {
+        "id": "068",
+        "task": "Create configurable visual density and focus budget",
+        "acceptance": "Clutter fixture is reduced while preserving focal musical event."
+      },
+      {
+        "id": "069",
+        "task": "Build sectional energy and color/brightness story",
+        "acceptance": "Verse/chorus intensity curve follows plan."
+      },
+      {
+        "id": "070",
+        "task": "Implement build, silence, transitions, release and phrase-ending recipes",
+        "acceptance": "Musical break can intentionally darken all permitted props."
+      },
+      {
+        "id": "071",
+        "task": "Compose and resolve overlapping effects with layer/priority strategies",
+        "acceptance": "No unintended model conflicts; XSQ renders as planned."
+      }
+    ]
+  },
+  {
+    "phase": "11",
+    "name": "Selective AI Editing",
+    "steps": [
+      {
+        "id": "072",
+        "task": "Create persisted selection context: interval, props, instruments, phrases, locks",
+        "acceptance": "Serialization test preserves exact selection and scope."
+      },
+      {
+        "id": "073",
+        "task": "Implement deterministic command AST for brightness/motion/direction/speed/replace",
+        "acceptance": "UI quick actions work offline and no token usage."
+      },
+      {
+        "id": "074",
+        "task": "Add edit request panel, suggestions and change explanation",
+        "acceptance": "Request always displays target context."
+      },
+      {
+        "id": "075",
+        "task": "Add optional Ollama/cloud provider behind opt-in structured-output adapter",
+        "acceptance": "Provider off means no outbound calls; malformed JSON rejected."
+      },
+      {
+        "id": "076",
+        "task": "Implement dry-run proposals, before/after diff and Accept/Reject",
+        "acceptance": "Reject leaves state byte-equivalent; accept records transaction."
+      },
+      {
+        "id": "077",
+        "task": "Implement explicit motif propagation and edit-scope intersection validation",
+        "acceptance": "Locked/out-of-scope effects cannot change even with malicious proposal."
+      },
+      {
+        "id": "078",
+        "task": "Persist proposal audit, undo/redo and failure recovery",
+        "acceptance": "Crash/restart leaves committed edits intact, partial proposal uncommitted."
+      }
+    ]
+  },
+  {
+    "phase": "12",
+    "name": "Loop-Engineered Refinement",
+    "steps": [
+      {
+        "id": "079",
+        "task": "Create persisted run/candidate/result schema with hashes, seeds and state transitions",
+        "acceptance": "Interrupted run resumes idempotently."
+      },
+      {
+        "id": "080",
+        "task": "Build seeded candidate generator constrained to selected gesture family",
+        "acceptance": "Same seed + inputs yields same structured candidate."
+      },
+      {
+        "id": "081",
+        "task": "Implement quality evaluators: timing, melodic alignment, density, motif reuse, legal effects",
+        "acceptance": "Known good/bad fixtures produce expected scores and findings."
+      },
+      {
+        "id": "082",
+        "task": "Implement targeted repair strategy and preserve best-so-far candidate",
+        "acceptance": "Repair only addresses reported dimension and respects locks."
+      },
+      {
+        "id": "083",
+        "task": "Add retry, time, compute and quality thresholds; cancellation",
+        "acceptance": "Unproductive loop stops deterministically with reason."
+      },
+      {
+        "id": "084",
+        "task": "Add candidate gallery, score explanations, preview and explicit selection",
+        "acceptance": "User can compare alternatives and commit chosen candidate."
+      }
+    ]
+  },
+  {
+    "phase": "13",
+    "name": "xLights Rendering and Visual Evaluation",
+    "steps": [
+      {
+        "id": "085",
+        "task": "Build fast lightweight internal preview for supported primitive gestures",
+        "acceptance": "Manual known fixtures match approximate rendered path."
+      },
+      {
+        "id": "086",
+        "task": "Probe installed xLights capabilities and implement version-aware render adapter",
+        "acceptance": "Supported build renders fixture; unsupported build gracefully falls back."
+      },
+      {
+        "id": "087",
+        "task": "Decode rendered output/frame or channel data into display preview, preserving timing",
+        "acceptance": "Frame sample matches known pixel/channel values."
+      },
+      {
+        "id": "088",
+        "task": "Compute display-level metrics for brightness, coverage, spatial motion and density",
+        "acceptance": "Designed render samples produce sensible metric order."
+      },
+      {
+        "id": "089",
+        "task": "Add render/evaluation gate to refinement and report limitations",
+        "acceptance": "Broken/unrenderable proposal cannot auto-apply; clear diagnostics."
+      }
+    ]
+  },
+  {
+    "phase": "14",
+    "name": "Whole Song Composition and Continuity",
+    "steps": [
+      {
+        "id": "090",
+        "task": "Create song-level creative direction with palettes, motif identities, energy and focal points",
+        "acceptance": "Plan renders as inspectable timeline summary."
+      },
+      {
+        "id": "091",
+        "task": "Assemble accepted phrase candidates with transition-aware overlap/gap handling",
+        "acceptance": "No unintended timing holes, conflicts or truncated effects."
+      },
+      {
+        "id": "092",
+        "task": "Apply motif variations by occurrence and climax scheduling",
+        "acceptance": "Final chorus preserves recognizable motif with intentional lift."
+      },
+      {
+        "id": "093",
+        "task": "Run whole-song rhythm/contrast/complexity checks; export and audition",
+        "acceptance": "Export opens in xLights and passes continuity report."
+      }
+    ]
+  },
+  {
+    "phase": "15",
+    "name": "Packaging and Distribution",
+    "steps": [
+      {
+        "id": "094",
+        "task": "Publish self-contained signed/unsigned-labeled Windows x64 app with verified native assets",
+        "acceptance": "Launch on clean VM with no .NET SDK and no Python."
+      },
+      {
+        "id": "095",
+        "task": "Build installer/uninstaller, show-folder onboarding and safe defaults",
+        "acceptance": "User completes first run without command line."
+      },
+      {
+        "id": "096",
+        "task": "Add opt-in model asset installs, offline validation, logs and update notices",
+        "acceptance": "Core app works offline after assets installed; missing models explained."
+      },
+      {
+        "id": "097",
+        "task": "Add supported macOS/Linux deliverables only after validating inference and xLights compatibility",
+        "acceptance": "Each advertised platform passes same smoke-test suite."
+      }
+    ]
+  },
+  {
+    "phase": "16",
+    "name": "Release Validation and Community Testing",
+    "steps": [
+      {
+        "id": "098",
+        "task": "Run tested OS/xLights/audio/layout compatibility matrix and record known limitations",
+        "acceptance": "Supported combinations each have installation and XSQ smoke evidence."
+      },
+      {
+        "id": "099",
+        "task": "Conduct A/B musicality evaluations and manual-effort measurement on varied songs",
+        "acceptance": "Collect preference ratings and editing-time results, not only auto scores."
+      },
+      {
+        "id": "100",
+        "task": "Finalize documentation, attribution/licenses, privacy defaults, diagnostics, changelog and versioned release",
+        "acceptance": "Reproducible artifacts and first-user walkthrough tested."
+      }
+    ]
+  }
+]

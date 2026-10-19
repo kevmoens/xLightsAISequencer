@@ -1,0 +1,13 @@
+<!--
+  PHASE-02 Step 011 migration fixture: the legacy root element name xLights itself still falls back
+  to reading (confirmed in xLights's own iPadRenderContext.cpp: "xrgb" then "xlights" as a fallback),
+  rather than this importer's original (unverified, incorrect) "xrgbEffects" assumption.
+-->
+<xlights FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model name="Arch-01" DisplayAs="Arches" StringType="RGB Nodes" parm1="1" parm2="50" parm3="1" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Front-Yard" models="Arch-01" />
+  </modelGroups>
+</xlights>

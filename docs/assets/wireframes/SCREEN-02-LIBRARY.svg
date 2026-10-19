@@ -1,0 +1,96 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="720" viewBox="0 0 1200 720">
+<rect x="0" y="0" width="1200" height="720" rx="0" fill="#0c1422" opacity="1"/>
+<rect x="0" y="0" width="1200" height="61" rx="0" fill="#111d2e" opacity="1"/>
+<rect x="0" y="61" width="212" height="659" rx="0" fill="#142033" opacity="1"/>
+<text x="23" y="38" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="18" font-weight="bold" text-anchor="start" opacity="1">xLIGHTS AI</text>
+<rect x="152" y="17" width="75" height="25" rx="12" fill="#b6a0f5" opacity="0.17"/>
+<text x="189.5" y="34" fill="#b6a0f5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">STUDIO</text>
+<text x="236" y="29" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Winter Show 2026</text>
+<text x="236" y="49" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Example Track  /  Local project</text>
+<rect x="966" y="14" width="78" height="35" rx="7" fill="#20334c" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="1005.0" y="37" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Save</text>
+<rect x="1056" y="14" width="115" height="35" rx="7" fill="#67b8f7" opacity="1"/>
+<text x="1113.5" y="37" fill="#0c1422" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">Export</text>
+<rect x="10" y="73" width="190" height="37" rx="6" fill="#20334c" opacity="1"/>
+<rect x="10" y="73" width="4" height="37" rx="2" fill="#67b8f7" opacity="1"/>
+<text x="30" y="98" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="bold" text-anchor="start" opacity="1">Projects</text>
+<text x="30" y="144" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Overview</text>
+<text x="30" y="190" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Show Layout</text>
+<text x="30" y="236" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Music</text>
+<text x="30" y="282" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Analysis</text>
+<text x="30" y="328" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Structure</text>
+<text x="30" y="374" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Choreography</text>
+<text x="30" y="420" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Sequence Editor</text>
+<text x="30" y="466" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Review</text>
+<text x="30" y="512" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Export</text>
+<text x="30" y="558" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="12" font-weight="normal" text-anchor="start" opacity="1">Settings</text>
+<text x="20" y="654" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Prototype screens</text>
+<text x="20" y="674" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Desktop / offline first</text>
+<line x1="212" y1="61" x2="212" y2="720" stroke="#304762" stroke-width="1" opacity="1"/>
+<text x="240" y="97" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="22" font-weight="bold" text-anchor="start" opacity="1">S02  Project Library</text>
+<text x="240" y="120" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="normal" text-anchor="start" opacity="1">Resume an existing show or create a new song.</text>
+<rect x="212" y="688" width="988" height="32" rx="0" fill="#111d2e" opacity="1"/>
+<text x="232" y="709" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">Saved locally  |  20 fps sequence  |  Example data - design concept</text>
+<text x="1175" y="709" fill="#6e87a3" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="end" opacity="1">xLights AI</text>
+<rect x="251" y="150" width="674" height="46" rx="7" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="270" y="180" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="normal" text-anchor="start" opacity="1">Search songs, projects, or artist...</text>
+<rect x="954" y="153" width="187" height="35" rx="7" fill="#67b8f7" opacity="1"/>
+<text x="1047.5" y="176" fill="#0c1422" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="bold" text-anchor="middle" opacity="1">New Project</text>
+<rect x="253" y="216" width="889" height="114" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="267" y="243" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Winter Show 2026</text>
+<text x="267" y="262" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">5 songs   /   Last edited today</text>
+<rect x="273" y="262" width="95" height="54" rx="6" fill="#20334c" opacity="1"/>
+<line x1="277.48" y1="297.05" x2="299.52" y2="277.62" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="299.52" y1="277.62" x2="317.5" y2="289.22" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="317.5" y1="289.22" x2="336.06" y2="272.98" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="336.06" y1="272.98" x2="364.77" y2="297.05" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<rect x="294.88" y="297.92" width="15.079999999999998" height="15.659999999999998" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="0.8699999999999999"/>
+<rect x="339.25" y="297.92" width="15.079999999999998" height="15.659999999999998" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="0.8699999999999999"/>
+<path d="M 316.05 314.74 L 316.05 301.4 Q 321.85 291.83 327.65 301.4 L 327.65 314.74" stroke="#b6a0f5" fill="none" stroke-width="1.16"/>
+<path d="M 276.32 320.53999999999996 Q 283.57 305.75 290.82 320.53999999999996" stroke="#f6bc69" fill="none" stroke-width="1.45"/>
+<path d="M 294.3 320.53999999999996 Q 301.55 305.75 308.8 320.53999999999996" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 312.28 320.53999999999996 Q 319.53 305.75 326.78 320.53999999999996" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 330.26 320.53999999999996 Q 337.51 305.75 344.76 320.53999999999996" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 348.24 320.53999999999996 Q 355.49 305.75 362.74 320.53999999999996" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<rect x="976" y="236" width="135" height="25" rx="12" fill="#59d5b5" opacity="0.17"/>
+<text x="1043.5" y="253" fill="#59d5b5" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">EDITING</text>
+<text x="390" y="300" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="normal" text-anchor="start" opacity="1">Open project   /   View latest sequence</text>
+<rect x="253" y="349" width="889" height="114" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="267" y="376" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Holiday Classics</text>
+<text x="267" y="395" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">3 songs   /   Last edited yesterday</text>
+<rect x="273" y="395" width="95" height="54" rx="6" fill="#20334c" opacity="1"/>
+<line x1="277.48" y1="430.05" x2="299.52" y2="410.62" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="299.52" y1="410.62" x2="317.5" y2="422.22" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="317.5" y1="422.22" x2="336.06" y2="405.98" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="336.06" y1="405.98" x2="364.77" y2="430.05" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<rect x="294.88" y="430.92" width="15.079999999999998" height="15.659999999999998" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="0.8699999999999999"/>
+<rect x="339.25" y="430.92" width="15.079999999999998" height="15.659999999999998" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="0.8699999999999999"/>
+<path d="M 316.05 447.74 L 316.05 434.4 Q 321.85 424.83 327.65 434.4 L 327.65 447.74" stroke="#b6a0f5" fill="none" stroke-width="1.16"/>
+<path d="M 276.32 453.53999999999996 Q 283.57 438.75 290.82 453.53999999999996" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 294.3 453.53999999999996 Q 301.55 438.75 308.8 453.53999999999996" stroke="#f6bc69" fill="none" stroke-width="1.45"/>
+<path d="M 312.28 453.53999999999996 Q 319.53 438.75 326.78 453.53999999999996" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 330.26 453.53999999999996 Q 337.51 438.75 344.76 453.53999999999996" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 348.24 453.53999999999996 Q 355.49 438.75 362.74 453.53999999999996" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<rect x="976" y="369" width="135" height="25" rx="12" fill="#67b8f7" opacity="0.17"/>
+<text x="1043.5" y="386" fill="#67b8f7" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">ANALYZED</text>
+<text x="390" y="433" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="normal" text-anchor="start" opacity="1">Open project   /   View latest sequence</text>
+<rect x="253" y="482" width="889" height="114" rx="8" fill="#17273b" opacity="1" stroke="#304762" stroke-width="1"/>
+<text x="267" y="509" fill="#e6edf8" font-family="DejaVu Sans, sans-serif" font-size="13" font-weight="bold" text-anchor="start" opacity="1">Halloween House</text>
+<text x="267" y="528" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="normal" text-anchor="start" opacity="1">2 songs   /   Needs music re-link</text>
+<rect x="273" y="528" width="95" height="54" rx="6" fill="#20334c" opacity="1"/>
+<line x1="277.48" y1="563.05" x2="299.52" y2="543.62" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="299.52" y1="543.62" x2="317.5" y2="555.22" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="317.5" y1="555.22" x2="336.06" y2="538.98" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<line x1="336.06" y1="538.98" x2="364.77" y2="563.05" stroke="#67b8f7" stroke-width="1.45" opacity="1"/>
+<rect x="294.88" y="563.92" width="15.079999999999998" height="15.659999999999998" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="0.8699999999999999"/>
+<rect x="339.25" y="563.92" width="15.079999999999998" height="15.659999999999998" rx="3" fill="none" opacity="1" stroke="#f6bc69" stroke-width="0.8699999999999999"/>
+<path d="M 316.05 580.74 L 316.05 567.4 Q 321.85 557.83 327.65 567.4 L 327.65 580.74" stroke="#b6a0f5" fill="none" stroke-width="1.16"/>
+<path d="M 276.32 586.54 Q 283.57 571.75 290.82 586.54" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 294.3 586.54 Q 301.55 571.75 308.8 586.54" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 312.28 586.54 Q 319.53 571.75 326.78 586.54" stroke="#f6bc69" fill="none" stroke-width="1.45"/>
+<path d="M 330.26 586.54 Q 337.51 571.75 344.76 586.54" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<path d="M 348.24 586.54 Q 355.49 571.75 362.74 586.54" stroke="#59d5b5" fill="none" stroke-width="1.45"/>
+<rect x="976" y="502" width="135" height="25" rx="12" fill="#f6bc69" opacity="0.17"/>
+<text x="1043.5" y="519" fill="#f6bc69" font-family="DejaVu Sans, sans-serif" font-size="10" font-weight="bold" text-anchor="middle" opacity="1">WARNING</text>
+<text x="390" y="566" fill="#9fb2ca" font-family="DejaVu Sans, sans-serif" font-size="11" font-weight="normal" text-anchor="start" opacity="1">Open project   /   View latest sequence</text>
+</svg>

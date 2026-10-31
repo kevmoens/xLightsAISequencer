@@ -28,6 +28,7 @@ public sealed class PhraseRelationshipInspectorViewModel : ObservableObject
     private IReadOnlyList<MotifGroupCandidate> _effectiveGroups = [];
     private ChoreographyTemplateAnalysis? _templateAnalysis;
     private Guid? _selectedPhraseId;
+    private Guid? _pendingLinkTargetPhraseId;
     private Guid? _selectedTemplateId;
     private ChoreographyPreviewResult? _currentPreview;
 
@@ -77,6 +78,17 @@ public sealed class PhraseRelationshipInspectorViewModel : ObservableObject
     }
 
     public Guid? SelectedTemplateId => _selectedTemplateId;
+
+    /// <summary>
+    /// Bindable "link the selected phrase to this one" choice for <c>ShellViewModel.LinkSelectedPhraseCommand</c>
+    /// — a second phrase picked from <see cref="Rows"/>, same "pick a target, then act" pattern a
+    /// drop-down selection needs where <see cref="DelegateCommand"/> itself takes no parameter.
+    /// </summary>
+    public Guid? PendingLinkTargetPhraseId
+    {
+        get => _pendingLinkTargetPhraseId;
+        set => SetField(ref _pendingLinkTargetPhraseId, value);
+    }
 
     public ChoreographyPreviewResult? CurrentPreview
     {

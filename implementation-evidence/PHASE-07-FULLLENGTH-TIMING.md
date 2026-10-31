@@ -1,0 +1,6 @@
+# Phase 7 full-length real-track analysis timing
+
+Song: Dubstep Christmas Light Show (full length).
+Elapsed (structure/section analysis only, `CorpusSongAnalyzer.AnalyzeAsync`): 00:21:48.2281065.
+Sections detected: 48.
+Song duration ticks: n/a (BeatGrid only exposes beats here); section list: Intro[0-4), Chorus[4-11), Chorus[11-12), Chorus[12-45), Chorus[45-46), Chorus[46-51), Chorus[51-65), Chorus[65-73), Chorus[73-74), Chorus[74-76), Chorus[76-77), Chorus[77-79), Chorus[79-81), Chorus[81-82), Chorus[82-89), Unknown[89-90), Chorus[90-91), Chorus[91-92), Chorus[92-93), Chorus[93-99), Bridge[99-100), Chorus[100-111), Bridge[111-112), Chorus[112-114), Chorus[114-123), Chorus[123-124), Chorus[124-127), Bridge[127-128), Chorus[128-130), Chorus[130-133), Chorus[133-134), Unknown[134-136), Chorus[136-137), Chorus[137-138), Chorus[138-149), Bridge[149-150), Chorus[150-152), Chorus[152-153), Chorus[153-154), Chorus[154-159), Chorus[159-160), Unknown[160-166), Chorus[166-176), Bridge[176-179), Chorus[179-180), Chorus[180-181), Chorus[181-182), Outro[182-185).

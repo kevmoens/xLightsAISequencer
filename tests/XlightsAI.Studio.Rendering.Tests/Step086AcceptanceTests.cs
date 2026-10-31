@@ -8,14 +8,17 @@ namespace XlightsAI.Studio.Rendering.Tests;
 /// real OS process, really parse its real captured output/exit code/on-disk artifact, and that every named
 /// failure/edge case fails safely.
 ///
-/// No installed xLights executable exists on this machine (carried forward from every prior PHASE-02/13
-/// step's own disclosure -- see implementation-evidence/PHASE-02/STEP-14.md,
-/// implementation-evidence/PHASE-13/STEP-085.md). <c>tools/FakeXlightsHost</c> -- a real, separately-
-/// compiled .NET console apphost built as part of this repository -- stands in for "an installed target
-/// xLights executable" purely to prove the real process-launch plumbing (argument list, stdout/stderr
-/// capture, timeout/kill, exit code, on-disk .fseq artifact) end to end; it is explicitly NOT xLights and
+/// These tests must run identically whether or not a real installed xLights executable happens to be
+/// present (originally written when none was -- PHASE-02/STEP-14.md, PHASE-13/STEP-085.md -- but Phase 0's
+/// de-risk spike later found a real install at <c>C:\Program Files\xLights</c> on this machine).
+/// <c>tools/FakeXlightsHost</c> -- a real, separately-compiled .NET console apphost built as part of this
+/// repository -- stands in for "an installed target xLights executable" purely to prove the real
+/// process-launch plumbing (argument list, stdout/stderr capture, timeout/kill, exit code, on-disk .fseq
+/// artifact) end to end, deterministically, everywhere (CI included); it is explicitly NOT xLights and
 /// these tests never claim it is. This mirrors Step 014's own disclosed precedent of standing in a real
 /// executable (there, the OS's own <c>where.exe</c>) rather than mocking the process boundary.
+/// <see cref="RealXlightsRenderCapabilityProbeTests"/> separately corroborates this probe's behavior
+/// against the real install when present.
 /// </summary>
 [Trait("Category", "Integration")]
 public sealed class Step086AcceptanceTests : IDisposable
@@ -133,10 +136,17 @@ public sealed class Step086AcceptanceTests : IDisposable
         Assert.NotEqual(Guid.Empty, artifact.Id);
     }
 
+    /// <summary>
+    /// Phase 0 finding (docs/PHASE0-FINDINGS.md section 4): the original probe sniffed <c>--help</c> text,
+    /// which false-negatived against the real installed xLights 2024.13 (launches the GUI, never prints
+    /// usage). The probe now attempts a real trivial headless render instead; this test drives
+    /// FakeXlightsHost's own <c>-fail-</c> stem convention to simulate a build whose real render attempt
+    /// fails, the same way a build that does not actually support <c>--headless</c> would.
+    /// </summary>
     [Fact]
-    public async Task Probe_DetectsLimitedBuild_NoHeadlessOrOutputDirMentioned()
+    public async Task Probe_RealRenderAttemptFails_ReportsUnsupported()
     {
-        var probe = new XlightsRenderCapabilityProbe(probeArguments: ["--help-limited"]);
+        var probe = new XlightsRenderCapabilityProbe(probeSequenceStem: "fixture-fail-case");
         var capability = await probe.ProbeAsync(FakeXlightsHostPath, CancellationToken.None);
 
         Assert.False(capability.SupportsHeadless);
@@ -146,7 +156,7 @@ public sealed class Step086AcceptanceTests : IDisposable
     [Fact]
     public async Task UnsupportedBuild_FallsBackWithoutLaunchingRenderProcess_NegativePath()
     {
-        var limitedProbe = new XlightsRenderCapabilityProbe(probeArguments: ["--help-limited"]);
+        var limitedProbe = new XlightsRenderCapabilityProbe(probeSequenceStem: "fixture-fail-case");
         var adapter = new XlightsRenderAdapter(limitedProbe, FakeXlightsHostPath);
         var xsqPath = CreateExportedXsq("fixture-success");
         var outputDirectory = Path.Combine(_root, "output");
@@ -209,7 +219,7 @@ public sealed class Step086AcceptanceTests : IDisposable
     [Fact]
     public async Task Probe_Timeout_FallsBackGracefully_NegativePath()
     {
-        var probe = new XlightsRenderCapabilityProbe(probeArguments: ["--hang"], timeout: TimeSpan.FromMilliseconds(500));
+        var probe = new XlightsRenderCapabilityProbe(timeout: TimeSpan.FromMilliseconds(500), probeSequenceStem: "fixture-hang-case");
 
         var stopwatch = Stopwatch.StartNew();
         var capability = await probe.ProbeAsync(FakeXlightsHostPath, CancellationToken.None);

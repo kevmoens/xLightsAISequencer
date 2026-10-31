@@ -1,0 +1,166 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:local="using:XlightsAI.Studio.App.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.AudioView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    SCREEN 06 AUDIO (PHASE-04 Steps 024-026): probe a song, play it, build its waveform cache.
+
+    Playback and the waveform cache used to render unconditionally, so a user arriving at a fresh
+    screen was shown Play / Pause / Seek / Build controls for a song that did not exist yet, all of
+    which fail or no-op. Both sections are now gated on a probed asset, which is their actual
+    precondition, and the technical probe fields are collapsed behind a disclosure rather than
+    being the loudest thing on the screen.
+  -->
+
+  <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="Song" />
+    <TextBlock Classes="page-subtitle"
+               Text="Load the track this sequence is choreographed to, then build its waveform so the timeline has something to draw." />
+
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="field" Text="AUDIO FILE" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <TextBox Grid.Column="0" Text="{Binding Audio.AudioFilePath}" Watermark="C:\path\to\song.wav" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowseAudioFile" />
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Classes="primary" Content="Load song" Command="{Binding ProbeAudioFileCommand}" />
+          <TextBlock Classes="busy" VerticalAlignment="Center" IsVisible="{Binding Audio.IsBusy}" Text="Reading the file…" />
+        </StackPanel>
+        <TextBlock Classes="hint" IsVisible="{Binding !Audio.HasProbedAsset}"
+                   Text="WAV loads directly. MP3, FLAC and other compressed formats are transcoded with ffmpeg, which is downloaded on demand the first time you need it." />
+        <TextBlock Classes="error"
+                   IsVisible="{Binding Audio.ErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding Audio.ErrorMessage}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Shown only once a probe has actually hit the missing-transcoder case; never pre-emptively,
+         and never a silent background download. -->
+    <Border Classes="panel" IsVisible="{Binding Audio.RequiresFfmpegDownload}">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="section" Text="This format needs ffmpeg" />
+        <TextBlock Classes="hint" Text="ffmpeg converts compressed audio to the PCM this app analyses. It is downloaded once, into this app's own folder." />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Classes="primary" Content="Download ffmpeg" Command="{Binding DownloadFfmpegCommand}" />
+          <TextBlock Classes="busy" VerticalAlignment="Center"
+                     IsVisible="{Binding Audio.IsDownloadingFfmpeg}" Text="Downloading ffmpeg…" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <TextBlock Classes="hint"
+               IsVisible="{Binding Audio.FfmpegStatusMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+               Text="{Binding Audio.FfmpegStatusMessage}" />
+
+    <StackPanel IsVisible="{Binding Audio.HasProbedAsset}" Spacing="14">
+
+      <Border Classes="card">
+        <StackPanel Spacing="4">
+          <TextBlock Classes="section" Text="Loaded" />
+          <TextBlock FontSize="16"
+                     Text="{Binding Audio.ProbedAsset.DurationTicks, Converter={x:Static local:TicksToTimecodeConverter.Instance}}" />
+          <TextBlock Classes="hint">
+            <TextBlock.Text>
+              <MultiBinding StringFormat="{}{0} Hz · {1} channels · {2}-bit">
+                <Binding Path="Audio.ProbedAsset.SampleRate" />
+                <Binding Path="Audio.ProbedAsset.Channels" />
+                <Binding Path="Audio.ProbedAsset.BitsPerSample" />
+              </MultiBinding>
+            </TextBlock.Text>
+          </TextBlock>
+
+          <Expander Header="Technical details" Margin="0,6,0,0">
+            <StackPanel Spacing="2" Margin="0,4">
+              <TextBlock Classes="detail" Text="{Binding Audio.SavedAssetPath, StringFormat='Asset record: {0}'}" />
+              <TextBlock Classes="detail" Text="{Binding Audio.ProbedAsset.Sha256, StringFormat='SHA256: {0}'}" />
+              <TextBlock Classes="detail" Text="{Binding Audio.ProbedAsset.SampleCount, StringFormat='Sample count: {0}'}" />
+              <TextBlock Classes="detail" Text="{Binding Audio.ProbedAsset.DurationTicks, StringFormat='Duration (100 ns ticks): {0}'}" />
+              <TextBlock Classes="detail" Text="{Binding Audio.ProbedAsset.DecoderVersion, StringFormat='Decoder version: {0}'}" />
+              <TextBlock Classes="detail" Text="{Binding Audio.ProbedAsset.EncoderDelaySamples, StringFormat='Encoder delay/priming (samples): {0}'}" />
+            </StackPanel>
+          </Expander>
+        </StackPanel>
+      </Border>
+
+      <!-- PHASE-04 Step 025: real desktop audio backend playback controls. -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="section" Text="Playback" />
+          <TextBlock Classes="hint" Text="Opening playback also starts the master clock the timeline playhead follows." />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Open playback" Command="{Binding OpenAudioPlaybackCommand}" />
+            <Button Content="Play" Command="{Binding PlayAudioCommand}" />
+            <Button Content="Pause" Command="{Binding PauseAudioCommand}" />
+            <Button Content="Refresh position" Command="{Binding RefreshAudioPositionCommand}" />
+          </StackPanel>
+
+          <Grid ColumnDefinitions="Auto,*" ColumnSpacing="10" Margin="0,4,0,0">
+            <TextBlock Grid.Column="0" FontSize="18" FontFamily="Consolas, Menlo, monospace"
+                       Text="{Binding Audio.PlaybackPositionTicks, Converter={x:Static local:TicksToTimecodeConverter.Instance}}" />
+            <TextBlock Grid.Column="1" Classes="hint" VerticalAlignment="Center">
+              <TextBlock.Text>
+                <MultiBinding StringFormat="open: {0} · playing: {1}">
+                  <Binding Path="Audio.IsPlaybackOpen" />
+                  <Binding Path="Audio.IsPlaying" />
+                </MultiBinding>
+              </TextBlock.Text>
+            </TextBlock>
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="field" Text="SEEK TO (TICKS)" VerticalAlignment="Center" />
+            <TextBox Text="{Binding Audio.SeekTargetTicksText}" Width="170" />
+            <Button Content="Seek" Command="{Binding SeekAudioCommand}" />
+          </StackPanel>
+
+          <TextBlock Classes="error"
+                     IsVisible="{Binding Audio.PlaybackErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                     Text="{Binding Audio.PlaybackErrorMessage}" />
+        </StackPanel>
+      </Border>
+
+      <!-- PHASE-04 Step 026: zoom-independent multiresolution waveform peaks cache. The timeline
+           cannot draw a waveform without it, which is why that dependency is stated here rather
+           than only being discovered as an empty panel two screens later. -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="section" Text="Waveform" />
+          <TextBlock Classes="hint" Text="Built once per song. The timeline draws from this cache at every zoom level." />
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="primary" Content="Build waveform" Command="{Binding BuildWaveformCacheCommand}"
+                    IsVisible="{Binding !Audio.HasWaveformCache}" />
+            <Button Content="Rebuild waveform" Command="{Binding BuildWaveformCacheCommand}"
+                    IsVisible="{Binding Audio.HasWaveformCache}" />
+            <TextBlock Classes="busy" VerticalAlignment="Center"
+                       IsVisible="{Binding Audio.IsBuildingWaveform}" Text="Building waveform…" />
+          </StackPanel>
+          <TextBlock Classes="error"
+                     IsVisible="{Binding Audio.WaveformErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                     Text="{Binding Audio.WaveformErrorMessage}" />
+          <Expander Header="Cache details" IsVisible="{Binding Audio.HasWaveformCache}">
+            <StackPanel Spacing="2" Margin="0,4">
+              <TextBlock Classes="detail" Text="{Binding Audio.WaveformCachePath, StringFormat='Cache file: {0}'}" />
+              <TextBlock Classes="detail" Text="{Binding Audio.WaveformResolutionLevelCount, StringFormat='Resolution levels: {0}'}" />
+              <TextBlock Classes="detail" Text="{Binding Audio.WaveformContentHash, StringFormat='Built from content hash: {0}'}" />
+            </StackPanel>
+          </Expander>
+        </StackPanel>
+      </Border>
+
+      <Border Classes="panel">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Classes="hint" VerticalAlignment="Center" Text="Song loaded." />
+          <Button Classes="link" Content="Next: generate the choreography &#x2192;"
+                  Command="{Binding NavigateToGenerateExportCommand}" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

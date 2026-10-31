@@ -1,0 +1,293 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:local="using:XlightsAI.Studio.App.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.TimelineView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    SCREEN 13 TIMELINE (PHASE-03/04): ruler, waveform, prop rows, effect blocks, playhead.
+
+    Two structural fixes beyond the restyle:
+
+    * The ruler and waveform were pinned to Width="760" inside a resizable window, while
+      TimelineViewModel.ViewportWidthPixels already existed precisely so "the real view" could
+      report its own width on resize (its own doc comment says so) — and no view ever did. Both
+      surfaces now stretch, and the code-behind pushes the measured width back into the view model,
+      so zoom, scroll, tick generation and waveform bar layout all work against the width actually
+      on screen.
+
+    * Every "go do X on the Y screen" sentence is now a sentence plus the button that takes you
+      there. Three of this screen's empty states were prose instructions to navigate elsewhere and
+      come back, with no link.
+  -->
+
+  <StackPanel Spacing="14">
+    <TextBlock Classes="page-title" Text="Timeline" />
+    <TextBlock Classes="page-subtitle"
+               Text="Review the generated effects against the song before you trust the export." />
+
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="field" Text="TOTAL DURATION (100 NS TICKS)" />
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBox Text="{Binding Timeline.TotalDurationTicks}" Width="220" />
+          <TextBlock Classes="hint" VerticalAlignment="Center"
+                     Text="{Binding Timeline.TotalDurationTicks, Converter={x:Static local:TicksToTimecodeConverter.Instance}}" />
+          <Button Classes="primary" Content="Load timeline" Command="{Binding LoadTimelineCommand}" />
+        </StackPanel>
+        <TextBlock Classes="hint" IsVisible="{Binding Timeline.IsEmpty}"
+                   Text="Nothing loaded yet. Set the song's duration and click Load timeline." />
+        <TextBlock Classes="error" IsVisible="{Binding Timeline.IsError}" Text="{Binding Timeline.ErrorMessage}" />
+      </StackPanel>
+    </Border>
+
+    <StackPanel IsVisible="{Binding Timeline.IsLoaded}" Spacing="10">
+
+      <!-- ===== Transport / zoom ===== -->
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Content="Zoom in (+)" Command="{Binding TimelineZoomInCommand}" />
+        <Button Content="Zoom out (−)" Command="{Binding TimelineZoomOutCommand}" />
+        <Button Content="◀ Scroll" Command="{Binding TimelineScrollLeftCommand}" />
+        <Button Content="Scroll ▶" Command="{Binding TimelineScrollRightCommand}" />
+        <TextBlock Classes="hint" VerticalAlignment="Center">
+          <TextBlock.Text>
+            <MultiBinding StringFormat="showing {0} – {1}">
+              <Binding Path="Timeline.VisibleStartTicks" Converter="{x:Static local:TicksToTimecodeConverter.Instance}" />
+              <Binding Path="Timeline.VisibleEndTicks" Converter="{x:Static local:TicksToTimecodeConverter.Instance}" />
+            </MultiBinding>
+          </TextBlock.Text>
+        </TextBlock>
+      </StackPanel>
+
+      <!-- ===== Ruler + playhead =====
+           The playhead is overlaid on the same Grid cell as the ruler and positioned through the
+           exact same TimelineViewport.XFromTime transform the ruler ticks use — one authoritative
+           playhead, not a second coordinate system. -->
+      <Grid Height="48" Name="TimelineSurface" SizeChanged="OnTimelineSurfaceSizeChanged">
+        <Border BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" ClipToBounds="True"
+                Background="{DynamicResource AppSurfaceBrush}">
+          <ItemsControl ItemsSource="{Binding Timeline.RulerTicks}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <StackPanel Orientation="Horizontal" />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <StackPanel Orientation="Vertical" Spacing="0"
+                            Margin="{Binding MarginLeft, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}">
+                  <Rectangle Width="1" Height="12" Fill="{DynamicResource AppRulerInkBrush}" />
+                  <TextBlock Text="{Binding Label}" FontSize="10" Foreground="{DynamicResource AppRulerInkBrush}" />
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Border>
+        <Rectangle IsVisible="{Binding Timeline.IsPlayheadVisible}"
+                   Width="2" Fill="{DynamicResource AppPlayheadBrush}" HorizontalAlignment="Left"
+                   IsHitTestVisible="False"
+                   Margin="{Binding Timeline.PlayheadMarginLeft, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}" />
+      </Grid>
+
+      <!-- ===== Waveform =====
+           Rendered through the same viewport transform as the ruler above; only the visible,
+           virtualized set of bars is ever built (see WaveformBarLayoutBuilder). -->
+      <Border Classes="panel" IsVisible="{Binding !Timeline.HasWaveform}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Classes="hint" VerticalAlignment="Center" Text="No waveform to show." />
+          <Button Classes="link" Content="Build one on the Song screen &#x2192;" Command="{Binding NavigateToAudioCommand}" />
+          <TextBlock Classes="hint" VerticalAlignment="Center" Text="then load the timeline again." />
+        </StackPanel>
+      </Border>
+      <Border IsVisible="{Binding Timeline.HasWaveform}"
+              BorderBrush="{DynamicResource AppBorderBrush}" BorderThickness="1" Height="64"
+              ClipToBounds="True" Background="{DynamicResource AppWaveformGroundBrush}">
+        <ItemsControl ItemsSource="{Binding Timeline.WaveformBars}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <StackPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <Rectangle Fill="{DynamicResource AppWaveformBrush}" Width="{Binding Width}" Height="{Binding BarHeight}"
+                         VerticalAlignment="Center"
+                         Margin="{Binding MarginLeft, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </Border>
+
+      <!-- ===== Playhead / scrub =====
+           One master media clock drives both this and the Song screen's own position readout. -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="section" Text="Playhead" />
+          <TextBlock FontSize="18" FontFamily="Consolas, Menlo, monospace"
+                     Text="{Binding Timeline.PlayheadTicks, Converter={x:Static local:TicksToTimecodeConverter.Instance}}" />
+          <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding !Timeline.HasPlayhead}">
+            <TextBlock Classes="hint" VerticalAlignment="Center" Text="No playback session." />
+            <Button Classes="link" Content="Open playback on the Song screen &#x2192;" Command="{Binding NavigateToAudioCommand}" />
+          </StackPanel>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="field" Text="SCRUB TO (TICKS)" VerticalAlignment="Center" />
+            <TextBox Text="{Binding Timeline.ScrubTargetTicksText}" Width="170" />
+            <Button Content="Scrub" Command="{Binding ScrubTimelinePlayheadCommand}" />
+          </StackPanel>
+          <TextBlock Classes="error"
+                     IsVisible="{Binding Timeline.ScrubErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                     Text="{Binding Timeline.ScrubErrorMessage}" />
+        </StackPanel>
+      </Border>
+
+      <!-- ===== Prop rows and effect blocks =====
+           Only rows whose ancestors are expanded are ever in Timeline.Rows; a collapsed group's
+           children are never flattened into the list at all (see TimelineRowFlattener). Clicking a
+           block hit-tests exactly that effect id, never a row index or pixel position. -->
+      <TextBlock Classes="section" Text="Props" />
+      <Border Classes="panel" IsVisible="{Binding !Timeline.Rows.Count}">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Classes="hint" VerticalAlignment="Center" Text="No props to show." />
+          <Button Classes="link" Content="Import a show layout &#x2192;" Command="{Binding NavigateToShowImportCommand}" />
+        </StackPanel>
+      </Border>
+      <ItemsControl ItemsSource="{Binding Timeline.Rows}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <StackPanel Orientation="Vertical" Spacing="1"
+                        Margin="{Binding IndentPixels, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}">
+              <StackPanel Orientation="Horizontal" Spacing="4">
+                <Button Content="{Binding IsExpanded, Converter={x:Static local:ExpandedGlyphConverter.Instance}}"
+                        IsVisible="{Binding IsGroup}"
+                        Command="{Binding ToggleExpandCommand}"
+                        Padding="4,0" MinWidth="20" />
+                <TextBlock Text="{Binding DisplayName}"
+                           FontWeight="{Binding IsGroup, Converter={x:Static local:BoolToFontWeightConverter.Instance}}" />
+              </StackPanel>
+
+              <ItemsControl ItemsSource="{Binding EffectLayers}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <ItemsControl ItemsSource="{Binding Blocks}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" Height="18" />
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                          <Button Content="{Binding Label}" Command="{Binding SelectCommand}"
+                                  Width="{Binding Width}" Height="16" Padding="2,0" FontSize="9"
+                                  HorizontalContentAlignment="Left"
+                                  Background="{Binding IsLocked, Converter={x:Static local:EffectBlockBrushConverter.Instance}, ConverterParameter=Locked}"
+                                  BorderBrush="{Binding IsSelected, Converter={x:Static local:EffectBlockBrushConverter.Instance}, ConverterParameter=Selected}"
+                                  BorderThickness="2"
+                                  Margin="{Binding MarginLeft, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}">
+                            <ToolTip.Tip>
+                              <TextBlock Text="{Binding Label}" />
+                            </ToolTip.Tip>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <ItemsControl ItemsSource="{Binding Timeline.RowWarnings}" IsVisible="{Binding Timeline.RowWarnings.Count}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Classes="warn" Text="{Binding}" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+
+      <!-- ===== Inspector ===== -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="section" Text="Selected effect" />
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="◀ Previous (←)" Command="{Binding TimelineSelectPreviousEffectCommand}" />
+            <Button Content="Next (→) ▶" Command="{Binding TimelineSelectNextEffectCommand}" />
+            <Button Content="Clear (Esc)" Command="{Binding TimelineClearSelectionCommand}" />
+          </StackPanel>
+          <TextBlock Classes="hint" IsVisible="{Binding !Timeline.SelectedEffectId.HasValue}"
+                     Text="Nothing selected. Click a block above, or step through with Next / Previous." />
+          <StackPanel Spacing="2"
+                      IsVisible="{Binding Timeline.SelectedEffectInspector, Converter={x:Static conv:ObjectConverters.IsNotNull}}">
+            <TextBlock Text="{Binding Timeline.SelectedEffectInspector.TargetModelName, StringFormat='Prop: {0}'}" />
+            <TextBlock>
+              <TextBlock.Text>
+                <MultiBinding StringFormat="{}{0} → {1}">
+                  <Binding Path="Timeline.SelectedEffectInspector.StartTicks" Converter="{x:Static local:TicksToTimecodeConverter.Instance}" />
+                  <Binding Path="Timeline.SelectedEffectInspector.EndTicks" Converter="{x:Static local:TicksToTimecodeConverter.Instance}" />
+                </MultiBinding>
+              </TextBlock.Text>
+            </TextBlock>
+            <TextBlock Classes="detail" Text="{Binding Timeline.SelectedEffectInspector.RecipeId, StringFormat='Recipe: {0}'}" />
+            <TextBlock Classes="detail" Text="{Binding Timeline.SelectedEffectInspector.Layer, StringFormat='Layer: {0}'}" />
+            <TextBlock Classes="detail" Text="{Binding Timeline.SelectedEffectInspector.IsLocked, StringFormat='Locked: {0}'}" />
+            <TextBlock Classes="detail" Text="{Binding Timeline.SelectedEffectInspector.EffectId, StringFormat='Effect id: {0}'}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- ===== Range selection, zoom-to-selection, A/B loop, snapping =====
+           Row indices are the same pre-order, collapse-aware indices Timeline.Rows renders at;
+           pixels are real horizontal offsets into the same shared viewport. Zoom-to-selection and
+           the loop both operate on the SelectedRangeScope built here — never a second window. -->
+      <Expander Header="Range, loop and snapping">
+        <StackPanel Spacing="10" Margin="0,8">
+          <TextBlock Classes="hint"
+                     Text="Range selection is still specified numerically — row indices and pixel offsets — rather than by dragging on the timeline itself." />
+
+          <WrapPanel Orientation="Horizontal">
+            <TextBlock Classes="field" Text="START ROW" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <TextBox Text="{Binding Timeline.RangeSelectionStartRowIndex}" Width="52" Margin="0,0,10,4" />
+            <TextBlock Classes="field" Text="START PX" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <TextBox Text="{Binding Timeline.RangeSelectionStartPixel}" Width="62" Margin="0,0,10,4" />
+            <TextBlock Classes="field" Text="END ROW" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <TextBox Text="{Binding Timeline.RangeSelectionEndRowIndex}" Width="52" Margin="0,0,10,4" />
+            <TextBlock Classes="field" Text="END PX" VerticalAlignment="Center" Margin="0,0,4,0" />
+            <TextBox Text="{Binding Timeline.RangeSelectionEndPixel}" Width="62" Margin="0,0,10,4" />
+            <Button Content="Select range" Command="{Binding TimelineApplyRangeSelectionCommand}" Margin="0,0,6,4" />
+            <Button Content="Clear" Command="{Binding TimelineClearRangeSelectionCommand}" Margin="0,0,0,4" />
+          </WrapPanel>
+
+          <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"
+                     Text="{Binding Timeline.SelectedRangeScopeSummary}"
+                     IsVisible="{Binding Timeline.SelectedRangeScopeSummary, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
+          <TextBlock Classes="hint" Text="No range selected."
+                     IsVisible="{Binding Timeline.SelectedRangeScope, Converter={x:Static conv:ObjectConverters.IsNull}}" />
+
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="Zoom to selection (Z)" Command="{Binding TimelineZoomToSelectionCommand}" />
+            <Button Content="Set loop (L)" Command="{Binding SetTimelineLoopFromSelectionCommand}" />
+            <Button Content="Clear loop (⇧L)" Command="{Binding ClearTimelineLoopCommand}" />
+          </StackPanel>
+          <TextBlock FontWeight="SemiBold" TextWrapping="Wrap"
+                     Text="{Binding Timeline.LoopSummary}" IsVisible="{Binding Timeline.HasLoop}" />
+          <TextBlock Classes="hint" Text="No loop armed." IsVisible="{Binding !Timeline.HasLoop}" />
+          <TextBlock Classes="error"
+                     IsVisible="{Binding Timeline.LoopErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                     Text="{Binding Timeline.LoopErrorMessage}" />
+
+          <!-- Snap mode is the one injected policy both Scrub and range selection apply; there is
+               no second hardcoded rounding path. -->
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Classes="field" Text="SNAP" VerticalAlignment="Center" />
+            <Button Content="Off" Command="{Binding SetTimelineSnapNoneCommand}" />
+            <Button Content="Frame" Command="{Binding SetTimelineSnapFrameCommand}" />
+          </StackPanel>
+          <TextBlock Classes="detail" Text="{Binding Timeline.TimingDiagnosticsSummary}" />
+        </StackPanel>
+      </Expander>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

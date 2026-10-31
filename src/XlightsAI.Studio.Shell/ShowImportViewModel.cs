@@ -1,3 +1,7 @@
+using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Director;
+using XlightsAI.Studio.Pipeline;
+using XlightsAI.Studio.Stems;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Shell;
@@ -30,6 +34,7 @@ public sealed class ShowImportViewModel : ObservableObject
     private string? _planErrorMessage;
     private SequenceDocument? _plan;
     private string? _planSavedPath;
+    private WholeSongGenerationResult? _lastWholeSongGeneration;
 
     // PHASE-02 Step 013: "Port minimal editable XSQ writer and required sequencing metadata."
     // Deliberately separate busy/error/result state from the Discover/Generate-plan flows above,
@@ -54,6 +59,25 @@ public sealed class ShowImportViewModel : ObservableObject
     private bool _isLaunchBusy;
     private string? _launchErrorMessage;
     private XlightsLaunchResult? _lastLaunch;
+
+    // Real whole-song AI pipeline (M1-M7): a separate action from the Step 012 "3 hardcoded props" demo
+    // above, deliberately sharing this same screen's Plan/PlanSavedPath/IsPlanBusy/PlanErrorMessage
+    // result state (both are just different ways of producing the one Plan this screen displays) rather
+    // than duplicating a second parallel set of properties.
+    private bool _requiresStemModelDownload;
+    private bool _isDownloadingStemModel;
+    private string? _stemModelStatusMessage;
+
+    // Build-plan Phase 10 §3f ("Activate corpus mining"): the Generate & Export screen's Developer
+    // Tools "Run corpus mining" action. Deliberately separate busy/error/result state from every
+    // flow above, same reasoning as Export's own separation from Generate -- running corpus mining
+    // never re-runs or invalidates Discover/Generate/Export, and a failed run never clobbers a
+    // previously successful LastCorpusMiningResult.
+    private string _corpusRootDirectory = string.Empty;
+    private bool _isCorpusMiningBusy;
+    private string? _corpusMiningStatusMessage;
+    private string? _corpusMiningErrorMessage;
+    private CorpusMiningResult? _lastCorpusMiningResult;
 
     /// <summary>30 seconds at the canonical 100 ns/tick unit — a reasonable demo default; a real song duration is Phase 04's own <c>SongAsset</c> concern.</summary>
     public const long DefaultSongDurationTicks = 300_000_000;
@@ -161,6 +185,45 @@ public sealed class ShowImportViewModel : ObservableObject
         private set => SetField(ref _planSavedPath, value);
     }
 
+    /// <summary>
+    /// The full result of the most recent successful <see cref="GenerateWholeSongPlanAsync"/> run —
+    /// <see cref="Plan"/>/<see cref="PlanSavedPath"/> above are this result's own
+    /// <see cref="WholeSongGenerationResult.Document"/>, kept as the screen's existing bindable
+    /// properties so nothing that already binds to them has to change. This additionally carries the
+    /// intermediate melody/phrase/motif analysis so <see cref="ShellViewModel"/> can open the Piano
+    /// Roll/Structure screens against the same real run, instead of a second, duplicate analysis pass.
+    /// <see langword="null"/> until a Generate attempt succeeds; never touched by the 3-hardcoded-props
+    /// <see cref="GenerateEffectPlanAsync"/>, which produces no such analysis.
+    /// </summary>
+    public WholeSongGenerationResult? LastWholeSongGeneration
+    {
+        get => _lastWholeSongGeneration;
+        private set
+        {
+            if (SetField(ref _lastWholeSongGeneration, value))
+            {
+                OnPropertyChanged(nameof(HasTemplatedLookUsage));
+                OnPropertyChanged(nameof(TemplatedLookUsageSummaries));
+            }
+        }
+    }
+
+    /// <summary>
+    /// Build-plan Phase 10 §6b task 4: <see langword="true"/> once <see cref="LastWholeSongGeneration"/>
+    /// has at least one Look whose own seed-template provenance (<see cref="GeneratedLookTemplateUsage.TemplateId"/>)
+    /// the Director actually declared -- the Generate &amp; Export screen's own "Seed templates used"
+    /// disclosure is only shown then, never for a run that drew on no named template.
+    /// </summary>
+    public bool HasTemplatedLookUsage => LastWholeSongGeneration?.LookTemplateUsageOrEmpty.Any(u => u.TemplateId is not null) ?? false;
+
+    /// <summary>One human-readable line per Look that declared a seed template, e.g. <c>"Chorus Build — edm-dense-canvas-tree-matrix"</c> -- the exact "this Chorus Look is using the EDM dense-canvas Tree pattern" visibility build-plan Phase 10 §6b task 4 asks for.</summary>
+    public IReadOnlyList<string> TemplatedLookUsageSummaries =>
+        LastWholeSongGeneration?.LookTemplateUsageOrEmpty
+            .Where(u => u.TemplateId is not null)
+            .Select(u => $"{u.LookName} — {u.TemplateId}")
+            .ToList()
+        ?? [];
+
     /// <summary>Bindable output path for <see cref="ExportXsqAsync"/>; must end in <c>.xsq</c> and must not already exist.</summary>
     public string XsqOutputPath
     {
@@ -248,6 +311,64 @@ public sealed class ShowImportViewModel : ObservableObject
     public bool HasLaunch => LastLaunch is not null;
 
     /// <summary>
+    /// <see langword="true"/> when the last <see cref="GenerateWholeSongPlanAsync"/> attempt failed
+    /// because the stem-separation model needed for real melody analysis is not yet installed — the
+    /// screen shows a "Download separation model" action instead of a dead-end error while this is set.
+    /// Cleared at the start of every new whole-song plan attempt and on a successful model install.
+    /// </summary>
+    public bool RequiresStemModelDownload
+    {
+        get => _requiresStemModelDownload;
+        private set => SetField(ref _requiresStemModelDownload, value);
+    }
+
+    public bool IsDownloadingStemModel
+    {
+        get => _isDownloadingStemModel;
+        private set => SetField(ref _isDownloadingStemModel, value);
+    }
+
+    /// <summary>Human-readable outcome of the most recent <see cref="DownloadStemSeparationModelAsync"/> attempt.</summary>
+    public string? StemModelStatusMessage
+    {
+        get => _stemModelStatusMessage;
+        private set => SetField(ref _stemModelStatusMessage, value);
+    }
+
+    /// <summary>Bindable "corpus root directory" input for the Developer Tools "Run corpus mining" action (build-plan Phase 10 §3f) -- a raw <c>C:\xLights</c>-shaped folder, or a representative subset of one.</summary>
+    public string CorpusRootDirectory
+    {
+        get => _corpusRootDirectory;
+        set => SetField(ref _corpusRootDirectory, value);
+    }
+
+    public bool IsCorpusMiningBusy
+    {
+        get => _isCorpusMiningBusy;
+        private set => SetField(ref _isCorpusMiningBusy, value);
+    }
+
+    /// <summary>The most recent one-line progress message from <see cref="CorpusMiningRunner.RunAsync(string,string,CancellationToken)"/>'s own <c>progress</c> callback -- a "tail the log" affordance for a run that can take up to roughly an hour against a full real corpus.</summary>
+    public string? CorpusMiningStatusMessage
+    {
+        get => _corpusMiningStatusMessage;
+        private set => SetField(ref _corpusMiningStatusMessage, value);
+    }
+
+    public string? CorpusMiningErrorMessage
+    {
+        get => _corpusMiningErrorMessage;
+        private set => SetField(ref _corpusMiningErrorMessage, value);
+    }
+
+    /// <summary>Full result of the most recent successful <see cref="RunCorpusMiningAsync"/> call, including the real on-disk paths <see cref="CorpusMiningRunner.RunAsync(string,string,CancellationToken)"/> wrote <see cref="CraftRules"/>/<see cref="ExemplarIndex"/> to.</summary>
+    public CorpusMiningResult? LastCorpusMiningResult
+    {
+        get => _lastCorpusMiningResult;
+        private set => SetField(ref _lastCorpusMiningResult, value);
+    }
+
+    /// <summary>
     /// Restores a previously persisted successful directory selection into the bindable
     /// <see cref="ShowDirectory"/> text, without touching the filesystem (discovery only ever runs
     /// on explicit user action via <see cref="DiscoverAsync"/>).
@@ -257,6 +378,89 @@ public sealed class ShowImportViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(lastShowDirectory) && string.IsNullOrEmpty(ShowDirectory))
         {
             ShowDirectory = lastShowDirectory;
+        }
+    }
+
+    /// <summary>Same "only fill in a blank field, require an explicit action to actually run it" convention as <see cref="RestoreLastDirectory"/>, for <see cref="CorpusRootDirectory"/>.</summary>
+    public void RestoreLastCorpusRootDirectory(string? lastCorpusRootDirectory)
+    {
+        if (!string.IsNullOrWhiteSpace(lastCorpusRootDirectory) && string.IsNullOrEmpty(CorpusRootDirectory))
+        {
+            CorpusRootDirectory = lastCorpusRootDirectory;
+        }
+    }
+
+    /// <summary>
+    /// Build-plan Phase 10 §3f "Run corpus mining" action: the real, reachable invocation path for
+    /// <see cref="CorpusMiningRunner.RunAsync(string,string,CancellationToken)"/> -- runs the full
+    /// manifest-build/per-song-analysis/PatternLibrary-ExemplarIndex-CraftRules pipeline against
+    /// <see cref="CorpusRootDirectory"/> and persists the result under <paramref name="knowledgeDirectory"/>
+    /// (the runner itself writes <c>craft-rules.json</c>/<c>exemplar-index.json</c>/<c>pattern-library.json</c>
+    /// via <see cref="JsonCraftRulesStore"/>/<see cref="JsonExemplarIndexStore"/>/<see cref="JsonPatternLibraryStore"/> --
+    /// there is no separate persistence step here). A run can take up to roughly an hour against a full
+    /// real corpus (the runner's own doc comment); <see cref="CorpusMiningStatusMessage"/> surfaces its
+    /// one-line-per-song progress so a real run can be tailed rather than guessed at. Returns
+    /// <see langword="false"/> (and sets <see cref="CorpusMiningErrorMessage"/>) on a blank directory, a
+    /// reentrant call while already busy, or any exception from the runner -- never an unhandled
+    /// exception out of a UI command.
+    /// </summary>
+    public async Task<bool> RunCorpusMiningAsync(string knowledgeDirectory, CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(knowledgeDirectory);
+
+        if (_isCorpusMiningBusy)
+        {
+            return false;
+        }
+
+        if (string.IsNullOrWhiteSpace(CorpusRootDirectory))
+        {
+            CorpusMiningErrorMessage = "Enter a corpus root directory before running corpus mining.";
+            return false;
+        }
+
+        IsCorpusMiningBusy = true;
+        CorpusMiningErrorMessage = null;
+        CorpusMiningStatusMessage = "Starting corpus mining...";
+        try
+        {
+            var result = await CorpusMiningRunner
+                .RunAsync(
+                    CorpusRootDirectory, knowledgeDirectory, CorpusMiningRunner.DefaultPerSongTimeout,
+                    message => CorpusMiningStatusMessage = message, ct)
+                .ConfigureAwait(true);
+            LastCorpusMiningResult = result;
+            CorpusMiningStatusMessage =
+                $"Done: {result.Analyses.Count} song(s) analyzed, {result.FailedSongs.Count} failed/timed out. " +
+                $"Wrote '{result.CraftRulesPath}' and '{result.ExemplarIndexPath}'.";
+            return true;
+        }
+        catch (Exception ex)
+        {
+            CorpusMiningErrorMessage = ex.Message;
+            return false;
+        }
+        finally
+        {
+            IsCorpusMiningBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Defaults <see cref="XsqOutputPath"/> to the current project's own <c>exports/</c>
+    /// subdirectory (created for every project by <c>ProjectService.CreateAsync</c>) once a project
+    /// becomes current — same "only fill in a blank field, never overwrite something the user
+    /// already typed" convention as <see cref="RestoreLastDirectory"/>. Without this, export had no
+    /// relationship to the open project at all: the output path was an independent, never-defaulted
+    /// text box regardless of which (if any) project was open.
+    /// </summary>
+    public void SetDefaultXsqOutputDirectory(string projectRootDirectory)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(projectRootDirectory);
+
+        if (string.IsNullOrEmpty(XsqOutputPath))
+        {
+            XsqOutputPath = Path.Combine(projectRootDirectory, "exports", "sequence.xsq");
         }
     }
 
@@ -385,6 +589,140 @@ public sealed class ShowImportViewModel : ObservableObject
         finally
         {
             IsPlanBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Real whole-song AI pipeline "Generate Whole-Song Plan" action: runs the full real
+    /// Stems/Rhythm/Melody/Structure/WholeSong/Composition chain (via <paramref name="generator"/>)
+    /// against <paramref name="probedSong"/> and the already-imported <see cref="Layout"/>, using every
+    /// real prop in the layout — never a manually-typed name list. Shares this screen's own
+    /// <see cref="Plan"/>/<see cref="PlanSavedPath"/>/<see cref="IsPlanBusy"/>/<see cref="PlanErrorMessage"/>
+    /// result state with <see cref="GenerateEffectPlanAsync"/> (both just produce the one <see cref="Plan"/>
+    /// this screen displays, by different means) rather than a second parallel set of properties. A
+    /// not-yet-installed stem-separation model surfaces as <see cref="RequiresStemModelDownload"/> instead
+    /// of a dead-end error, mirroring the Audio screen's own ffmpeg-download affordance.
+    /// </summary>
+    public async Task<bool> GenerateWholeSongPlanAsync(
+        IWholeSongGenerator generator, SongAsset? probedSong, ISequenceDocumentStore planStore, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(generator);
+        ArgumentNullException.ThrowIfNull(planStore);
+
+        if (_isPlanBusy)
+        {
+            return false;
+        }
+
+        IsPlanBusy = true;
+        PlanErrorMessage = null;
+        RequiresStemModelDownload = false;
+        try
+        {
+            if (Layout is null)
+            {
+                PlanErrorMessage = "Import a show layout (Discover) before generating a whole-song plan.";
+                return false;
+            }
+
+            if (probedSong is null)
+            {
+                PlanErrorMessage = "Probe an audio file (Audio screen) before generating a whole-song plan.";
+                return false;
+            }
+
+            var generation = await generator.GenerateAsync(probedSong, Layout, ct).ConfigureAwait(true);
+            var savedPath = await planStore.SaveAsync(generation.Document, ct).ConfigureAwait(true);
+
+            Plan = generation.Document;
+            PlanSavedPath = savedPath;
+            LastWholeSongGeneration = generation;
+            return true;
+        }
+        catch (ModelAssetConsentRequiredException)
+        {
+            Plan = null;
+            PlanSavedPath = null;
+            LastWholeSongGeneration = null;
+            RequiresStemModelDownload = true;
+            PlanErrorMessage =
+                "Generating a whole-song plan needs a one-time vocal/instrument separation model download.";
+            return false;
+        }
+        catch (AiProviderNotConfiguredException ex)
+        {
+            Plan = null;
+            PlanSavedPath = null;
+            LastWholeSongGeneration = null;
+            PlanErrorMessage =
+                $"Configure an AI provider for the {ex.Role} role in Settings before generating a whole-song plan.";
+            return false;
+        }
+        catch (StemSeparationIncompatibleSourceException ex)
+        {
+            // The real separation model accepts only 44.1 kHz stereo. A non-WAV import is already
+            // normalized to exactly that by FfmpegProcessTranscoder, so this can only be reached by a
+            // native WAV at some other rate/channel count (which is probed directly, never transcoded).
+            // Restate the real, specific measured mismatch plus what the user can actually do about it,
+            // rather than surfacing the lower-level message alone.
+            Plan = null;
+            PlanSavedPath = null;
+            LastWholeSongGeneration = null;
+            PlanErrorMessage =
+                $"{ex.Message} Convert this song to 44.1 kHz stereo (or import it as MP3/M4A, which is " +
+                "converted automatically on probe), then probe it again on the Audio screen.";
+            return false;
+        }
+        catch (Exception ex)
+        {
+            Plan = null;
+            PlanSavedPath = null;
+            LastWholeSongGeneration = null;
+            PlanErrorMessage = ex.Message;
+            return false;
+        }
+        finally
+        {
+            IsPlanBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Downloads/verifies the real stem-separation model <see cref="GenerateWholeSongPlanAsync"/> needs
+    /// for real melody analysis. The user clicking the "Download separation model" action this is wired
+    /// to is the explicit consent to download — no separate persisted consent flag, same convention as
+    /// the Audio screen's <c>DownloadFfmpegAsync</c>.
+    /// </summary>
+    public async Task<bool> DownloadStemSeparationModelAsync(IModelAssetManager modelAssetManager, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(modelAssetManager);
+
+        if (_isDownloadingStemModel)
+        {
+            return false;
+        }
+
+        IsDownloadingStemModel = true;
+        try
+        {
+            await modelAssetManager.EnsureVerifiedAsync(SherpaOnnxSpleeterModelAsset.Archive, userConsent: true, ct).ConfigureAwait(true);
+            StemModelStatusMessage = "Installed the vocal/instrument separation model. Click Generate Whole-Song Plan again.";
+            RequiresStemModelDownload = false;
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            StemModelStatusMessage = "Downloading the separation model was cancelled; it was not installed. You can try again later.";
+            return false;
+        }
+        catch (Exception ex)
+        {
+            StemModelStatusMessage = ex.Message;
+            return false;
+        }
+        finally
+        {
+            IsDownloadingStemModel = false;
         }
     }
 

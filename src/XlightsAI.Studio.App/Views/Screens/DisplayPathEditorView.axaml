@@ -1,0 +1,107 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:local="using:XlightsAI.Studio.App.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.DisplayPathEditorView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    SCREEN 05 DISPLAY PATHS (PHASE-09 Step 061): graphical layout/path editor with position
+    correction. One of the three screens docs/UI-CLEANUP-PLAN.md item 2 (Phase 2a) names: a fully
+    implemented, fully tested view model (DisplayPathEditorViewModel) with no view at all before
+    this file — navigating here previously rendered an UnbuiltScreenView placeholder.
+
+    Scope for this pass, disclosed rather than silently dropped: position correction (this step's
+    own named feature) and the list-editor view are built. Named paths (Step 062), role assignments
+    (Step 063), gesture preview (Step 064) and route validation (Step 065) are real, tested
+    view-model surfaces too, but each needs its own catalog store wired through the composition
+    root — left for a follow-up pass rather than inflating this one past what "draw a view against
+    an already-wired screen" scoped (see the plan's own Phase 2b/2c split). Dragging a node directly
+    on the canvas is also not yet built; position is entered numerically, same scope decision as
+    TimelineViewModel's own numeric range selection.
+  -->
+
+  <StackPanel Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="Display paths" />
+    <TextBlock Classes="page-subtitle"
+               Text="A spatial map of your props, built from the imported show layout, so a gesture can be told which physical order to travel across them." />
+
+    <Border Classes="panel" IsVisible="{Binding !ShowImport.IsLoaded}">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <TextBlock Classes="hint" VerticalAlignment="Center" Text="No show layout imported yet." />
+        <Button Classes="link" Content="Import a show &#x2192;" Command="{Binding NavigateToShowImportCommand}" />
+      </StackPanel>
+    </Border>
+
+    <StackPanel Orientation="Horizontal" Spacing="10" IsVisible="{Binding ShowImport.IsLoaded}">
+      <Button Classes="primary" Content="Open current show layout" Command="{Binding OpenDisplayPathEditorCommand}" />
+      <TextBlock Classes="hint" VerticalAlignment="Center"
+                 Text="{Binding DisplayPathEditor.SourceLayoutHash, StringFormat='Open layout hash: {0}'}"
+                 IsVisible="{Binding DisplayPathEditor.IsLoaded}" />
+    </StackPanel>
+
+    <TextBlock Classes="error" IsVisible="{Binding DisplayPathEditor.IsError}" Text="{Binding DisplayPathEditor.ErrorMessage}" />
+    <TextBlock Classes="hint" IsVisible="{Binding DisplayPathEditor.IsEmpty}"
+               Text="Nothing open yet. Click &quot;Open current show layout&quot; above." />
+
+    <Grid IsVisible="{Binding DisplayPathEditor.IsLoaded}" ColumnDefinitions="*,280" ColumnSpacing="14">
+
+      <!-- Spatial preview: each prop placed at its normalized position; higher Y renders lower on
+           screen (standard screen-space convention, matching how the blueprint's canvas reads). -->
+      <Border Grid.Column="0" Classes="panel" Padding="0">
+        <Canvas Width="700" Height="460" Background="{DynamicResource AppWaveformGroundBrush}" ClipToBounds="True">
+          <ItemsControl ItemsSource="{Binding DisplayPathEditor.Rows}">
+            <ItemsControl.ItemsPanel>
+              <ItemsPanelTemplate>
+                <Canvas />
+              </ItemsPanelTemplate>
+            </ItemsControl.ItemsPanel>
+            <ItemsControl.ItemTemplate>
+              <DataTemplate>
+                <Button Padding="6,3" FontSize="10" Command="{Binding SelectCommand}"
+                        Canvas.Left="{Binding X, Converter={x:Static local:NormalizedToPixelConverter.Instance}, ConverterParameter=680}"
+                        Canvas.Top="{Binding Y, Converter={x:Static local:NormalizedToPixelConverter.Instance}, ConverterParameter=440}"
+                        Background="{Binding IsSelected, Converter={x:Static local:EffectBlockBrushConverter.Instance}, ConverterParameter=Selected}"
+                        BorderBrush="{DynamicResource AppWaveformBrush}" BorderThickness="1">
+                  <StackPanel Spacing="0">
+                    <TextBlock Text="{Binding XlightsName}" Foreground="White" />
+                    <TextBlock Text="{Binding ModelKind}" Foreground="White" FontSize="8" Opacity="0.7" />
+                  </StackPanel>
+                </Button>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </Canvas>
+      </Border>
+
+      <!-- Selected-node inspector + numeric position correction. -->
+      <StackPanel Grid.Column="1" Spacing="10">
+        <TextBlock Classes="section" Text="Selected prop" />
+        <TextBlock Classes="hint" IsVisible="{Binding !DisplayPathEditor.SelectedNodeId.HasValue}"
+                   Text="Click a prop on the map to select it." />
+
+        <StackPanel IsVisible="{Binding DisplayPathEditor.SelectedNodeId.HasValue}" Spacing="8">
+          <TextBlock Classes="field" Text="POSITION (NORMALIZED 0–1)" />
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="6">
+            <StackPanel Grid.Column="0" Spacing="2">
+              <TextBlock Classes="hint" Text="X" />
+              <TextBox Text="{Binding DisplayPathEditor.PendingPositionXText}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="2">
+              <TextBlock Classes="hint" Text="Y" />
+              <TextBox Text="{Binding DisplayPathEditor.PendingPositionYText}" />
+            </StackPanel>
+          </Grid>
+          <Button Classes="primary" Content="Apply position" Command="{Binding CorrectDisplayNodePositionCommand}" />
+          <TextBlock Classes="error"
+                     IsVisible="{Binding DisplayPathEditor.ActionErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                     Text="{Binding DisplayPathEditor.ActionErrorMessage}" />
+        </StackPanel>
+
+        <Separator Classes="rule" />
+        <TextBlock Classes="field" Text="{Binding DisplayPathEditor.Version, StringFormat='CORRECTIONS VERSION: {0}'}" />
+      </StackPanel>
+    </Grid>
+  </StackPanel>
+</UserControl>

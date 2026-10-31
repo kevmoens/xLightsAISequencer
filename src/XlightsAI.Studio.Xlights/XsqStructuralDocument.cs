@@ -8,11 +8,17 @@ namespace XlightsAI.Studio.Xlights;
 /// own in-memory types) — used only to prove the file this exporter wrote is well-formed and
 /// internally consistent, never to claim it renders in real xLights (Step 014's own scope).
 /// </summary>
+/// <summary>
+/// PHASE-1c additive field: <see cref="TimingTracks"/>, every <c>&lt;Element type="timing"&gt;</c> found
+/// in <c>ElementEffects</c> (excluded from <see cref="ElementEffects"/> itself, which keeps meaning
+/// exactly what it meant before this field existed: model/group placements only).
+/// </summary>
 public sealed record XsqStructuralDocument(
     string XlightsVersion,
-    int FixedPointTimingMs,
+    int FrameIntervalMs,
     double SequenceDurationSeconds,
     IReadOnlyList<string> ColorPalettes,
     IReadOnlyList<string> EffectDb,
     IReadOnlyList<XsqStructuralElement> DisplayElements,
-    IReadOnlyList<XsqStructuralElement> ElementEffects);
+    IReadOnlyList<XsqStructuralElement> ElementEffects,
+    IReadOnlyList<XsqStructuralTimingTrack> TimingTracks);

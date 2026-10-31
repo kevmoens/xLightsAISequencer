@@ -1,0 +1,213 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!--
+    One place for every colour and every repeated text treatment in the shell.
+
+    Before this file each screen spelled its own styling inline — `Foreground="Red"` for errors,
+    `Foreground="Orange"` for warnings, `FontSize="24" FontWeight="Bold"` for page titles,
+    `FontStyle="Italic"` for hints — roughly forty hand-copied declarations, none of which responded
+    to the theme variant the app actually runs under (`RequestedThemeVariant="Default"` follows the
+    OS, so a dark-mode user got literal `Red` on a dark ground and a hardcoded white ruler panel).
+    Screens now say what a piece of text *is* (`Classes="error"`), not what it looks like, and the
+    look is decided once, per theme variant, here.
+  -->
+
+  <Styles.Resources>
+    <ResourceDictionary>
+      <ResourceDictionary.ThemeDictionaries>
+
+        <ResourceDictionary x:Key="Light">
+          <SolidColorBrush x:Key="AppDangerBrush" Color="#B3261E" />
+          <SolidColorBrush x:Key="AppWarningBrush" Color="#8A5300" />
+          <SolidColorBrush x:Key="AppSuccessBrush" Color="#1E7B46" />
+          <SolidColorBrush x:Key="AppMutedBrush" Color="#5F6368" />
+          <SolidColorBrush x:Key="AppAccentBrush" Color="#2F6FEB" />
+          <SolidColorBrush x:Key="AppSurfaceBrush" Color="#FFFFFF" />
+          <SolidColorBrush x:Key="AppSurfaceAltBrush" Color="#F3F5F8" />
+          <SolidColorBrush x:Key="AppBorderBrush" Color="#D6DAE1" />
+          <SolidColorBrush x:Key="AppNavActiveBrush" Color="#E3ECFD" />
+          <SolidColorBrush x:Key="AppRulerInkBrush" Color="#2B2F36" />
+        </ResourceDictionary>
+
+        <ResourceDictionary x:Key="Dark">
+          <SolidColorBrush x:Key="AppDangerBrush" Color="#FF8A80" />
+          <SolidColorBrush x:Key="AppWarningBrush" Color="#F0B45C" />
+          <SolidColorBrush x:Key="AppSuccessBrush" Color="#5CCB8E" />
+          <SolidColorBrush x:Key="AppMutedBrush" Color="#9AA0A6" />
+          <SolidColorBrush x:Key="AppAccentBrush" Color="#8AB4F8" />
+          <SolidColorBrush x:Key="AppSurfaceBrush" Color="#20242B" />
+          <SolidColorBrush x:Key="AppSurfaceAltBrush" Color="#191C22" />
+          <SolidColorBrush x:Key="AppBorderBrush" Color="#39404A" />
+          <SolidColorBrush x:Key="AppNavActiveBrush" Color="#2B3545" />
+          <SolidColorBrush x:Key="AppRulerInkBrush" Color="#E3E6EA" />
+        </ResourceDictionary>
+
+      </ResourceDictionary.ThemeDictionaries>
+
+      <!-- Theme-independent on purpose: the waveform panel is its own instrument surface (the same
+           dark ground xLights and every DAW uses) in both light and dark. -->
+      <SolidColorBrush x:Key="AppWaveformGroundBrush" Color="#10141A" />
+      <SolidColorBrush x:Key="AppWaveformBrush" Color="#3DDC84" />
+      <SolidColorBrush x:Key="AppPlayheadBrush" Color="#FF5722" />
+    </ResourceDictionary>
+  </Styles.Resources>
+
+  <!-- ============================ Typography ============================ -->
+
+  <Style Selector="TextBlock.page-title">
+    <Setter Property="FontSize" Value="22" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.page-subtitle">
+    <Setter Property="Foreground" Value="{DynamicResource AppMutedBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="MaxWidth" Value="620" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+
+  <Style Selector="TextBlock.section">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="TextBlock.field">
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="Foreground" Value="{DynamicResource AppMutedBrush}" />
+  </Style>
+
+  <Style Selector="TextBlock.hint">
+    <Setter Property="Foreground" Value="{DynamicResource AppMutedBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="MaxWidth" Value="620" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+
+  <!-- Machine-readable facts (hashes, ids, sample counts). Deliberately quieter and monospaced:
+       they were previously rendered at the same weight as the content they describe. -->
+  <Style Selector="TextBlock.detail">
+    <Setter Property="Foreground" Value="{DynamicResource AppMutedBrush}" />
+    <Setter Property="FontFamily" Value="Consolas, Menlo, monospace" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <Style Selector="TextBlock.error">
+    <Setter Property="Foreground" Value="{DynamicResource AppDangerBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="MaxWidth" Value="620" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+
+  <Style Selector="TextBlock.warn">
+    <Setter Property="Foreground" Value="{DynamicResource AppWarningBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+    <Setter Property="MaxWidth" Value="620" />
+    <Setter Property="HorizontalAlignment" Value="Left" />
+  </Style>
+
+  <Style Selector="TextBlock.busy">
+    <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    <Setter Property="TextWrapping" Value="Wrap" />
+  </Style>
+
+  <!-- ============================ Layout ============================ -->
+
+  <!-- One titled block of related controls. Replaces the bare `Margin="0,16,0,0"` headings that
+       were the only thing separating five unrelated jobs on the old Show Import scroll. -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{DynamicResource AppSurfaceBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="14" />
+  </Style>
+
+  <Style Selector="Border.panel">
+    <Setter Property="Background" Value="{DynamicResource AppSurfaceAltBrush}" />
+    <Setter Property="BorderBrush" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="CornerRadius" Value="4" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Padding" Value="10" />
+  </Style>
+
+  <Style Selector="Separator.rule">
+    <Setter Property="Background" Value="{DynamicResource AppBorderBrush}" />
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Margin" Value="0,8" />
+  </Style>
+
+  <!-- ============================ Navigation ============================ -->
+
+  <Style Selector="TextBlock.nav-group">
+    <Setter Property="FontSize" Value="10" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{DynamicResource AppMutedBrush}" />
+    <Setter Property="Margin" Value="12,14,12,4" />
+  </Style>
+
+  <Style Selector="Button.nav">
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="Margin" Value="6,1" />
+    <Setter Property="CornerRadius" Value="4" />
+  </Style>
+
+  <!-- Set by each item as `Classes.active="{Binding IsShowingX}"`: the shell previously gave no
+       indication at all of which of its eight peer buttons you were currently looking at. -->
+  <Style Selector="Button.nav.active">
+    <Setter Property="Background" Value="{DynamicResource AppNavActiveBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <Style Selector="Button.nav /template/ ContentPresenter">
+    <Setter Property="HorizontalContentAlignment" Value="Left" />
+  </Style>
+
+  <Style Selector="TextBlock.nav-step">
+    <Setter Property="Foreground" Value="{DynamicResource AppMutedBrush}" />
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="Width" Value="14" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <Style Selector="TextBlock.nav-done">
+    <Setter Property="Foreground" Value="{DynamicResource AppSuccessBrush}" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="VerticalAlignment" Value="Center" />
+  </Style>
+
+  <!-- ============================ Controls ============================ -->
+
+  <!-- The one action a screen most wants you to take. Every button on the old screens was
+       visually identical, so "Generate Whole-Song Plan" and "Generate 3 Effects (demo)" read as
+       equally legitimate choices. -->
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{DynamicResource AppAccentBrush}" />
+    <Setter Property="Foreground" Value="White" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Padding" Value="14,7" />
+  </Style>
+
+  <!-- An inline jump to the screen that satisfies an unmet prerequisite, rendered next to the
+       sentence explaining it. Replaces prose dead-ends like "Build a waveform cache on the Audio
+       screen, then click Load Timeline again." -->
+  <Style Selector="Button.link">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="BorderThickness" Value="0" />
+    <Setter Property="Foreground" Value="{DynamicResource AppAccentBrush}" />
+    <Setter Property="Padding" Value="2,0" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <Style Selector="TextBox">
+    <Setter Property="MaxWidth" Value="620" />
+    <Setter Property="HorizontalAlignment" Value="Stretch" />
+  </Style>
+
+</Styles>

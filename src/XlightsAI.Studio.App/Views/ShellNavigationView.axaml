@@ -1,0 +1,142 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             x:Class="XlightsAI.Studio.App.Views.ShellNavigationView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    The shell used to navigate through one horizontal row of eight identical buttons — Welcome,
+    Projects, Show Import, Timeline, Audio, Settings, Diagnostics, First Run — with no grouping, no
+    indication of which one you were on, and an order that actively taught the wrong sequence:
+    "Audio" sat after "Show Import", yet the plan generator on Show Import cannot run until a song
+    has been probed on Audio.
+
+    This is the real dependency chain, numbered, with a tick on each step whose output actually
+    exists. The numbering is the whole point: it is the only thing in the app that says a sequence
+    is built in an order. "First Run" is deliberately gone from this list — a one-time setup wizard
+    is not a peer destination of the timeline; it is reachable from Settings, where re-running setup
+    is a deliberate act rather than a mis-click.
+
+    The "current project" banner below Home is new: creating or opening a project used to do real
+    file I/O and then show nothing — the Projects screen's own manifest result was discarded the
+    instant the call returned, so there was no way to tell, from anywhere else in the app, which
+    project (if any) was open. Step 1's own checkmark is the same fix: it used to mean
+    "the workspace directory has any projects in it" (Projects.IsLoaded) because that was the only
+    signal that existed; it now means what it always should have — a project is actually open.
+  -->
+
+  <Border Background="{DynamicResource AppSurfaceAltBrush}"
+          BorderBrush="{DynamicResource AppBorderBrush}"
+          BorderThickness="0,0,1,0">
+    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Margin="0,10,0,16">
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingWelcome}"
+                Command="{Binding NavigateToWelcomeCommand}">
+          <TextBlock Text="Home" VerticalAlignment="Center" />
+        </Button>
+
+        <Border Classes="panel" Margin="12,6" Padding="8,6" IsVisible="{Binding HasCurrentProject}">
+          <StackPanel Spacing="2">
+            <TextBlock Classes="field" Text="PROJECT" />
+            <TextBlock Text="{Binding CurrentProject.Name}" FontWeight="SemiBold" TextWrapping="Wrap" />
+            <Button Classes="link" Content="Close project" Padding="0" Margin="0,2,0,0"
+                    HorizontalAlignment="Left" Command="{Binding CloseProjectCommand}" />
+          </StackPanel>
+        </Border>
+        <Border Classes="panel" Margin="12,6" Padding="8,6" IsVisible="{Binding !HasCurrentProject}">
+          <TextBlock Classes="hint" Text="No project open." />
+        </Border>
+
+        <TextBlock Classes="nav-group" Text="SET UP" />
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingProjects}"
+                Command="{Binding NavigateToProjectsCommand}"
+                ToolTip.Tip="Choose a workspace folder and create or open a project.">
+          <Grid ColumnDefinitions="16,*,16">
+            <TextBlock Grid.Column="0" Classes="nav-step" Text="1" />
+            <TextBlock Grid.Column="1" Text="Project" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Classes="nav-done" Text="&#x2713;" IsVisible="{Binding HasCurrentProject}" />
+          </Grid>
+        </Button>
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingShowImport}"
+                Command="{Binding NavigateToShowImportCommand}"
+                ToolTip.Tip="Point at your xLights show folder to read its props and groups.">
+          <Grid ColumnDefinitions="16,*,16">
+            <TextBlock Grid.Column="0" Classes="nav-step" Text="2" />
+            <TextBlock Grid.Column="1" Text="Show layout" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Classes="nav-done" Text="&#x2713;" IsVisible="{Binding ShowImport.IsLoaded}" />
+          </Grid>
+        </Button>
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingAudio}"
+                Command="{Binding NavigateToAudioCommand}"
+                ToolTip.Tip="Load the song this sequence is choreographed to.">
+          <Grid ColumnDefinitions="16,*,16">
+            <TextBlock Grid.Column="0" Classes="nav-step" Text="3" />
+            <TextBlock Grid.Column="1" Text="Song" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Classes="nav-done" Text="&#x2713;" IsVisible="{Binding Audio.HasProbedAsset}" />
+          </Grid>
+        </Button>
+
+        <TextBlock Classes="nav-group" Text="BUILD" />
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingGenerateExport}"
+                Command="{Binding NavigateToGenerateExportCommand}"
+                ToolTip.Tip="Generate the choreography, then write and open the xLights sequence.">
+          <Grid ColumnDefinitions="16,*,16">
+            <TextBlock Grid.Column="0" Classes="nav-step" Text="4" />
+            <TextBlock Grid.Column="1" Text="Generate &amp; export" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Classes="nav-done" Text="&#x2713;" IsVisible="{Binding ShowImport.HasPlan}" />
+          </Grid>
+        </Button>
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingTimeline}"
+                Command="{Binding NavigateToTimelineCommand}"
+                ToolTip.Tip="Review the generated effects against the waveform.">
+          <Grid ColumnDefinitions="16,*,16">
+            <TextBlock Grid.Column="0" Classes="nav-step" Text="5" />
+            <TextBlock Grid.Column="1" Text="Timeline" VerticalAlignment="Center" />
+            <TextBlock Grid.Column="2" Classes="nav-done" Text="&#x2713;" IsVisible="{Binding Timeline.IsLoaded}" />
+          </Grid>
+        </Button>
+
+        <!-- Optional, deeper refinement tools — not numbered, since they are not required steps in
+             the main build flow above; each operates on output that flow already produced. -->
+        <TextBlock Classes="nav-group" Text="REFINE" />
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingPianoRoll}"
+                Command="{Binding NavigateToPianoRollCommand}"
+                ToolTip.Tip="Correct the detected melody note-by-note.">
+          <TextBlock Text="Piano roll" VerticalAlignment="Center" />
+        </Button>
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingStructureInspector}"
+                Command="{Binding NavigateToStructureInspectorCommand}"
+                ToolTip.Tip="Review which phrases repeat, and link or unlink them.">
+          <TextBlock Text="Structure" VerticalAlignment="Center" />
+        </Button>
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingDisplayPathEditor}"
+                Command="{Binding NavigateToDisplayPathEditorCommand}"
+                ToolTip.Tip="Correct where props sit on the spatial map gestures travel across.">
+          <TextBlock Text="Display paths" VerticalAlignment="Center" />
+        </Button>
+
+        <Separator Classes="rule" Margin="12,14,12,6" />
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingSettings}"
+                Command="{Binding NavigateToSettingsCommand}">
+          <TextBlock Text="Settings" VerticalAlignment="Center" />
+        </Button>
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingDiagnostics}"
+                Command="{Binding NavigateToDiagnosticsCommand}">
+          <TextBlock Text="Diagnostics" VerticalAlignment="Center" />
+        </Button>
+
+      </StackPanel>
+    </ScrollViewer>
+  </Border>
+</UserControl>

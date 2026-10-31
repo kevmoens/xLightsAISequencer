@@ -102,7 +102,7 @@ public sealed class Step055AcceptanceTests : IDisposable
         var songId = new SongId(Guid.NewGuid());
         const string sourceHash = "deadbeef";
         var (fingerprintSet, labelAnalysis, melodyTrack, verseId, chorusId) = BuildVerseChorusFixture(songId, sourceHash);
-        var context = new PhraseSegmentationContext(songId, sourceHash, labelAnalysis, fingerprintSet, melodyTrack);
+        var context = new PhraseSegmentationContext(songId, sourceHash, labelAnalysis, fingerprintSet, melodyTrack, melodyTrack.SourceAssetHash);
 
         var cacheDir = Path.Combine(_tempDir, "ps-cache");
         var overrideDir = Path.Combine(_tempDir, "ps-overrides");
@@ -233,7 +233,7 @@ public sealed class Step055AcceptanceTests : IDisposable
         var songId = new SongId(Guid.NewGuid());
         const string sourceHash = "deadbeef";
         var (fingerprintSet, labelAnalysis, melodyTrack, _, _) = BuildVerseChorusFixture(songId, sourceHash);
-        var context = new PhraseSegmentationContext(songId, sourceHash, labelAnalysis, fingerprintSet, melodyTrack);
+        var context = new PhraseSegmentationContext(songId, sourceHash, labelAnalysis, fingerprintSet, melodyTrack, melodyTrack.SourceAssetHash);
 
         var overrideDir = Path.Combine(_tempDir, "ps-overrides");
         var segmenter = new PhraseSegmenter(new JsonPhraseSegmentationStore(Path.Combine(_tempDir, "ps-cache")), new JsonPhraseBoundaryOverrideStore(overrideDir));
@@ -250,7 +250,7 @@ public sealed class Step055AcceptanceTests : IDisposable
         var songId = new SongId(Guid.NewGuid());
         const string sourceHash = "deadbeef";
         var (fingerprintSet, labelAnalysis, melodyTrack, _, chorusId) = BuildVerseChorusFixture(songId, sourceHash);
-        var context = new PhraseSegmentationContext(songId, sourceHash, labelAnalysis, fingerprintSet, melodyTrack);
+        var context = new PhraseSegmentationContext(songId, sourceHash, labelAnalysis, fingerprintSet, melodyTrack, melodyTrack.SourceAssetHash);
 
         var overrideDir = Path.Combine(_tempDir, "ps-overrides");
         var segmenter = new PhraseSegmenter(new JsonPhraseSegmentationStore(Path.Combine(_tempDir, "ps-cache")), new JsonPhraseBoundaryOverrideStore(overrideDir));
@@ -320,6 +320,80 @@ public sealed class Step055AcceptanceTests : IDisposable
         var ex = await Assert.ThrowsAsync<PhraseSegmentationInvalidException>(
             () => segmenter.SegmentAsync(context, badSettings, CancellationToken.None));
         Assert.Contains("TargetPhraseLengthBars", ex.Reason);
+    }
+
+    /// <summary>
+    /// PHASE-03 (Analysis extensions) Task 4: a real <see cref="MelodyTrack"/> derived from an isolated
+    /// lead *stem* -- whose own hash is legitimately never the song's full-mix <c>SourceHash</c> -- must
+    /// still enable melodic-cadence snapping when its real hash is threaded through as
+    /// <see cref="PhraseSegmentationContext.MelodySourceAssetHash"/>, instead of silently falling back to
+    /// bar-hypothesis-only phrasing the way the pre-fix "exact match against SourceHash" check always
+    /// forced for a stem-derived melody.
+    /// </summary>
+    [Fact]
+    public async Task SegmentAsync_MelodyHashDiffersFromSongHash_StillSnapsToMelodicCadence_WhenMelodySourceAssetHashMatches()
+    {
+        var songId = new SongId(Guid.NewGuid());
+        const string songSourceHash = "song-full-mix-hash";
+        const string leadStemHash = "lead-stem-hash-never-equal-to-song-hash";
+
+        var fingerprintSet = BuildFingerprintSet(songId, songSourceHash, barCount: 12);
+        var verse = SectionLabel(0, 4, SectionKind.Verse);
+        var chorus = SectionLabel(4, 12, SectionKind.Chorus);
+        var labelAnalysis = BuildLabelAnalysis(songId, songSourceHash, fingerprintSet.VersionId, [verse, chorus]);
+
+        var melodyTrack = BuildMelodyTrack(leadStemHash,
+        [
+            Note(0, 7 * BarTicks),
+            Note((7 * BarTicks) + 25_000_000L, 12 * BarTicks),
+        ]);
+
+        var context = new PhraseSegmentationContext(songId, songSourceHash, labelAnalysis, fingerprintSet, melodyTrack, leadStemHash);
+
+        var segmenter = new PhraseSegmenter(
+            new JsonPhraseSegmentationStore(Path.Combine(_tempDir, "ps-cache")),
+            new JsonPhraseBoundaryOverrideStore(Path.Combine(_tempDir, "ps-overrides")));
+
+        var analysis = await segmenter.SegmentAsync(context, DefaultSettings, CancellationToken.None);
+
+        var chorusSplit = analysis.Phrases.Single(p => p.SectionLabelId == chorus.Id && p.StartBarIndex == 7);
+        Assert.Equal(PhraseBoundarySource.MelodicCadence, chorusSplit.Source);
+        Assert.Equal(melodyTrack.Id, analysis.SourceMelodyTrackId);
+    }
+
+    [Fact]
+    public async Task SegmentAsync_MelodyTrackSupplied_WithoutMelodySourceAssetHash_ThrowsPhraseSegmentationInvalidException()
+    {
+        var songId = new SongId(Guid.NewGuid());
+        const string sourceHash = "deadbeef";
+        var (fingerprintSet, labelAnalysis, melodyTrack, _, _) = BuildVerseChorusFixture(songId, sourceHash);
+        // Deliberately omit MelodySourceAssetHash -- malformed provenance, must not be silently accepted.
+        var context = new PhraseSegmentationContext(songId, sourceHash, labelAnalysis, fingerprintSet, melodyTrack);
+
+        var segmenter = new PhraseSegmenter(
+            new JsonPhraseSegmentationStore(Path.Combine(_tempDir, "ps-cache")),
+            new JsonPhraseBoundaryOverrideStore(Path.Combine(_tempDir, "ps-overrides")));
+
+        var ex = await Assert.ThrowsAsync<PhraseSegmentationInvalidException>(
+            () => segmenter.SegmentAsync(context, DefaultSettings, CancellationToken.None));
+        Assert.Contains("MelodySourceAssetHash", ex.Reason);
+    }
+
+    [Fact]
+    public async Task SegmentAsync_MelodyTrackHash_DoesNotMatchMelodySourceAssetHash_ThrowsPhraseSegmentationInvalidException()
+    {
+        var songId = new SongId(Guid.NewGuid());
+        const string sourceHash = "deadbeef";
+        var (fingerprintSet, labelAnalysis, melodyTrack, _, _) = BuildVerseChorusFixture(songId, sourceHash);
+        var context = new PhraseSegmentationContext(songId, sourceHash, labelAnalysis, fingerprintSet, melodyTrack, "a-completely-different-hash");
+
+        var segmenter = new PhraseSegmenter(
+            new JsonPhraseSegmentationStore(Path.Combine(_tempDir, "ps-cache")),
+            new JsonPhraseBoundaryOverrideStore(Path.Combine(_tempDir, "ps-overrides")));
+
+        var ex = await Assert.ThrowsAsync<PhraseSegmentationInvalidException>(
+            () => segmenter.SegmentAsync(context, DefaultSettings, CancellationToken.None));
+        Assert.Contains("stale or mismatched", ex.Reason, StringComparison.OrdinalIgnoreCase);
     }
 
     [Fact]

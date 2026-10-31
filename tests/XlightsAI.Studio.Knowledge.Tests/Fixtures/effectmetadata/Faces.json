@@ -1,0 +1,41 @@
+{
+    "effectName": "Faces",
+    "properties": [
+        {
+            "id": "Faces_MouthMovements",
+            "label": "",
+            "description": "Drives the mouth phonemes. Pick a Phoneme for a single fixed mouth shape, or pick a Timing Track with phoneme labels for automatic lip-sync.",
+            "type": "enum",
+            "controlType": "custom",
+            "default": ""
+        },
+        {
+            "id": "Faces_FaceDefinition",
+            "label": "Face Definition",
+            "description": "Selects which face definition from the model to use. Face definitions map phonemes to specific nodes or image files on the model.",
+            "type": "enum",
+            "controlType": "choice",
+            "options": [],
+            "default": "Default",
+            "dynamicOptions": "faces",
+            "expandToFill": true
+        },
+        {
+            "id": "Faces_Eyes",
+            "label": "State",
+            "description": "Controls the eye state. Open keeps eyes always open, Closed keeps them shut, Auto adds periodic random blinking, and (off) disables eye rendering.",
+            "type": "enum",
+            "controlType": "choice",
+            "options": ["Open", "Closed", "Auto", "(off)"],
+            "default": "Auto"
+        },
+        {
+            "id": "Faces_SuppressWhenNotSinging",
+            "label": "Suppress when not singing",
+            "description": "When enabled, the entire face (including outline) is hidden during rest phonemes or when no phoneme is active. Requires a Timing Track.",
+            "type": "bool",
+            "controlType": "checkbox",
+            "default": false
+        }
+    ]
+}

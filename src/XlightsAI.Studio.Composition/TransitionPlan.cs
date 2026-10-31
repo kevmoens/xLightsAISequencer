@@ -1,7 +1,10 @@
 namespace XlightsAI.Studio.Composition;
 
 /// <summary>
-/// PHASE-10 Step 070: the full set of planned transition/build/silence/release/phrase-ending gestures for one
+/// SUPERSEDED, kept only as reference material — see <see cref="IChoreographyCompiler"/>'s own doc comment
+/// for the full "why" (build-plan Phase 10 §3g).
+///
+/// Historical summary — PHASE-10 Step 070: the full set of planned transition/build/silence/release/phrase-ending gestures for one
 /// planning call, mirroring <see cref="VisualStory"/>'s own versioned-wrapper-plus-<c>Validate</c> shape.
 /// </summary>
 /// <param name="VersionId">A fresh identity minted by <see cref="TransitionRecipePlanner.Plan"/> every time a plan is (re)computed -- never reused across two independently planned plans, even over identical inputs.</param>

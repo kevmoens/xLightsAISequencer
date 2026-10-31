@@ -1,0 +1,84 @@
+{
+  "Version": 1,
+  "GeneratedAtUtc": "2026-10-30T00:00:00Z",
+  "Templates": [
+    {
+      "Id": "edm-dense-canvas-tree-matrix",
+      "Name": "EDM dense-canvas Tree/Matrix",
+      "EnergyBand": "high",
+      "Props": ["Tree", "Matrixes", "Mega Tree"],
+      "Motion": "chase",
+      "SourceNote": "Derived from a real Tree/Matrix busiest-window scan (Sugar Plum Fairy / JayKode Trap Remix extracts); see docs/research/multilayer-template-exemplars/README.md. Palette-free and song-free -- no literal color or exact timing copied.",
+      "Layers": [
+        {
+          "Role": "subject",
+          "Effect": "SingleStrand",
+          "DutyMin": 0.6,
+          "DutyMax": 0.9,
+          "Cadence": "beat",
+          "Notes": "Fast ~150-250ms chase bursts, back-to-back, alternating a couple of Chase_Type variants -- a genuinely always-moving dense base texture, not one static effect."
+        },
+        {
+          "Role": "secondary",
+          "Effect": "Shockwave",
+          "DutyMin": 0.15,
+          "DutyMax": 0.3,
+          "Cadence": "1-2 beats",
+          "Notes": "Accent burst firing every 1-2 beats on top of the chase base. Meteors is an equally valid substitute for this accent role."
+        }
+      ]
+    },
+    {
+      "Id": "quiet-ballad-hold-plus-pop",
+      "Name": "Quiet-ballad hold-plus-pop",
+      "EnergyBand": "low",
+      "Props": ["Tree", "Matrixes"],
+      "Motion": "hold",
+      "SourceNote": "Derived from a real Tree/Matrix busiest-window scan (Carrie Underwood -- Away In A Manger extract); see docs/research/multilayer-template-exemplars/README.md. Palette-free and song-free.",
+      "Layers": [
+        {
+          "Role": "subject",
+          "Effect": "Twinkle",
+          "DutyMin": 0.9,
+          "DutyMax": 1.0,
+          "Cadence": "phrase",
+          "Notes": "Steady, low-intensity hold spanning the entire section -- a held layer is a steady state, never a dead frame; Twinkle keeps its own real per-frame animation at low duty."
+        },
+        {
+          "Role": "secondary",
+          "Effect": "Shockwave",
+          "DutyMin": 0.05,
+          "DutyMax": 0.1,
+          "Cadence": "every 5-6 seconds",
+          "Notes": "A slow accent pop, each burst lasting several seconds with a soft ~0.4s fadeout -- restraint and a long cadence, not density."
+        }
+      ]
+    },
+    {
+      "Id": "mid-energy-chase-and-accent-tree",
+      "Name": "Mid-energy chase-and-accent Tree",
+      "EnergyBand": "mid",
+      "Props": ["Tree", "Matrixes"],
+      "Motion": "build",
+      "SourceNote": "Derived from a real Tree/Matrix busiest-window scan (Chuck Berry -- Run Rudolph Run extract); see docs/research/multilayer-template-exemplars/README.md. Palette-free and song-free.",
+      "Layers": [
+        {
+          "Role": "subject",
+          "Effect": "Spirals",
+          "DutyMin": 0.7,
+          "DutyMax": 0.9,
+          "Cadence": "bar",
+          "Notes": "Base layer carrying the section's color identity. Bars is an equally valid substitute for this base role."
+        },
+        {
+          "Role": "secondary",
+          "Effect": "Pinwheel",
+          "DutyMin": 0.2,
+          "DutyMax": 0.35,
+          "Cadence": "phrase",
+          "Notes": "Short accent bursts layered on top at roughly phrase-length intervals -- a middle ground between the EDM dense-canvas pattern and the quiet-ballad pattern. Twinkle is an equally valid substitute for this accent role."
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,73 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             x:Class="XlightsAI.Studio.App.Views.Screens.WelcomeView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    The welcome screen was a title and a subtitle: two lines of text and no way forward, on the
+    screen the app opens to. It is the one place that can state the shape of the job, so it does —
+    and every step is a live entry point, not a description of one.
+  -->
+
+  <StackPanel Spacing="14" MaxWidth="720" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="{Binding Welcome.Title}" />
+    <TextBlock Classes="page-subtitle" Text="{Binding Welcome.Subtitle}" />
+
+    <Border Classes="card">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="section" Text="Build a sequence" Margin="0,0,0,6" />
+
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+          <TextBlock Grid.Column="0" Classes="nav-step" Text="1" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="Project" FontWeight="SemiBold" />
+            <TextBlock Classes="hint" Text="Pick a workspace folder and create or open a project." />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="link" Content="Open &#x2192;" VerticalAlignment="Center"
+                  Command="{Binding NavigateToProjectsCommand}" />
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+          <TextBlock Grid.Column="0" Classes="nav-step" Text="2" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="Show layout" FontWeight="SemiBold" />
+            <TextBlock Classes="hint" Text="Read the props and groups out of your xLights show folder. Nothing in that folder is written to." />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="link" Content="Open &#x2192;" VerticalAlignment="Center"
+                  Command="{Binding NavigateToShowImportCommand}" />
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+          <TextBlock Grid.Column="0" Classes="nav-step" Text="3" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="Song" FontWeight="SemiBold" />
+            <TextBlock Classes="hint" Text="Load the track, then build its waveform so the timeline has something to show." />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="link" Content="Open &#x2192;" VerticalAlignment="Center"
+                  Command="{Binding NavigateToAudioCommand}" />
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+          <TextBlock Grid.Column="0" Classes="nav-step" Text="4" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="Generate &amp; export" FontWeight="SemiBold" />
+            <TextBlock Classes="hint" Text="Analyse the song, choreograph every prop in the layout, and write an .xsq xLights can open." />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="link" Content="Open &#x2192;" VerticalAlignment="Center"
+                  Command="{Binding NavigateToGenerateExportCommand}" />
+        </Grid>
+
+        <Grid ColumnDefinitions="Auto,*,Auto" Margin="0,2">
+          <TextBlock Grid.Column="0" Classes="nav-step" Text="5" />
+          <StackPanel Grid.Column="1">
+            <TextBlock Text="Timeline" FontWeight="SemiBold" />
+            <TextBlock Classes="hint" Text="Review what was generated against the waveform before you trust it." />
+          </StackPanel>
+          <Button Grid.Column="2" Classes="link" Content="Open &#x2192;" VerticalAlignment="Center"
+                  Command="{Binding NavigateToTimelineCommand}" />
+        </Grid>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

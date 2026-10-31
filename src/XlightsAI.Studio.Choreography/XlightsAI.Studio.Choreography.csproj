@@ -1,0 +1,28 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Build-plan Phase 4 (architecture section 4/6/7): the deterministic constraint engine and the
+         Look to ChoreographyIR compiler. Needs real geometry/recipes/palettes/timing tracks (Xlights),
+         the generated effect vocabulary for legality checks (Knowledge), and the real analysis types a
+         section's music data is built from (Rhythm/Structure/Stems) all at once. Mirrors Pipeline's own
+         "none of these depend on each other, so the orchestrator must" rationale, but this project is
+         itself a pure compiler library (no I/O), which is why it sits beside Pipeline rather than
+         inside it. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Knowledge\XlightsAI.Studio.Knowledge.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Rhythm\XlightsAI.Studio.Rhythm.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Structure\XlightsAI.Studio.Structure.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Stems\XlightsAI.Studio.Stems.csproj" />
+  </ItemGroup>
+
+</Project>

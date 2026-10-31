@@ -1,0 +1,26 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             x:Class="XlightsAI.Studio.App.Views.Screens.DiagnosticsView"
+             x:DataType="vm:ShellViewModel">
+
+  <StackPanel Spacing="14">
+    <TextBlock Classes="page-title" Text="Diagnostics" />
+    <TextBlock Classes="page-subtitle"
+               Text="Events this session recorded. Useful when something failed and the message on the screen was not enough." />
+
+    <TextBlock Classes="busy" IsVisible="{Binding Diagnostics.IsLoading}" Text="Loading diagnostics…" />
+    <TextBlock Classes="hint" IsVisible="{Binding Diagnostics.IsEmpty}" Text="Nothing recorded yet." />
+    <TextBlock Classes="error" IsVisible="{Binding Diagnostics.IsError}" Text="{Binding Diagnostics.ErrorMessage}" />
+
+    <Border Classes="panel" IsVisible="{Binding Diagnostics.IsLoaded}">
+      <ItemsControl ItemsSource="{Binding Diagnostics.Events}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Classes="detail" Text="{Binding}" Margin="0,1" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </Border>
+  </StackPanel>
+</UserControl>

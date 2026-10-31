@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Distribution;
 
 namespace XlightsAI.Studio.Shell;
 
@@ -27,6 +28,9 @@ public sealed class AudioImportViewModel : ObservableObject
     private int _waveformResolutionLevelCount;
     private string? _waveformContentHash;
     private WaveformPyramidCache? _loadedWaveformCache;
+    private bool _requiresFfmpegDownload;
+    private bool _isDownloadingFfmpeg;
+    private string? _ffmpegStatusMessage;
 
     /// <summary>Bindable path text for the file picker form.</summary>
     public string AudioFilePath
@@ -61,6 +65,31 @@ public sealed class AudioImportViewModel : ObservableObject
     }
 
     public bool HasProbedAsset => ProbedAsset is not null;
+
+    /// <summary>
+    /// <see langword="true"/> when the last <see cref="ProbeAudioFileAsync"/> attempt failed because the
+    /// file is not WAV and no local ffmpeg installation exists to transcode it — the Audio screen shows a
+    /// "Download ffmpeg" action instead of a dead-end error while this is set. Cleared at the start of
+    /// every new probe attempt and on a successful ffmpeg install.
+    /// </summary>
+    public bool RequiresFfmpegDownload
+    {
+        get => _requiresFfmpegDownload;
+        private set => SetField(ref _requiresFfmpegDownload, value);
+    }
+
+    public bool IsDownloadingFfmpeg
+    {
+        get => _isDownloadingFfmpeg;
+        private set => SetField(ref _isDownloadingFfmpeg, value);
+    }
+
+    /// <summary>Human-readable outcome of the most recent <see cref="DownloadFfmpegAsync"/> attempt.</summary>
+    public string? FfmpegStatusMessage
+    {
+        get => _ffmpegStatusMessage;
+        private set => SetField(ref _ffmpegStatusMessage, value);
+    }
 
     /// <summary>The real on-disk path <see cref="ProbedAsset"/> was last persisted to (Step 024 user-visible outcome: "Saved audio/analysis artifact with timestamp provenance").</summary>
     public string? SavedAssetPath
@@ -339,6 +368,7 @@ public sealed class AudioImportViewModel : ObservableObject
 
         IsBusy = true;
         ErrorMessage = null;
+        RequiresFfmpegDownload = false;
         try
         {
             var asset = await decoder.ProbeAsync(AudioFilePath, ct).ConfigureAwait(true);
@@ -368,6 +398,14 @@ public sealed class AudioImportViewModel : ObservableObject
             LoadedWaveformCache = null;
             return true;
         }
+        catch (FfmpegNotAvailableException ex)
+        {
+            ProbedAsset = null;
+            SavedAssetPath = null;
+            RequiresFfmpegDownload = true;
+            ErrorMessage = ex.Message;
+            return false;
+        }
         catch (Exception ex)
         {
             ProbedAsset = null;
@@ -378,6 +416,51 @@ public sealed class AudioImportViewModel : ObservableObject
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Downloads/verifies/extracts ffmpeg via <paramref name="installer"/> so a subsequent
+    /// <see cref="ProbeAudioFileAsync"/> call can transcode non-WAV files. The user clicking the "Download
+    /// ffmpeg" action this is wired to is the explicit consent to download — no separate persisted consent
+    /// flag. Any failure (cancellation, hash mismatch, offline/network failure) is reported via
+    /// <see cref="FfmpegStatusMessage"/> instead of throwing.
+    /// </summary>
+    public async Task<bool> DownloadFfmpegAsync(IFfmpegInstaller installer, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(installer);
+
+        if (_isDownloadingFfmpeg)
+        {
+            return false;
+        }
+
+        IsDownloadingFfmpeg = true;
+        try
+        {
+            var path = await installer.EnsureInstalledAsync(progress: null, ct).ConfigureAwait(true);
+            FfmpegStatusMessage = $"Installed ffmpeg at '{path}'. Click Probe Audio File again.";
+            RequiresFfmpegDownload = false;
+            return true;
+        }
+        catch (OperationCanceledException)
+        {
+            FfmpegStatusMessage = "Downloading ffmpeg was cancelled; it was not installed. You can try again later.";
+            return false;
+        }
+        catch (AssetInstallationHashMismatchException ex)
+        {
+            FfmpegStatusMessage = ex.Message;
+            return false;
+        }
+        catch (AssetInstallationFailedException ex)
+        {
+            FfmpegStatusMessage = ex.Message;
+            return false;
+        }
+        finally
+        {
+            IsDownloadingFfmpeg = false;
         }
     }
 }

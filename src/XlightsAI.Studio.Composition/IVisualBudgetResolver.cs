@@ -3,7 +3,20 @@ using XlightsAI.Studio.Contracts;
 namespace XlightsAI.Studio.Composition;
 
 /// <summary>
-/// PHASE-10 Step 068 ("Create configurable visual density and focus budget"). Required acceptance,
+/// SUPERSEDED, kept only as reference material — see <see cref="IChoreographyCompiler"/>'s own doc comment
+/// for the full "why" (build-plan Phase 10 §3g). Build-plan Phase 10 §3g's own confirmed-with-the-user
+/// decision: the live Director/Choreography path has no deterministic density/concurrency backstop today
+/// (<c>StyleDensity</c> targets are advisory prompt text only — see <c>DirectorPromptBuilder</c>/
+/// <c>SectionScriptPromptBuilder</c> — and <c>ChoreographyLegalityValidator</c> checks darkness/coverage/
+/// peak-uniqueness but not density or concurrent-focal-effect count). This resolver's algorithm (trim-to-fit
+/// overlap resolution under a concurrent-focal cap, plus event-density/mean-brightness caps) was judged a
+/// plausible future enhancement for a new <c>ChoreographyLegalityValidator</c> rule operating on
+/// <c>ChoreographyIR</c> — but that is new design scope, not a port, and was deliberately deferred rather
+/// than implemented as part of this decision. Do not extend this type; if that future enhancement is picked
+/// up, re-derive the algorithm against <c>ChoreographyIR</c> rather than reusing this Composition-specific
+/// implementation.
+///
+/// Historical summary — PHASE-10 Step 068 ("Create configurable visual density and focus budget"). Required acceptance,
 /// verbatim: "Clutter fixture is reduced while preserving focal musical event." Pure and deterministic --
 /// given the same candidates (in any input order) and the same budget/window, <see cref="Resolve"/> always
 /// returns the same output order and the same decisions. Resolves no actual effect-layer/recipe compilation

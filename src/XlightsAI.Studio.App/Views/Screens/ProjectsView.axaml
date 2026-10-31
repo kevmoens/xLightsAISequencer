@@ -1,0 +1,82 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.ProjectsView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    Reordered so the screen reads the way the task runs: choose the workspace, then act on it. The
+    old layout showed the project *list* first and the workspace folder that list comes from 16
+    pixels below it, which meant the empty state ("No projects yet") appeared before the field that
+    explains why it is empty.
+
+    Create/Open used to run real file I/O and then show nothing — the manifest they produced was
+    discarded the instant the call returned. There is now a visible "current project" card so the
+    result of clicking either button is actually on screen, not just true somewhere in memory.
+  -->
+
+  <StackPanel Spacing="14" MaxWidth="720" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="Project" />
+    <TextBlock Classes="page-subtitle"
+               Text="A project holds everything this app generates — analysis caches, plans and exports — so nothing is ever written into your xLights show folder." />
+
+    <Border Classes="card" IsVisible="{Binding HasCurrentProject}">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="field" Text="CURRENT PROJECT" />
+        <TextBlock FontSize="16" FontWeight="SemiBold" Text="{Binding CurrentProject.Name}" />
+        <TextBlock Classes="detail" Text="{Binding CurrentProject.RootDirectory}" />
+        <Button Content="Close project" HorizontalAlignment="Left" Margin="0,6,0,0"
+                Command="{Binding CloseProjectCommand}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" IsVisible="{Binding HasCurrentProject}" Text="Switch project" />
+        <TextBlock Classes="field" Text="WORKSPACE FOLDER" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <TextBox Grid.Column="0" Text="{Binding Projects.WorkspaceDirectory}"
+                   Watermark="C:\path\to\project-workspace" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowseWorkspace" />
+        </Grid>
+
+        <TextBlock Classes="field" Text="NEW PROJECT NAME" Margin="0,6,0,0" />
+        <TextBox Text="{Binding Projects.NewProjectName}" Watermark="Demo Song" />
+
+        <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,6,0,0">
+          <Button Classes="primary" Content="Create project" Command="{Binding CreateProjectCommand}" />
+          <Button Content="Open existing" Command="{Binding OpenProjectCommand}" />
+          <TextBlock Classes="busy" VerticalAlignment="Center"
+                     IsVisible="{Binding Projects.IsBusy}" Text="Working…" />
+        </StackPanel>
+
+        <TextBlock Classes="error"
+                   IsVisible="{Binding Projects.ActionErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding Projects.ActionErrorMessage}" />
+      </StackPanel>
+    </Border>
+
+    <StackPanel Spacing="6">
+      <TextBlock Classes="section" Text="Projects in this workspace" />
+      <TextBlock Classes="busy" IsVisible="{Binding Projects.IsLoading}" Text="Loading projects…" />
+      <TextBlock Classes="hint" IsVisible="{Binding Projects.IsEmpty}"
+                 Text="No projects here yet. Name one above and click Create project." />
+      <TextBlock Classes="error" IsVisible="{Binding Projects.IsError}" Text="{Binding Projects.ErrorMessage}" />
+      <ItemsControl IsVisible="{Binding Projects.IsLoaded}" ItemsSource="{Binding Projects.ProjectNames}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate>
+            <TextBlock Text="{Binding}" Margin="0,2" />
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </StackPanel>
+
+    <Border Classes="panel" IsVisible="{Binding HasCurrentProject}">
+      <StackPanel Orientation="Horizontal" Spacing="6">
+        <TextBlock Classes="hint" VerticalAlignment="Center" Text="Project ready." />
+        <Button Classes="link" Content="Next: show layout &#x2192;" Command="{Binding NavigateToShowImportCommand}" />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

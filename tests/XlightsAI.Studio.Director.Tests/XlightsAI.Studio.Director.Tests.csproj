@@ -1,0 +1,36 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <IsPackable>false</IsPackable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="coverlet.collector" Version="6.0.4" />
+    <PackageReference Include="Microsoft.NET.Test.Sdk" Version="17.14.1" />
+    <PackageReference Include="xunit" Version="2.9.3" />
+    <PackageReference Include="xunit.runner.visualstudio" Version="3.1.4" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="Xunit" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Director\XlightsAI.Studio.Director.csproj" />
+    <!-- Test-only: VisualCriticTests demonstrates the numeric battery (Phase 7b) alongside VisualCritic
+         for the red-snap acceptance-criterion test. Refinement does not reference Director, so this is
+         not a cyclic reference, and it is never added to the shipping Director project itself. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Refinement\XlightsAI.Studio.Refinement.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- Build-plan Phase 6 end-to-end acceptance test: real ~30s clips trimmed (ffmpeg) from real songs
+         under C:\xLights, mirroring XlightsAI.Studio.Choreography.Tests' own established "trimmed real
+         audio, never synthetic" fixture convention. -->
+    <None Include="Fixtures\**\*.mp3" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+</Project>

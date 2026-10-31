@@ -36,6 +36,13 @@
          IStartupHealthChecks boundary. Distribution does not reference Shell (it only references
          Contracts), so this is not a cyclic reference. -->
     <ProjectReference Include="..\XlightsAI.Studio.Distribution\XlightsAI.Studio.Distribution.csproj" />
+    <!-- ShowImportViewModel's GenerateWholeSongPlanCommand binds directly to the new IWholeSongGenerator
+         boundary. Pipeline does not reference Shell, so this is not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Pipeline\XlightsAI.Studio.Pipeline.csproj" />
+    <!-- Build-plan Phase 5: AiProviderSettingsEditorViewModel binds directly to Director's
+         IRoleProviderConfigStore/RoleProviderConfig and AiEdits' own ICredentialStore. Director does
+         not reference Shell, so this is not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Director\XlightsAI.Studio.Director.csproj" />
   </ItemGroup>
 
 </Project>

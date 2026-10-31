@@ -1,0 +1,69 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             x:Class="XlightsAI.Studio.App.Views.Screens.AiProviderSettingsView"
+             x:DataType="vm:AiProviderSettingsEditorViewModel">
+
+  <!-- MinHeight is a real fix, not decoration: confirmed live (UI Automation ScrollPattern query
+       against the running app) that the Shell's outer ScrollViewer (MainWindow.axaml) undercounts this
+       panel's true rendered height by roughly 200 DIPs once its content exceeds a single-pass measure
+       at this nesting depth (UserControl, then Border, then this UserControl, then StackPanel). The
+       trailing rows (API KEY, Save/Disable, status text) render but are excluded from the ScrollViewer's
+       reported Extent, so even scrolling to 100% never reveals them below a shorter window. MinHeight
+       forces a DesiredSize large enough to include them regardless of that undercount. If a future
+       change makes this panel taller (a new field, a longer wrapped line), re-verify Save is still
+       reachable at a small window height rather than assuming this number still covers it. -->
+  <StackPanel Spacing="10" MinHeight="600">
+    <TextBlock Classes="section" Text="AI providers" />
+    <TextBlock Classes="hint"
+               Text="Connect the Director/Choreographer/Critic roles to a provider. Credentials are encrypted and stored only on this machine." />
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Classes="field" VerticalAlignment="Center" Text="ROLE" />
+      <ComboBox ItemsSource="{Binding Roles}" SelectedItem="{Binding SelectedRole}" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Classes="field" VerticalAlignment="Center" Text="ENABLED" />
+      <CheckBox IsChecked="{Binding CurrentConfig.Enabled}" />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <TextBlock Classes="field" VerticalAlignment="Center" Text="PROVIDER" />
+      <ComboBox ItemsSource="{Binding ProviderTypes}" SelectedItem="{Binding CurrentConfig.ProviderType}" />
+    </StackPanel>
+
+    <StackPanel Spacing="2">
+      <TextBlock Classes="field" Text="ENDPOINT" />
+      <TextBox Text="{Binding CurrentConfig.Endpoint}"
+                Watermark="https://api.anthropic.com, https://api.openai.com, an Azure AI Foundry deployment URL, or http://127.0.0.1:11434 for local Ollama" />
+    </StackPanel>
+
+    <StackPanel Spacing="2">
+      <TextBlock Classes="field" Text="MODEL" />
+      <TextBox Text="{Binding CurrentConfig.ModelName}" Watermark="e.g. claude-opus-5, gpt-5, qwen2.5-coder:7b-instruct" />
+    </StackPanel>
+
+    <StackPanel Spacing="2">
+      <TextBlock Classes="field" Text="REASONING EFFORT" />
+      <TextBox Text="{Binding CurrentConfig.ReasoningEffort}" Watermark="low (default), medium, or high" />
+      <TextBlock Classes="detail"
+                 Text="Only used by an Azure/OpenAI Responses API endpoint (.../openai/responses). Higher effort can produce richer per-section reasoning at the cost of latency per call -- leave blank for the conservative 'low' default rather than an unbounded reasoning budget." />
+    </StackPanel>
+
+    <StackPanel Spacing="2">
+      <TextBlock Classes="field" Text="API KEY" />
+      <TextBox Text="{Binding CredentialInput}" PasswordChar="•"
+                Watermark="{Binding HasStoredCredential, StringFormat='A key is already stored for this role. Leave blank to keep it.'}" />
+      <TextBlock Classes="detail" Text="Not needed for a local Ollama endpoint." />
+    </StackPanel>
+
+    <StackPanel Orientation="Horizontal" Spacing="8">
+      <Button Content="Save" Command="{Binding SaveCommand}" />
+      <Button Content="Disable and remove key" Command="{Binding DisableAndClearCredentialCommand}" />
+    </StackPanel>
+
+    <TextBlock Classes="detail" IsVisible="{Binding HasStatusMessage}" Text="{Binding StatusMessage}" />
+    <TextBlock Classes="error" IsVisible="{Binding HasErrorMessage}" Text="{Binding ErrorMessage}" />
+  </StackPanel>
+</UserControl>

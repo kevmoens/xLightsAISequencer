@@ -30,7 +30,7 @@ namespace XlightsAI.Studio.Xlights;
 /// before parsing, while anything carrying an internal subset or a SYSTEM/PUBLIC external reference —
 /// the actual XXE vectors — is still rejected outright, never evaluated.
 /// </summary>
-public sealed class ShowLayoutImporter : IShowLayoutImporter
+public sealed partial class ShowLayoutImporter : IShowLayoutImporter
 {
     /// <summary>
     /// Safety bound on total parsed characters (PHASE-02 Section 2: "limits on... large documents").
@@ -87,10 +87,10 @@ public sealed class ShowLayoutImporter : IShowLayoutImporter
         // on-disk file this is); only the bytes actually fed to the parser may be adjusted below.
         var parseableBytes = StripBenignDoctypeIfPresent(bytes, rgbEffectsPath);
         var document = ParseSafely(parseableBytes, rgbEffectsPath);
-        var models = ParseModels(document, rgbEffectsPath);
+        var (models, geometryWarnings) = ParseModels(document, rgbEffectsPath);
         var (groups, warnings) = ParseGroupsAndValidateReferences(document, models, rgbEffectsPath);
 
-        return new DisplayGraph(sourceLayoutHash, models, groups, warnings);
+        return new DisplayGraph(sourceLayoutHash, models, groups, [.. geometryWarnings, .. warnings]);
     }
 
     /// <summary>
@@ -158,7 +158,7 @@ public sealed class ShowLayoutImporter : IShowLayoutImporter
         }
     }
 
-    private static IReadOnlyList<DisplayModel> ParseModels(XDocument document, string sourcePath)
+    private static (IReadOnlyList<DisplayModel> Models, IReadOnlyList<string> Warnings) ParseModels(XDocument document, string sourcePath)
     {
         var root = document.Root;
         if (root is null || !AcceptedRootElementNames.Contains(root.Name.LocalName, StringComparer.Ordinal))
@@ -188,6 +188,7 @@ public sealed class ShowLayoutImporter : IShowLayoutImporter
         }
 
         var models = new List<DisplayModel>();
+        var warnings = new List<string>();
         foreach (var modelElement in root.Element("models")?.Elements("model") ?? Enumerable.Empty<XElement>())
         {
             var name = RequireAttribute(modelElement, "name", sourcePath, "model").Trim();
@@ -196,10 +197,141 @@ public sealed class ShowLayoutImporter : IShowLayoutImporter
                 ? (IReadOnlyList<string>)found
                 : [];
 
-            models.Add(new DisplayModel(new ModelId(name), name, kind, groupNames, ParsePreviewPoints(modelElement)));
+            var category = ModelGeometryCalculator.NormalizeCategory(kind);
+            var stringType = (string?)modelElement.Attribute("StringType") ?? string.Empty;
+            // Confirmed against a real, currently-installed xLights version's own export (SourceVersion
+            // "2026.17"): ordinary model families (Single Line, Star, Tree, Matrix, ...) no longer emit
+            // parm1/parm2/parm3 at all -- they use the equivalent, unambiguously-named NumStrings/
+            // NodesPerString/StrandsPerString instead, which silently produced a zero node count for
+            // every model in a real show (parm1/parm2 defaulting to 0 when absent) before this fix.
+            // NumStrings/NodesPerString/StrandsPerString are the SAME quantities parm1/parm2/parm3 name
+            // (confirmed by ModelGeometryCalculator's own cross-checked formula: parm1=string count,
+            // parm2=nodes/string) -- preferred when present, falling back to parm1/parm2/parm3 for an
+            // older export that still uses them.
+            var parm1 = ParseOptionalInt(modelElement, "NumStrings") ?? ParseOptionalInt(modelElement, "parm1") ?? 0;
+            var parm2 = ParseOptionalInt(modelElement, "NodesPerString") ?? ParseOptionalInt(modelElement, "parm2") ?? 0;
+            var parm3 = ParseOptionalInt(modelElement, "StrandsPerString") ?? ParseOptionalInt(modelElement, "parm3") ?? 0;
+            var windowRows = ParseOptionalInt(modelElement, "WindowRows");
+            var windowColumns = ParseOptionalInt(modelElement, "WindowColumns");
+            var nodeCount = ModelGeometryCalculator.ComputeNodeCount(category, parm1, parm2, windowRows, windowColumns);
+
+            // Cross-check (PHASE-1a task 5, "a verified pixel table... cross-checked against the
+            // XML's own node count attributes"): multi-string models (Matrix family) additionally
+            // enumerate one `StringN` connection attribute per physical string. When present, the
+            // count of those attributes is an independent confirmation of `parm1` straight from the
+            // XML itself -- a mismatch is reported as a non-fatal warning rather than silently trusted
+            // or silently overridden.
+            var stringAttributeCount = modelElement.Attributes()
+                .Count(a => StringNAttributeRegex().IsMatch(a.Name.LocalName));
+            if (stringAttributeCount > 0 && stringAttributeCount != parm1)
+            {
+                warnings.Add(
+                    $"Model '{name}' declares parm1={parm1} but has {stringAttributeCount} 'StringN' connection attributes; node count may be inaccurate.");
+            }
+
+            var bounds = ParseBounds(modelElement);
+            var submodels = ParseSubmodels(modelElement);
+
+            models.Add(new DisplayModel(
+                new ModelId(name),
+                name,
+                kind,
+                groupNames,
+                ParsePreviewPoints(modelElement),
+                category,
+                stringType,
+                parm1,
+                parm2,
+                parm3,
+                windowRows,
+                windowColumns,
+                nodeCount,
+                bounds,
+                submodels));
         }
 
-        return models;
+        return (models, warnings);
+    }
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"^String\d+$")]
+    private static partial System.Text.RegularExpressions.Regex StringNAttributeRegex();
+
+    private static int? ParseOptionalInt(XElement element, string attributeName)
+    {
+        var text = (string?)element.Attribute(attributeName);
+        return text is not null && int.TryParse(text, NumberStyles.Integer, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : null;
+    }
+
+    /// <summary>
+    /// PHASE-1a task 3: the model's full real-world transform exactly as xLights stores it. Returns
+    /// <see langword="null"/> only when the source carries none of these attributes at all (never
+    /// invents a partial/default transform for a model the XML genuinely has no geometry for).
+    /// </summary>
+    private static DisplayBounds? ParseBounds(XElement modelElement)
+    {
+        var x = ParseOptionalDouble(modelElement, "WorldPosX");
+        var y = ParseOptionalDouble(modelElement, "WorldPosY");
+        if (x is null || y is null)
+        {
+            return null;
+        }
+
+        return new DisplayBounds(
+            x.Value,
+            y.Value,
+            ParseOptionalDouble(modelElement, "WorldPosZ") ?? 0,
+            ParseOptionalDouble(modelElement, "ScaleX"),
+            ParseOptionalDouble(modelElement, "ScaleY"),
+            ParseOptionalDouble(modelElement, "ScaleZ"),
+            ParseOptionalDouble(modelElement, "RotateX"),
+            ParseOptionalDouble(modelElement, "RotateY"),
+            ParseOptionalDouble(modelElement, "RotateZ"),
+            ParseOptionalDouble(modelElement, "X2"),
+            ParseOptionalDouble(modelElement, "Y2"),
+            ParseOptionalDouble(modelElement, "Z2"));
+    }
+
+    private static double? ParseOptionalDouble(XElement element, string attributeName)
+    {
+        var text = (string?)element.Attribute(attributeName);
+        return text is not null && double.TryParse(text, NumberStyles.Float, CultureInfo.InvariantCulture, out var value)
+            ? value
+            : null;
+    }
+
+    /// <summary>
+    /// PHASE-1a task 4: enumerates every <c>&lt;subModel&gt;</c> child as its own addressable target.
+    /// A submodel's own pixel count is only ever derived from its <c>layout</c> attribute (the comma-
+    /// separated node-index list xLights itself writes) when present and non-trivial; otherwise
+    /// <see cref="DisplaySubmodel.NodeCount"/> is left <see langword="null"/> rather than guessed.
+    /// </summary>
+    private static IReadOnlyList<DisplaySubmodel> ParseSubmodels(XElement modelElement)
+    {
+        var submodels = new List<DisplaySubmodel>();
+        foreach (var subModelElement in modelElement.Elements("subModel"))
+        {
+            var name = (string?)subModelElement.Attribute("name");
+            if (string.IsNullOrWhiteSpace(name))
+            {
+                continue;
+            }
+
+            var layout = (string?)subModelElement.Attribute("layout");
+            int? nodeCount = null;
+            if (!string.IsNullOrWhiteSpace(layout))
+            {
+                var tokens = layout.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+                    .Where(t => t != "-1")
+                    .ToList();
+                nodeCount = tokens.Count > 0 ? tokens.Count : null;
+            }
+
+            submodels.Add(new DisplaySubmodel(name, nodeCount));
+        }
+
+        return submodels;
     }
 
     /// <summary>

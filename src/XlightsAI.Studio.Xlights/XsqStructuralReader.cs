@@ -32,16 +32,24 @@ public sealed class XsqStructuralReader : IXsqStructuralReader
             throw new XsqStructuralReadException($"'{path}' has no root <xsequence> element.");
         }
 
-        var fixedPointTimingText = root.Attribute("FixedPointTiming")?.Value
+        // FixedPointTiming is a boolean-ish flag (verified always "1" in real xLights output, see
+        // docs/PHASE0-FINDINGS.md) -- NOT the frame interval. Its presence is still required (a real
+        // xLights-written .xsq always carries it), but the actual frame interval is parsed from
+        // head/sequenceTiming below (e.g. "50 ms").
+        _ = root.Attribute("FixedPointTiming")?.Value
             ?? throw new XsqStructuralReadException($"'{path}' is missing the <xsequence FixedPointTiming=\"...\"> attribute.");
-        if (!int.TryParse(fixedPointTimingText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var fixedPointTimingMs))
-        {
-            throw new XsqStructuralReadException($"'{path}' has a non-numeric FixedPointTiming value '{fixedPointTimingText}'.");
-        }
 
         var head = root.Element("head") ?? throw new XsqStructuralReadException($"'{path}' is missing the required <head> section.");
         var version = head.Element("version")?.Value
             ?? throw new XsqStructuralReadException($"'{path}' is missing <head><version>.");
+        var sequenceTimingText = head.Element("sequenceTiming")?.Value
+            ?? throw new XsqStructuralReadException($"'{path}' is missing <head><sequenceTiming>.");
+        var frameIntervalText = sequenceTimingText.Split(' ', StringSplitOptions.RemoveEmptyEntries).FirstOrDefault();
+        if (frameIntervalText is null || !int.TryParse(frameIntervalText, NumberStyles.Integer, CultureInfo.InvariantCulture, out var frameIntervalMs))
+        {
+            throw new XsqStructuralReadException($"'{path}' has a malformed <head><sequenceTiming> value '{sequenceTimingText}'.");
+        }
+
         var durationText = head.Element("sequenceDuration")?.Value
             ?? throw new XsqStructuralReadException($"'{path}' is missing <head><sequenceDuration>.");
         if (!double.TryParse(durationText, NumberStyles.Float, CultureInfo.InvariantCulture, out var durationSeconds))
@@ -65,10 +73,36 @@ public sealed class XsqStructuralReader : IXsqStructuralReader
 
         var elementEffectsEl = root.Element("ElementEffects") ?? throw new XsqStructuralReadException($"'{path}' is missing the required <ElementEffects> section.");
         var elementEffects = new List<XsqStructuralElement>();
+        var timingTracks = new List<XsqStructuralTimingTrack>();
         foreach (var elementEl in elementEffectsEl.Elements("Element"))
         {
             var type = RequiredAttribute(elementEl, "type", path);
             var name = RequiredAttribute(elementEl, "name", path);
+
+            // PHASE-1c: a timing track's <Effect> marks carry only label/startTime/endTime -- no
+            // ref/palette/name -- so they are read into their own shape rather than forced through the
+            // ref/palette dangling-reference checks below, which only make sense for model placements.
+            if (type == "timing")
+            {
+                var marks = elementEl.Elements("EffectLayer")
+                    .SelectMany(layerEl => layerEl.Elements("Effect"))
+                    .Select(effectEl =>
+                    {
+                        var startMs = RequiredLongAttribute(effectEl, "startTime", path);
+                        var endMs = RequiredLongAttribute(effectEl, "endTime", path);
+                        if (endMs <= startMs)
+                        {
+                            throw new XsqStructuralReadException(
+                                $"'{path}': timing track '{name}' has a mark with a non-positive interval [{startMs}, {endMs}).");
+                        }
+
+                        return new XsqStructuralTimingMark((string?)effectEl.Attribute("label") ?? string.Empty, startMs, endMs);
+                    })
+                    .ToList();
+
+                timingTracks.Add(new XsqStructuralTimingTrack(name, marks));
+                continue;
+            }
 
             var placements = new List<XsqStructuralEffectPlacement>();
             foreach (var layerEl in elementEl.Elements("EffectLayer"))
@@ -107,7 +141,7 @@ public sealed class XsqStructuralReader : IXsqStructuralReader
         }
 
         return new XsqStructuralDocument(
-            version, fixedPointTimingMs, durationSeconds, colorPalettes, effectDb, displayElements, elementEffects);
+            version, frameIntervalMs, durationSeconds, colorPalettes, effectDb, displayElements, elementEffects, timingTracks);
     }
 
     private static string RequiredAttribute(XElement element, string attributeName, string path) =>

@@ -4,7 +4,14 @@ using XlightsAI.Studio.Xlights;
 namespace XlightsAI.Studio.Composition;
 
 /// <summary>
-/// PHASE-10 Step 071 ("Compose and resolve overlapping effects with layer/priority strategies"):
+/// SUPERSEDED, kept only as reference material — the whole <see cref="XlightsAI.Studio.Composition"/>
+/// namespace (musical-role assignment, <see cref="VisualBudget"/> density budgeting, <see cref="TransitionPlan"/>
+/// gesture recipes, this compiler) backs only <c>XlightsAI.Studio.Pipeline.ChoreographyCompositionRunner</c>/
+/// <c>WholeSongGenerator</c>, neither of which the real app ever wires to <c>App.WholeSongGenerator</c> — see
+/// those types' own doc comments. Build-plan Phase 10 §3g recorded this decision (see <c>CHANGELOG.md</c> and
+/// <c>docs/MASTER-SYSTEM-ARCHITECTURE.md</c>): archive, don't extend. Do not add new features here.
+///
+/// Historical summary — PHASE-10 Step 071 ("Compose and resolve overlapping effects with layer/priority strategies"):
 /// combines overlapping role plans into a single scoped <see cref="SequenceDocument"/>, resolving
 /// same-target time collisions by layer/priority rather than letting two candidates silently overwrite
 /// the same layer. A deliberately narrower realization of PHASE-10.md Section 3's own proposed

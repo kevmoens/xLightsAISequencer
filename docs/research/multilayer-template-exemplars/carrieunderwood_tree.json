@@ -1,0 +1,165 @@
+{
+  "sourceFile": "C:\\xLights\\Carrie Underwood - Away In A Manger Lite.xsq",
+  "element": "Tree",
+  "windowStartMs": 22000,
+  "windowEndMs": 28000,
+  "layerCount": 11,
+  "effectCount": 16,
+  "layers": [
+    {
+      "layer": 0,
+      "effects": {
+        "effect": "Twinkle",
+        "startMs": -21750.0,
+        "endMs": 26950.0,
+        "settings": "B_CHOICE_BufferStyle=Per Preview,E_CHECKBOX_Twinkle_ReRandom=0,E_CHECKBOX_Twinkle_Strobe=0,E_CHOICE_Twinkle_Style=New Render Method,E_SLIDER_Twinkle_Count=10,E_SLIDER_Twinkle_Steps=30,X_Effect_Locked=True",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette3=1,C_SLIDER_SparkleFrequency=40"
+      }
+    },
+    {
+      "layer": 1,
+      "effects": [
+        {
+          "effect": "Shockwave",
+          "startMs": -2650.0,
+          "endMs": 3550.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=5.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#00FFFF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette4=1,C_CHECKBOX_Palette5=1,C_SLIDER_SparkleFrequency=30"
+        },
+        {
+          "effect": "Shockwave",
+          "startMs": 5800.0,
+          "endMs": 12000.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=5.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#00FFFF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette4=1,C_CHECKBOX_Palette5=1,C_SLIDER_SparkleFrequency=30"
+        }
+      ]
+    },
+    {
+      "layer": 2,
+      "effects": [
+        {
+          "effect": "Shockwave",
+          "startMs": -2650.0,
+          "endMs": 3550.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=95.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#00FFFF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette4=1,C_CHECKBOX_Palette5=1,C_SLIDER_SparkleFrequency=30"
+        },
+        {
+          "effect": "Shockwave",
+          "startMs": 5800.0,
+          "endMs": 12000.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=95.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#00FFFF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette4=1,C_CHECKBOX_Palette5=1,C_SLIDER_SparkleFrequency=30"
+        }
+      ]
+    },
+    {
+      "layer": 3,
+      "effects": {
+        "effect": "Shockwave",
+        "startMs": -550.0,
+        "endMs": 5650.0,
+        "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=5.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1,C_SLIDER_SparkleFrequency=30"
+      }
+    },
+    {
+      "layer": 4,
+      "effects": {
+        "effect": "Shockwave",
+        "startMs": -550.0,
+        "endMs": 5650.0,
+        "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=95.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1,C_SLIDER_SparkleFrequency=30"
+      }
+    },
+    {
+      "layer": 5,
+      "effects": [
+        {
+          "effect": "Shockwave",
+          "startMs": -4800.0,
+          "endMs": 1400.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=5.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1,C_SLIDER_SparkleFrequency=30"
+        },
+        {
+          "effect": "Shockwave",
+          "startMs": 1450.0,
+          "endMs": 7650.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=5.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#0000FF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FF0080,C_BUTTON_Palette6=#8080FF,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FFFFFF,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette6=1,C_CHECKBOX_Palette7=1,C_SLIDER_SparkleFrequency=30"
+        }
+      ]
+    },
+    {
+      "layer": 6,
+      "effects": [
+        {
+          "effect": "Shockwave",
+          "startMs": -4800.0,
+          "endMs": 1400.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=95.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1,C_SLIDER_SparkleFrequency=30"
+        },
+        {
+          "effect": "Shockwave",
+          "startMs": 1450.0,
+          "endMs": 7650.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=95.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#0000FF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FF0080,C_BUTTON_Palette6=#8080FF,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FFFFFF,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette6=1,C_CHECKBOX_Palette7=1,C_SLIDER_SparkleFrequency=30"
+        }
+      ]
+    },
+    {
+      "layer": 7,
+      "effects": {
+        "effect": "Shockwave",
+        "startMs": 3700.0,
+        "endMs": 9900.0,
+        "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_CenterY=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=5.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1,C_SLIDER_SparkleFrequency=30"
+      }
+    },
+    {
+      "layer": 8,
+      "effects": [
+        {
+          "effect": "Pinwheel",
+          "startMs": -2650.0,
+          "endMs": 1450.0,
+          "settings": "E_CHECKBOX_Pinwheel_Rotation=0,E_CHOICE_Pinwheel_3D=3D,E_CHOICE_Pinwheel_Style=New Render Method,E_SLIDER_PinwheelXC=0,E_SLIDER_PinwheelYC=0,E_SLIDER_Pinwheel_ArmSize=203,E_SLIDER_Pinwheel_Arms=8,E_SLIDER_Pinwheel_Offset=0,E_SLIDER_Pinwheel_Speed=0,E_SLIDER_Pinwheel_Thickness=100,E_SLIDER_Pinwheel_Twist=0,T_CHOICE_In_Transition_Type=Bow Tie,T_SLIDER_In_Transition_Adjust=50,T_TEXTCTRL_Fadein=1,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1"
+        },
+        {
+          "effect": "Shockwave",
+          "startMs": 3700.0,
+          "endMs": 9900.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_End_Radius=178,E_SLIDER_Shockwave_End_Width=127,E_SLIDER_Shockwave_Start_Radius=0,E_SLIDER_Shockwave_Start_Width=5,E_VALUECURVE_Shockwave_CenterY=Active=TRUE|Id=ID_VALUECURVE_Shockwave_CenterY|Type=Ramp|Min=0.00|Max=100.00|P1=95.00|P2=50.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1,C_SLIDER_SparkleFrequency=30"
+        }
+      ]
+    },
+    {
+      "layer": 9,
+      "effects": {
+        "effect": "Pinwheel",
+        "startMs": 1450.0,
+        "endMs": 5800.0,
+        "settings": "E_CHECKBOX_Pinwheel_Rotation=0,E_CHOICE_Pinwheel_3D=3D,E_CHOICE_Pinwheel_Style=New Render Method,E_SLIDER_PinwheelXC=0,E_SLIDER_PinwheelYC=0,E_SLIDER_Pinwheel_ArmSize=203,E_SLIDER_Pinwheel_Arms=8,E_SLIDER_Pinwheel_Offset=0,E_SLIDER_Pinwheel_Speed=0,E_SLIDER_Pinwheel_Thickness=100,E_SLIDER_Pinwheel_Twist=0,T_CHOICE_In_Transition_Type=Bow Tie,T_SLIDER_In_Transition_Adjust=50,T_TEXTCTRL_Fadein=1,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1"
+      }
+    },
+    {
+      "layer": 10,
+      "effects": {
+        "effect": "Pinwheel",
+        "startMs": 5800.0,
+        "endMs": 10100.0,
+        "settings": "E_CHECKBOX_Pinwheel_Rotation=0,E_CHOICE_Pinwheel_3D=3D,E_CHOICE_Pinwheel_Style=New Render Method,E_SLIDER_PinwheelXC=0,E_SLIDER_PinwheelYC=0,E_SLIDER_Pinwheel_ArmSize=203,E_SLIDER_Pinwheel_Arms=8,E_SLIDER_Pinwheel_Offset=0,E_SLIDER_Pinwheel_Speed=0,E_SLIDER_Pinwheel_Thickness=100,E_SLIDER_Pinwheel_Twist=0,T_CHOICE_In_Transition_Type=Bow Tie,T_SLIDER_In_Transition_Adjust=50,T_TEXTCTRL_Fadein=1,T_TEXTCTRL_Fadeout=0.4,X_Effect_Locked=True",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FFFF,C_BUTTON_Palette3=#8080FF,C_BUTTON_Palette4=#FF0080,C_BUTTON_Palette5=#0000FF,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#FF0000,C_BUTTON_Palette8=#0000FF,C_CHECKBOX_Palette3=1,C_CHECKBOX_Palette4=1"
+      }
+    }
+  ]
+}

@@ -160,6 +160,32 @@ flowchart TD
 | [15](phase-specs/PHASE-15.md) | 094–097 | Self-contained desktop distribution, native/model asset management, first-r… | Install on a clean Windows x64 machine, import sample show/song, generate/edit a simple XSQ, optionally download model with consen… |
 | [16](phase-specs/PHASE-16.md) | 098–100 | End-to-end quality matrix, manual A/B music/visual studies, clean-install c… | Give a non-developer tester only the installer and demo show; observe install, import, song analysis or safe fallback, phrase edit… |
 
+### 9a. `XlightsAI.Studio.Composition` is superseded, unwired reference material
+
+Phase 10's Step 066-071 work (`XlightsAI.Studio.Composition`: musical-role assignment, `VisualBudget`
+density budgeting, `TransitionPlan` gesture recipes, and `ChoreographyCompiler`) backs only
+`XlightsAI.Studio.Pipeline.WholeSongGenerator`/`ChoreographyCompositionRunner` — the old M1-M4 flat-"On"
+path. `src/XlightsAI.Studio.App/Program.cs` still constructs that path, but never assigns it to
+`App.WholeSongGenerator`; the real, live app always uses `AiChoreographyWholeSongGenerator`
+(`XlightsAI.Studio.Director`), the LLM-driven Phases 5-8 pipeline. `XlightsAI.Studio.Composition` has
+therefore never executed inside a real app generation.
+
+Build-plan Phase 10 §3g decision (confirmed with the user, 2026-10-30, recorded in `CHANGELOG.md`): archive
+rather than port or delete. Specifically:
+
+- `MusicalRoleAssignment`/`TransitionPlan`/the precedence-tier system are superseded by what the live
+  Director/Choreography path already does differently (band-energy-driven prop-role mapping, §3d; prompt-
+  driven transition guidance) — not worth porting.
+- `VisualBudget`-style deterministic density/concurrency capping was judged a plausible *future*
+  enhancement — the live path's only density control today is advisory prompt text
+  (`DirectorPromptBuilder`/`SectionScriptPromptBuilder`'s `StyleDensity` targets), and
+  `ChoreographyLegalityValidator` (the live path's actual deterministic post-pass) checks darkness/coverage/
+  peak-uniqueness but no density or concurrent-focal-effect cap. Implementing this is new design scope
+  (defining "focal" in `ChoreographyIR` terms, trim-vs-drop-vs-warn semantics, retry-loop integration), not a
+  mechanical port, and was deliberately deferred rather than implemented as part of this decision.
+- `Composition` and `Pipeline.WholeSongGenerator`/`ChoreographyCompositionRunner` are marked superseded in
+  their own doc comments; no new work should land there.
+
 ## 10. Unknowns that MUST be verified during implementation
 
 - Exact xLights effect/parameter serialization for *target versions* (collect xLights-generated golden XSQs and inspect upstream C++ and pinned xLightsAI writer).

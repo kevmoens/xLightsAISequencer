@@ -23,6 +23,13 @@ namespace XlightsAI.Studio.Xlights;
 /// last positional parameter with a default value so every existing Step 012-017 construction site
 /// and every already-serialized <see cref="SequenceDocument"/> JSON file keeps compiling/deserializing
 /// unchanged (a missing JSON property defaults to <see langword="false"/>).
+///
+/// PHASE-1b (docs/AI-CHOREOGRAPHY-BUILD-PLAN.md, "The effect recipe system"): <see cref="PaletteIndex"/>,
+/// <see cref="BlendMode"/>, <see cref="Transitions"/> and <see cref="ValueCurves"/> are the IR fields
+/// architecture §12 blocker 2 says a real recipe abstraction must carry beyond
+/// <c>(recipeId, ModelId, startTicks, endTicks)</c> — a palette reference, blend mode, transitions and
+/// value curves. Each is appended as a trailing optional parameter (the same convention
+/// <see cref="Locked"/> already established) so every existing construction site keeps compiling.
 /// </summary>
 public sealed record EffectInstance(
     Guid Id,
@@ -33,4 +40,13 @@ public sealed record EffectInstance(
     string RecipeId,
     string RecipeVersion,
     IReadOnlyDictionary<string, string> Parameters,
-    bool Locked = false);
+    bool Locked = false,
+    int? PaletteIndex = null,
+    string BlendMode = "Normal",
+    IReadOnlyList<EffectTransition>? Transitions = null,
+    IReadOnlyList<EffectValueCurve>? ValueCurves = null)
+{
+    public IReadOnlyList<EffectTransition> TransitionsOrEmpty => Transitions ?? [];
+
+    public IReadOnlyList<EffectValueCurve> ValueCurvesOrEmpty => ValueCurves ?? [];
+}

@@ -1,0 +1,35 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Orchestrates the real Rhythm/Melody/Stems -> Structure -> WholeSong -> Composition pipeline
+         end to end (see docs in ShellViewModel's GenerateEffectPlanCommand wiring for why this lives
+         in its own project: it depends on all of these at once, which none of them should depend on
+         each other for). None of the referenced projects reference each other upward into this one
+         or into Shell, so this introduces no cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Audio\XlightsAI.Studio.Audio.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Stems\XlightsAI.Studio.Stems.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Rhythm\XlightsAI.Studio.Rhythm.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Melody\XlightsAI.Studio.Melody.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Structure\XlightsAI.Studio.Structure.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.WholeSong\XlightsAI.Studio.WholeSong.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Composition\XlightsAI.Studio.Composition.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <!-- PHASE-2b corpus mining (Knowledge/CorpusManifest, EffectVocabularyCatalog cross-reference) needs
+         XsqStructuralReader (Xlights) plus the full Audio/Rhythm/Structure analysis stack at once, which
+         Knowledge itself cannot reference (Xlights already references Knowledge, so a Knowledge to
+         Xlights edge would be cyclic). Pipeline already depends on everything else this needs. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Knowledge\XlightsAI.Studio.Knowledge.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Distribution\XlightsAI.Studio.Distribution.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,131 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:local="using:XlightsAI.Studio.App.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.PianoRollView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    SCREEN 10 PIANO ROLL (PHASE-07 Step 049): editable note view with low-confidence markers. One of
+    the three screens docs/UI-CLEANUP-PLAN.md item 2 (Phase 2a) names: a fully implemented, fully
+    tested view model (PianoRollViewModel) with no view at all before this file.
+
+    Opens automatically once "Generate whole-song plan" succeeds (ShellViewModel.RunGenerateWholeSongPlanAsync)
+    — the melody this screen edits is the exact one that plan was built from, not a separately
+    re-run analysis. Note correction is entered numerically (pitch/start/end), same scope decision
+    as the Display Paths screen's numeric position entry and Timeline's own numeric range selection
+    — dragging/resizing a note block directly is not yet built.
+  -->
+
+  <StackPanel Spacing="14">
+    <TextBlock Classes="page-title" Text="Piano roll" />
+    <TextBlock Classes="page-subtitle"
+               Text="The melody detected from your song. Notes the analysis is least sure about are marked — correct them here before they shape the choreography." />
+
+    <TextBlock Classes="hint" IsVisible="{Binding PianoRoll.IsEmpty}"
+               Text="Nothing to show yet. Generate a whole-song plan (Generate &amp; export screen) to analyse a melody." />
+    <TextBlock Classes="error" IsVisible="{Binding PianoRoll.IsError}" Text="{Binding PianoRoll.ErrorMessage}" />
+
+    <StackPanel IsVisible="{Binding PianoRoll.IsLoaded}" Spacing="10">
+      <Grid ColumnDefinitions="Auto,Auto,*" ColumnSpacing="16">
+        <TextBlock Grid.Column="0" Classes="hint" Text="{Binding PianoRoll.CurrentNoteCount, StringFormat='{}{0} notes'}" />
+        <TextBlock Grid.Column="1" Classes="hint" Text="{Binding PianoRoll.OriginalNoteCount, StringFormat='(original: {0})'}" />
+      </Grid>
+
+      <!-- A fixed-size scrollable surface: each note's X/Width already come pre-scaled by
+           PianoRollViewModel.TicksPerPixel, same "absolute pixel left margin" convention
+           TimelineView's own effect blocks use (see EffectBlockItemView). -->
+      <Border Classes="panel" Padding="0">
+        <ScrollViewer HorizontalScrollBarVisibility="Auto" VerticalScrollBarVisibility="Auto" MaxHeight="420">
+          <Canvas Width="2400" Height="1800" Background="{DynamicResource AppWaveformGroundBrush}">
+            <ItemsControl ItemsSource="{Binding PianoRoll.Rows}">
+              <ItemsControl.ItemsPanel>
+                <ItemsPanelTemplate>
+                  <Canvas />
+                </ItemsPanelTemplate>
+              </ItemsControl.ItemsPanel>
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Button Width="{Binding Width}" Height="12" Padding="0" FontSize="8"
+                          Command="{Binding SelectCommand}"
+                          Canvas.Left="{Binding X}" Canvas.Top="{Binding Y}"
+                          BorderThickness="1">
+                    <Button.Background>
+                      <MultiBinding Converter="{x:Static local:NoteBrushConverter.Instance}">
+                        <Binding Path="IsSelected" />
+                        <Binding Path="IsLocked" />
+                        <Binding Path="IsLowConfidence" />
+                        <Binding Path="IsUserCorrected" />
+                      </MultiBinding>
+                    </Button.Background>
+                    <ToolTip.Tip>
+                      <StackPanel>
+                        <TextBlock Text="{Binding MidiNote, StringFormat='MIDI note {0}'}" />
+                        <TextBlock Text="Low confidence" IsVisible="{Binding IsLowConfidence}" />
+                        <TextBlock Text="User-corrected" IsVisible="{Binding IsUserCorrected}" />
+                        <TextBlock Text="Locked" IsVisible="{Binding IsLocked}" />
+                      </StackPanel>
+                    </ToolTip.Tip>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </Canvas>
+        </ScrollViewer>
+      </Border>
+
+      <Grid ColumnDefinitions="Auto,Auto,Auto,Auto" ColumnSpacing="14">
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="4">
+          <Rectangle Width="10" Height="10" Fill="OrangeRed" />
+          <TextBlock Classes="hint" Text="Low confidence" />
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4">
+          <Rectangle Width="10" Height="10" Fill="MediumSeaGreen" />
+          <TextBlock Classes="hint" Text="User-corrected" />
+        </StackPanel>
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="4">
+          <Rectangle Width="10" Height="10" Fill="DarkRed" />
+          <TextBlock Classes="hint" Text="Locked" />
+        </StackPanel>
+        <StackPanel Grid.Column="3" Orientation="Horizontal" Spacing="4">
+          <Rectangle Width="10" Height="10" Fill="Gold" />
+          <TextBlock Classes="hint" Text="Selected" />
+        </StackPanel>
+      </Grid>
+
+      <!-- Selected-note inspector + numeric correction. -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="section" Text="Selected note" />
+          <TextBlock Classes="hint" IsVisible="{Binding !PianoRoll.SelectedNoteId.HasValue}"
+                     Text="Click a note above to select it." />
+
+          <StackPanel IsVisible="{Binding PianoRoll.SelectedNoteId.HasValue}" Spacing="8">
+            <Grid ColumnDefinitions="*,*,*" ColumnSpacing="10">
+              <StackPanel Grid.Column="0" Spacing="2">
+                <TextBlock Classes="field" Text="MIDI NOTE" />
+                <TextBox Text="{Binding PianoRoll.PendingMidiNoteText}" />
+              </StackPanel>
+              <StackPanel Grid.Column="1" Spacing="2">
+                <TextBlock Classes="field" Text="START (TICKS)" />
+                <TextBox Text="{Binding PianoRoll.PendingStartTicksText}" />
+              </StackPanel>
+              <StackPanel Grid.Column="2" Spacing="2">
+                <TextBlock Classes="field" Text="END (TICKS)" />
+                <TextBox Text="{Binding PianoRoll.PendingEndTicksText}" />
+              </StackPanel>
+            </Grid>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="primary" Content="Apply correction" Command="{Binding CorrectSelectedNoteCommand}" />
+              <Button Content="Toggle lock" Command="{Binding ToggleLockSelectedNoteCommand}" />
+            </StackPanel>
+            <TextBlock Classes="error"
+                       IsVisible="{Binding PianoRoll.ActionErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                       Text="{Binding PianoRoll.ActionErrorMessage}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

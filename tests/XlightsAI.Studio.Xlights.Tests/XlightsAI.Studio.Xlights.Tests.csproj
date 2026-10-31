@@ -26,6 +26,8 @@
     <None Include="Fixtures\**\*.xml" CopyToOutputDirectory="PreserveNewest" />
     <!-- PHASE-02 Step 015: frozen golden XSQ regression fixture. -->
     <None Include="Fixtures\**\*.xsq" CopyToOutputDirectory="PreserveNewest" />
+    <!-- PHASE-2a: a small real-effect-metadata subset for GeneratedEffectRecipeTests. -->
+    <None Include="Fixtures\**\*.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>

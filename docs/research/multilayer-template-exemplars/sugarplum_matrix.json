@@ -1,0 +1,686 @@
+{
+  "sourceFile": "C:\\xLights\\Dance Of The Sugar Plum Fairy (JayKode Trap Remix).xsq",
+  "element": "Matrix",
+  "windowStartMs": 184000,
+  "windowEndMs": 190000,
+  "layerCount": 11,
+  "effectCount": 89,
+  "layers": [
+    {
+      "layer": 2,
+      "effects": [
+        {
+          "effect": "Warp",
+          "startMs": 400.0,
+          "endMs": 550.0,
+          "settings": "E_CHOICE_Warp_Treatment_APPLYLAST=constant,E_CHOICE_Warp_Type=drop,E_SLIDER_Warp_Cycle_Count=1,E_TEXTCTRL1=The warp effect distorts the pixels in the layers below it. The Canvas option in Layer Blending must be enabled for it to work.,E_TEXTCTRL_Warp_Cycle_Count=1,T_CHECKBOX_Canvas=1,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Warp",
+          "startMs": 1550.0,
+          "endMs": 1750.0,
+          "settings": "E_CHOICE_Warp_Treatment_APPLYLAST=constant,E_CHOICE_Warp_Type=drop,E_SLIDER_Warp_Cycle_Count=1,E_TEXTCTRL1=The warp effect distorts the pixels in the layers below it. The Canvas option in Layer Blending must be enabled for it to work.,E_TEXTCTRL_Warp_Cycle_Count=1,T_CHECKBOX_Canvas=1,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Warp",
+          "startMs": 2750.0,
+          "endMs": 2950.0,
+          "settings": "E_CHOICE_Warp_Treatment_APPLYLAST=constant,E_CHOICE_Warp_Type=drop,E_SLIDER_Warp_Cycle_Count=1,E_TEXTCTRL1=The warp effect distorts the pixels in the layers below it. The Canvas option in Layer Blending must be enabled for it to work.,E_TEXTCTRL_Warp_Cycle_Count=1,T_CHECKBOX_Canvas=1,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1"
+        }
+      ]
+    },
+    {
+      "layer": 3,
+      "effects": [
+        {
+          "effect": "Shockwave",
+          "startMs": 400.0,
+          "endMs": 550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,E_CHECKBOX_Shockwave_Blend_Edges=1,E_CHECKBOX_Shockwave_Scale=0,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_CenterY=50,E_SLIDER_Shockwave_Cycles=1,E_SLIDER_Shockwave_End_Radius=1,E_SLIDER_Shockwave_End_Width=30,E_SLIDER_Shockwave_Start_Radius=225,E_SLIDER_Shockwave_Start_Width=225,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Shockwave",
+          "startMs": 1550.0,
+          "endMs": 1750.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,E_CHECKBOX_Shockwave_Blend_Edges=1,E_CHECKBOX_Shockwave_Scale=0,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_CenterY=50,E_SLIDER_Shockwave_Cycles=1,E_SLIDER_Shockwave_End_Radius=1,E_SLIDER_Shockwave_End_Width=30,E_SLIDER_Shockwave_Start_Radius=225,E_SLIDER_Shockwave_Start_Width=225,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Shockwave",
+          "startMs": 2750.0,
+          "endMs": 2950.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,E_CHECKBOX_Shockwave_Blend_Edges=1,E_CHECKBOX_Shockwave_Scale=0,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_CenterY=50,E_SLIDER_Shockwave_Cycles=1,E_SLIDER_Shockwave_End_Radius=1,E_SLIDER_Shockwave_End_Width=30,E_SLIDER_Shockwave_Start_Radius=225,E_SLIDER_Shockwave_Start_Width=225,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1"
+        }
+      ]
+    },
+    {
+      "layer": 4,
+      "effects": [
+        {
+          "effect": "Shader",
+          "startMs": 50.0,
+          "endMs": 300.0,
+          "settings": "E_0FILEPICKERCTRL_IFS=C:\\xLights\\Dance of the Sugar Plum Fairy\\Shaders\\Kaleidolines.fs,E_CHECKBOX_SHADERXYZZY_invert=1,E_SLIDER_SHADERXYZZY_lineLength=100,E_SLIDER_SHADERXYZZY_lineThickness=50,E_SLIDER_SHADERXYZZY_lines1=1000,E_SLIDER_SHADERXYZZY_lines2=1000,E_SLIDER_SHADERXYZZY_motion=25,E_SLIDER_SHADERXYZZY_offset=0,E_SLIDER_SHADERXYZZY_posX=50,E_SLIDER_SHADERXYZZY_posY=50,E_SLIDER_SHADERXYZZY_rotateCanvas=0,E_SLIDER_SHADERXYZZY_zoom=200,E_SLIDER_Shader_Speed=100,E_TEXTCTRL_Shader_LeadIn=0,E_TEXTCTRL_Shader_Offset_X=0,E_TEXTCTRL_Shader_Offset_Y=0,E_VALUECURVE_SHADERXYZZY_rotateLines=Active=TRUE|Id=ID_VALUECURVE_SHADERXYZZY_rotateLines|Type=Ramp|Min=0.00|Max=100.00|P2=5.00|RV=TRUE|,E_VALUECURVE_Shader_Zoom=Active=TRUE|Id=ID_VALUECURVE_Shader_Zoom|Type=Ramp|Min=-100.00|Max=100.00|P2=10.00|RV=TRUE|,T_CHECKBOX_Canvas=1,T_CHOICE_LayerMethod=1 is True Unmask,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Shader",
+          "startMs": 650.0,
+          "endMs": 900.0,
+          "settings": "E_0FILEPICKERCTRL_IFS=C:\\xLights\\Dance of the Sugar Plum Fairy\\Shaders\\Kaleidolines.fs,E_CHECKBOX_SHADERXYZZY_invert=1,E_SLIDER_SHADERXYZZY_lineLength=100,E_SLIDER_SHADERXYZZY_lineThickness=50,E_SLIDER_SHADERXYZZY_lines1=1000,E_SLIDER_SHADERXYZZY_lines2=1000,E_SLIDER_SHADERXYZZY_motion=25,E_SLIDER_SHADERXYZZY_offset=0,E_SLIDER_SHADERXYZZY_posX=50,E_SLIDER_SHADERXYZZY_posY=50,E_SLIDER_SHADERXYZZY_rotateCanvas=0,E_SLIDER_SHADERXYZZY_zoom=200,E_SLIDER_Shader_Speed=100,E_TEXTCTRL_Shader_LeadIn=0,E_TEXTCTRL_Shader_Offset_X=0,E_TEXTCTRL_Shader_Offset_Y=0,E_VALUECURVE_SHADERXYZZY_rotateLines=Active=TRUE|Id=ID_VALUECURVE_SHADERXYZZY_rotateLines|Type=Ramp|Min=0.00|Max=100.00|P2=5.00|RV=TRUE|,E_VALUECURVE_Shader_Zoom=Active=TRUE|Id=ID_VALUECURVE_Shader_Zoom|Type=Ramp|Min=-100.00|Max=100.00|P2=10.00|RV=TRUE|,T_CHECKBOX_Canvas=1,T_CHOICE_LayerMethod=1 is True Unmask,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Shader",
+          "startMs": 950.0,
+          "endMs": 1200.0,
+          "settings": "E_0FILEPICKERCTRL_IFS=C:\\xLights\\Dance of the Sugar Plum Fairy\\Shaders\\Kaleidolines.fs,E_CHECKBOX_SHADERXYZZY_invert=1,E_SLIDER_SHADERXYZZY_lineLength=100,E_SLIDER_SHADERXYZZY_lineThickness=50,E_SLIDER_SHADERXYZZY_lines1=1000,E_SLIDER_SHADERXYZZY_lines2=1000,E_SLIDER_SHADERXYZZY_motion=25,E_SLIDER_SHADERXYZZY_offset=0,E_SLIDER_SHADERXYZZY_posX=50,E_SLIDER_SHADERXYZZY_posY=50,E_SLIDER_SHADERXYZZY_rotateCanvas=0,E_SLIDER_SHADERXYZZY_zoom=200,E_SLIDER_Shader_Speed=100,E_TEXTCTRL_Shader_LeadIn=0,E_TEXTCTRL_Shader_Offset_X=0,E_TEXTCTRL_Shader_Offset_Y=0,E_VALUECURVE_SHADERXYZZY_rotateLines=Active=TRUE|Id=ID_VALUECURVE_SHADERXYZZY_rotateLines|Type=Ramp|Min=0.00|Max=100.00|P2=5.00|RV=TRUE|,E_VALUECURVE_Shader_Zoom=Active=TRUE|Id=ID_VALUECURVE_Shader_Zoom|Type=Ramp|Min=-100.00|Max=100.00|P2=10.00|RV=TRUE|,T_CHECKBOX_Canvas=1,T_CHOICE_LayerMethod=1 is True Unmask,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Shader",
+          "startMs": 1400.0,
+          "endMs": 1650.0,
+          "settings": "E_0FILEPICKERCTRL_IFS=C:\\xLights\\Dance of the Sugar Plum Fairy\\Shaders\\Kaleidolines.fs,E_CHECKBOX_SHADERXYZZY_invert=1,E_SLIDER_SHADERXYZZY_lineLength=100,E_SLIDER_SHADERXYZZY_lineThickness=50,E_SLIDER_SHADERXYZZY_lines1=1000,E_SLIDER_SHADERXYZZY_lines2=1000,E_SLIDER_SHADERXYZZY_motion=25,E_SLIDER_SHADERXYZZY_offset=0,E_SLIDER_SHADERXYZZY_posX=50,E_SLIDER_SHADERXYZZY_posY=50,E_SLIDER_SHADERXYZZY_rotateCanvas=0,E_SLIDER_SHADERXYZZY_zoom=200,E_SLIDER_Shader_Speed=100,E_TEXTCTRL_Shader_LeadIn=0,E_TEXTCTRL_Shader_Offset_X=0,E_TEXTCTRL_Shader_Offset_Y=0,E_VALUECURVE_SHADERXYZZY_rotateLines=Active=TRUE|Id=ID_VALUECURVE_SHADERXYZZY_rotateLines|Type=Ramp|Min=0.00|Max=100.00|P2=5.00|RV=TRUE|,E_VALUECURVE_Shader_Zoom=Active=TRUE|Id=ID_VALUECURVE_Shader_Zoom|Type=Ramp|Min=-100.00|Max=100.00|P2=10.00|RV=TRUE|,T_CHECKBOX_Canvas=1,T_CHOICE_LayerMethod=1 is True Unmask,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Shader",
+          "startMs": 1850.0,
+          "endMs": 2100.0,
+          "settings": "E_0FILEPICKERCTRL_IFS=C:\\xLights\\Dance of the Sugar Plum Fairy\\Shaders\\Kaleidolines.fs,E_CHECKBOX_SHADERXYZZY_invert=1,E_SLIDER_SHADERXYZZY_lineLength=100,E_SLIDER_SHADERXYZZY_lineThickness=50,E_SLIDER_SHADERXYZZY_lines1=1000,E_SLIDER_SHADERXYZZY_lines2=1000,E_SLIDER_SHADERXYZZY_motion=25,E_SLIDER_SHADERXYZZY_offset=0,E_SLIDER_SHADERXYZZY_posX=50,E_SLIDER_SHADERXYZZY_posY=50,E_SLIDER_SHADERXYZZY_rotateCanvas=0,E_SLIDER_SHADERXYZZY_zoom=200,E_SLIDER_Shader_Speed=100,E_TEXTCTRL_Shader_LeadIn=0,E_TEXTCTRL_Shader_Offset_X=0,E_TEXTCTRL_Shader_Offset_Y=0,E_VALUECURVE_SHADERXYZZY_rotateLines=Active=TRUE|Id=ID_VALUECURVE_SHADERXYZZY_rotateLines|Type=Ramp|Min=0.00|Max=100.00|P2=5.00|RV=TRUE|,E_VALUECURVE_Shader_Zoom=Active=TRUE|Id=ID_VALUECURVE_Shader_Zoom|Type=Ramp|Min=-100.00|Max=100.00|P2=10.00|RV=TRUE|,T_CHECKBOX_Canvas=1,T_CHOICE_LayerMethod=1 is True Unmask,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Shader",
+          "startMs": 2450.0,
+          "endMs": 2700.0,
+          "settings": "E_0FILEPICKERCTRL_IFS=C:\\xLights\\Dance of the Sugar Plum Fairy\\Shaders\\Kaleidolines.fs,E_CHECKBOX_SHADERXYZZY_invert=1,E_SLIDER_SHADERXYZZY_lineLength=100,E_SLIDER_SHADERXYZZY_lineThickness=50,E_SLIDER_SHADERXYZZY_lines1=1000,E_SLIDER_SHADERXYZZY_lines2=1000,E_SLIDER_SHADERXYZZY_motion=25,E_SLIDER_SHADERXYZZY_offset=0,E_SLIDER_SHADERXYZZY_posX=50,E_SLIDER_SHADERXYZZY_posY=50,E_SLIDER_SHADERXYZZY_rotateCanvas=0,E_SLIDER_SHADERXYZZY_zoom=200,E_SLIDER_Shader_Speed=100,E_TEXTCTRL_Shader_LeadIn=0,E_TEXTCTRL_Shader_Offset_X=0,E_TEXTCTRL_Shader_Offset_Y=0,E_VALUECURVE_SHADERXYZZY_rotateLines=Active=TRUE|Id=ID_VALUECURVE_SHADERXYZZY_rotateLines|Type=Ramp|Min=0.00|Max=100.00|P2=5.00|RV=TRUE|,E_VALUECURVE_Shader_Zoom=Active=TRUE|Id=ID_VALUECURVE_Shader_Zoom|Type=Ramp|Min=-100.00|Max=100.00|P2=10.00|RV=TRUE|,T_CHECKBOX_Canvas=1,T_CHOICE_LayerMethod=1 is True Unmask,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette7=1"
+        },
+        {
+          "effect": "Fan",
+          "startMs": 3350.0,
+          "endMs": 5150.0,
+          "settings": "B_SLIDER_Rotations=10,B_SLIDER_ZoomQuality=2,B_VALUECURVE_Rotation=Active=TRUE|Id=ID_VALUECURVE_Rotation|Type=Ramp|Min=0.00|Max=100.00|P2=100.00|RV=TRUE|,E_CHECKBOX_Fan_Blend_Edges=1,E_CHECKBOX_Fan_Reverse=1,E_CHECKBOX_Fan_Scale=0,E_NOTEBOOK_Fan=Position,E_SLIDER_Fan_Accel=0,E_SLIDER_Fan_Blade_Angle=90,E_SLIDER_Fan_Blade_Width=100,E_SLIDER_Fan_CenterY=50,E_SLIDER_Fan_Duration=100,E_SLIDER_Fan_Element_Width=100,E_SLIDER_Fan_Num_Blades=6,E_SLIDER_Fan_Num_Elements=1,E_SLIDER_Fan_Revolutions=3600,E_SLIDER_Fan_Start_Angle=0,E_VALUECURVE_Fan_CenterX=Active=TRUE|Id=ID_VALUECURVE_Fan_CenterX|Type=Saw Tooth|Min=0.00|Max=100.00|P2=100.00|P3=3.00|RV=TRUE|,E_VALUECURVE_Fan_End_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_End_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=95.00|P3=6.00|RV=TRUE|,E_VALUECURVE_Fan_Start_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_Start_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=85.00|P2=10.00|P3=6.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.25,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=Active=TRUE|Id=ID_BUTTON_Palette3|Values=x=0.000^c=#ffff0a;x=0.680^c=#21ffff|,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+        },
+        {
+          "effect": "Fan",
+          "startMs": 5150.0,
+          "endMs": 5800.0,
+          "settings": "E_CHECKBOX_Fan_Blend_Edges=1,E_CHECKBOX_Fan_Reverse=1,E_CHECKBOX_Fan_Scale=0,E_NOTEBOOK_Fan=Position,E_SLIDER_Fan_Accel=0,E_SLIDER_Fan_Blade_Angle=90,E_SLIDER_Fan_Blade_Width=100,E_SLIDER_Fan_CenterX=50,E_SLIDER_Fan_CenterY=50,E_SLIDER_Fan_Duration=100,E_SLIDER_Fan_Element_Width=100,E_SLIDER_Fan_Num_Blades=6,E_SLIDER_Fan_Num_Elements=1,E_SLIDER_Fan_Revolutions=3600,E_SLIDER_Fan_Start_Angle=0,E_VALUECURVE_Fan_End_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_End_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=95.00|P3=6.00|RV=TRUE|,E_VALUECURVE_Fan_Start_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_Start_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=75.00|P2=20.00|P3=6.00|RV=TRUE|,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=Active=TRUE|Id=ID_BUTTON_Palette3|Values=x=0.000^c=#ffff0a;x=0.680^c=#21ffff|,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+        }
+      ]
+    },
+    {
+      "layer": 5,
+      "effects": [
+        {
+          "effect": "Color Wash",
+          "startMs": 50.0,
+          "endMs": 300.0,
+          "settings": "X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 650.0,
+          "endMs": 900.0,
+          "settings": "X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 950.0,
+          "endMs": 1200.0,
+          "settings": "X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 1400.0,
+          "endMs": 1650.0,
+          "settings": "X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 1850.0,
+          "endMs": 2100.0,
+          "settings": "X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 2450.0,
+          "endMs": 2700.0,
+          "settings": "X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Fan",
+          "startMs": 3350.0,
+          "endMs": 5150.0,
+          "settings": "B_CHOICE_BufferTransform=Flip Horizontal,B_SLIDER_Rotations=10,B_SLIDER_ZoomQuality=2,B_VALUECURVE_Rotation=Active=TRUE|Id=ID_VALUECURVE_Rotation|Type=Ramp|Min=0.00|Max=100.00|P2=100.00|RV=TRUE|,E_CHECKBOX_Fan_Blend_Edges=1,E_CHECKBOX_Fan_Reverse=1,E_CHECKBOX_Fan_Scale=0,E_NOTEBOOK_Fan=Position,E_SLIDER_Fan_Accel=0,E_SLIDER_Fan_Blade_Angle=90,E_SLIDER_Fan_Blade_Width=100,E_SLIDER_Fan_CenterY=50,E_SLIDER_Fan_Duration=100,E_SLIDER_Fan_Element_Width=100,E_SLIDER_Fan_Num_Blades=6,E_SLIDER_Fan_Num_Elements=1,E_SLIDER_Fan_Revolutions=3600,E_SLIDER_Fan_Start_Angle=0,E_VALUECURVE_Fan_CenterX=Active=TRUE|Id=ID_VALUECURVE_Fan_CenterX|Type=Saw Tooth|Min=0.00|Max=100.00|P2=100.00|P3=3.00|RV=TRUE|,E_VALUECURVE_Fan_End_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_End_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=95.00|P3=6.00|RV=TRUE|,E_VALUECURVE_Fan_Start_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_Start_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=85.00|P2=10.00|P3=6.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.25,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=Active=TRUE|Id=ID_BUTTON_Palette3|Values=x=0.000^c=#ffff0a;x=0.680^c=#21ffff|,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+        }
+      ]
+    },
+    {
+      "layer": 6,
+      "effects": {
+        "effect": "Fan",
+        "startMs": 3350.0,
+        "endMs": 5150.0,
+        "settings": "B_CHOICE_BufferTransform=Flip Vertical,B_SLIDER_Rotations=10,B_SLIDER_ZoomQuality=2,B_VALUECURVE_Rotation=Active=TRUE|Id=ID_VALUECURVE_Rotation|Type=Ramp|Min=0.00|Max=100.00|P2=100.00|RV=TRUE|,E_CHECKBOX_Fan_Blend_Edges=1,E_CHECKBOX_Fan_Reverse=1,E_CHECKBOX_Fan_Scale=0,E_NOTEBOOK_Fan=Position,E_SLIDER_Fan_Accel=0,E_SLIDER_Fan_Blade_Angle=90,E_SLIDER_Fan_Blade_Width=100,E_SLIDER_Fan_CenterY=50,E_SLIDER_Fan_Duration=100,E_SLIDER_Fan_Element_Width=100,E_SLIDER_Fan_Num_Blades=6,E_SLIDER_Fan_Num_Elements=1,E_SLIDER_Fan_Revolutions=3600,E_SLIDER_Fan_Start_Angle=0,E_VALUECURVE_Fan_CenterX=Active=TRUE|Id=ID_VALUECURVE_Fan_CenterX|Type=Saw Tooth|Min=0.00|Max=100.00|P2=100.00|P3=3.00|RV=TRUE|,E_VALUECURVE_Fan_End_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_End_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=95.00|P3=6.00|RV=TRUE|,E_VALUECURVE_Fan_Start_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_Start_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=85.00|P2=10.00|P3=6.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.25,X_Effect_Locked=True",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=Active=TRUE|Id=ID_BUTTON_Palette3|Values=x=0.000^c=#ffff0a;x=0.680^c=#21ffff|,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+      }
+    },
+    {
+      "layer": 7,
+      "effects": [
+        {
+          "effect": "Fan",
+          "startMs": 3350.0,
+          "endMs": 5150.0,
+          "settings": "B_CHOICE_BufferTransform=Rotate 180,B_SLIDER_Rotations=10,B_SLIDER_ZoomQuality=2,B_VALUECURVE_Rotation=Active=TRUE|Id=ID_VALUECURVE_Rotation|Type=Ramp|Min=0.00|Max=100.00|P2=100.00|RV=TRUE|,E_CHECKBOX_Fan_Blend_Edges=1,E_CHECKBOX_Fan_Reverse=1,E_CHECKBOX_Fan_Scale=0,E_NOTEBOOK_Fan=Position,E_SLIDER_Fan_Accel=0,E_SLIDER_Fan_Blade_Angle=90,E_SLIDER_Fan_Blade_Width=100,E_SLIDER_Fan_CenterY=50,E_SLIDER_Fan_Duration=100,E_SLIDER_Fan_Element_Width=100,E_SLIDER_Fan_Num_Blades=6,E_SLIDER_Fan_Num_Elements=1,E_SLIDER_Fan_Revolutions=3600,E_SLIDER_Fan_Start_Angle=0,E_VALUECURVE_Fan_CenterX=Active=TRUE|Id=ID_VALUECURVE_Fan_CenterX|Type=Saw Tooth|Min=0.00|Max=100.00|P2=100.00|P3=3.00|RV=TRUE|,E_VALUECURVE_Fan_End_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_End_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=95.00|P3=6.00|RV=TRUE|,E_VALUECURVE_Fan_Start_Radius=Active=TRUE|Id=ID_VALUECURVE_Fan_Start_Radius|Type=Saw Tooth|Min=0.00|Max=2500.00|P1=85.00|P2=10.00|P3=6.00|RV=TRUE|,T_TEXTCTRL_Fadeout=0.25,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=Active=TRUE|Id=ID_BUTTON_Palette3|Values=x=0.000^c=#ffff0a;x=0.680^c=#21ffff|,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+        },
+        {
+          "effect": "Shockwave",
+          "startMs": 5800.0,
+          "endMs": 6050.0,
+          "settings": "E_CHECKBOX_Shockwave_Blend_Edges=1,E_CHECKBOX_Shockwave_Scale=0,E_NOTEBOOK_Shockwave=Position,E_SLIDER_Shockwave_Accel=0,E_SLIDER_Shockwave_CenterX=50,E_SLIDER_Shockwave_CenterY=50,E_SLIDER_Shockwave_Cycles=1,E_SLIDER_Shockwave_End_Radius=225,E_SLIDER_Shockwave_End_Width=225,E_SLIDER_Shockwave_Start_Radius=1,E_SLIDER_Shockwave_Start_Width=30,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#CC66FF,C_BUTTON_Palette3=#FF00FF,C_BUTTON_Palette4=#000000,C_BUTTON_Palette5=#FF0000,C_BUTTON_Palette6=#00FF00,C_BUTTON_Palette7=#0000FF,C_BUTTON_Palette8=#FFFF00,C_CHECKBOX_Palette1=1,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+        }
+      ]
+    },
+    {
+      "layer": 8,
+      "effects": [
+        {
+          "effect": "Color Wash",
+          "startMs": 3350.0,
+          "endMs": 3550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 3800.0,
+          "endMs": 3900.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 3900.0,
+          "endMs": 4000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 4000.0,
+          "endMs": 4200.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 4250.0,
+          "endMs": 4450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 4550.0,
+          "endMs": 4700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,E_CHECKBOX_ColorWash_CircularPalette=0,E_CHECKBOX_ColorWash_Shimmer=0,E_TEXTCTRL_ColorWash_Cycles=1,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 4850.0,
+          "endMs": 5000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,E_CHECKBOX_ColorWash_CircularPalette=0,E_CHECKBOX_ColorWash_Shimmer=0,E_TEXTCTRL_ColorWash_Cycles=1,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 5150.0,
+          "endMs": 5250.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 5250.0,
+          "endMs": 5350.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 5350.0,
+          "endMs": 5450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 5450.0,
+          "endMs": 5550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 5550.0,
+          "endMs": 5700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        },
+        {
+          "effect": "Color Wash",
+          "startMs": 5700.0,
+          "endMs": 5800.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=,E_CHECKBOX_ColorWash_HFade=0,E_CHECKBOX_ColorWash_VFade=0,T_CHOICE_LayerMethod=Brightness,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette5=1,C_CHECKBOX_Palette7=1,C_CHECKBOX_Palette8=1"
+        }
+      ]
+    },
+    {
+      "layer": 9,
+      "effects": [
+        {
+          "effect": "Morph",
+          "startMs": 3350.0,
+          "endMs": 3550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 3800.0,
+          "endMs": 3900.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 3900.0,
+          "endMs": 4000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4000.0,
+          "endMs": 4200.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4250.0,
+          "endMs": 4450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4550.0,
+          "endMs": 4700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4850.0,
+          "endMs": 5000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5150.0,
+          "endMs": 5250.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5250.0,
+          "endMs": 5350.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5350.0,
+          "endMs": 5450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5450.0,
+          "endMs": 5550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5550.0,
+          "endMs": 5700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5700.0,
+          "endMs": 5800.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        }
+      ]
+    },
+    {
+      "layer": 10,
+      "effects": [
+        {
+          "effect": "Morph",
+          "startMs": 3350.0,
+          "endMs": 3550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 3800.0,
+          "endMs": 3900.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 3900.0,
+          "endMs": 4000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4000.0,
+          "endMs": 4200.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4250.0,
+          "endMs": 4450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4550.0,
+          "endMs": 4700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4850.0,
+          "endMs": 5000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5150.0,
+          "endMs": 5250.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5250.0,
+          "endMs": 5350.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5350.0,
+          "endMs": 5450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5450.0,
+          "endMs": 5550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5550.0,
+          "endMs": 5700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5700.0,
+          "endMs": 5800.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Horizontal,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        }
+      ]
+    },
+    {
+      "layer": 11,
+      "effects": [
+        {
+          "effect": "Morph",
+          "startMs": 3350.0,
+          "endMs": 3550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 3800.0,
+          "endMs": 3900.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 3900.0,
+          "endMs": 4000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4000.0,
+          "endMs": 4200.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4250.0,
+          "endMs": 4450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4550.0,
+          "endMs": 4700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4850.0,
+          "endMs": 5000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5150.0,
+          "endMs": 5250.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5250.0,
+          "endMs": 5350.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5350.0,
+          "endMs": 5450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5450.0,
+          "endMs": 5550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5550.0,
+          "endMs": 5700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5700.0,
+          "endMs": 5800.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Flip Vertical,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        }
+      ]
+    },
+    {
+      "layer": 12,
+      "effects": [
+        {
+          "effect": "Morph",
+          "startMs": 3350.0,
+          "endMs": 3550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 3800.0,
+          "endMs": 3900.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 3900.0,
+          "endMs": 4000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4000.0,
+          "endMs": 4200.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4250.0,
+          "endMs": 4450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4550.0,
+          "endMs": 4700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 4850.0,
+          "endMs": 5000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5150.0,
+          "endMs": 5250.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5250.0,
+          "endMs": 5350.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5350.0,
+          "endMs": 5450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5450.0,
+          "endMs": 5550.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5550.0,
+          "endMs": 5700.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Morph",
+          "startMs": 5700.0,
+          "endMs": 5800.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_CHOICE_BufferTransform=Rotate 180,B_CUSTOM_SubBuffer=0.00x50.00x50.00x100.00x0.00x0.00,E_CHECKBOX_Morph_AutoRepeat=0,E_CHECKBOX_Morph_End_Link=0,E_CHECKBOX_Morph_Start_Link=0,E_CHECKBOX_ShowHeadAtStart=0,E_NOTEBOOK_Morph=Start,E_SLIDER_MorphAccel=0,E_SLIDER_MorphDuration=0,E_SLIDER_MorphEndLength=1,E_SLIDER_MorphStartLength=1,E_SLIDER_Morph_End_X1=0,E_SLIDER_Morph_End_X2=100,E_SLIDER_Morph_End_Y1=100,E_SLIDER_Morph_End_Y2=100,E_SLIDER_Morph_Repeat_Count=0,E_SLIDER_Morph_Repeat_Skip=1,E_SLIDER_Morph_Stagger=0,E_SLIDER_Morph_Start_X1=0,E_SLIDER_Morph_Start_X2=0,E_SLIDER_Morph_Start_Y1=0,E_SLIDER_Morph_Start_Y2=100,X_Effect_Locked=True",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1"
+        }
+      ]
+    }
+  ]
+}

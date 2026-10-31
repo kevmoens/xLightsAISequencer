@@ -1,0 +1,162 @@
+{
+  "sourceFile": "C:\\xLights\\Rockin' Around the Christmas Tree\\Christmas 2023\\Sequences\\Rockin' Around the Christmas Tree.xsq",
+  "element": "Mega Tree",
+  "windowStartMs": 20000,
+  "windowEndMs": 26000,
+  "layerCount": 9,
+  "effectCount": 17,
+  "layers": [
+    {
+      "layer": 0,
+      "effects": [
+        {
+          "effect": "Wave",
+          "startMs": -5800.0,
+          "endMs": 950.0,
+          "settings": "B_CHOICE_BufferTransform=Rotate 180,E_CHECKBOX_Mirror_Wave=0,E_CHOICE_Fill_Colors=None,E_CHOICE_Wave_Direction=Right to Left,E_CHOICE_Wave_Type=Triangle,E_SLIDER_Number_Waves=900,E_SLIDER_Thickness_Percentage=10,E_SLIDER_Wave_Height=50,E_SLIDER_Wave_YOffset=0,E_TEXTCTRL_Wave_Speed=12,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FF0000,C_BUTTON_Palette2=#00FF00,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=Active=TRUE|Id=ID_BUTTON_Palette4|Values=x=0.000^c=#ff0000;x=1.000^c=#00ff00|,C_BUTTON_Palette5=Active=TRUE|Id=ID_BUTTON_Palette5|Values=x=0.000^c=#ff0000;x=0.500^c=#00ff00;x=1.000^c=#ffffff|,C_BUTTON_Palette6=Active=TRUE|Id=ID_BUTTON_Palette6|Values=x=0.000^c=#ff0000;x=0.500^c=#00ff00;x=1.000^c=#ff0000|,C_BUTTON_Palette7=Active=TRUE|Id=ID_BUTTON_Palette7|Values=x=0.000^c=#ff0000;x=0.330^c=#00ff00;x=0.670^c=#ffffff;x=1.000^c=#ff0000|,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette1=1"
+        },
+        {
+          "effect": "Twinkle",
+          "startMs": 950.0,
+          "endMs": 7700.0,
+          "settings": "E_CHECKBOX_Twinkle_ReRandom=0,E_CHECKBOX_Twinkle_Strobe=0,E_CHOICE_Twinkle_Style=Old Render Method,E_SLIDER_Twinkle_Count=7,E_SLIDER_Twinkle_Steps=7,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=0.2,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+        }
+      ]
+    },
+    {
+      "layer": 1,
+      "effects": [
+        {
+          "effect": "Wave",
+          "startMs": -4800.0,
+          "endMs": 950.0,
+          "settings": "E_CHECKBOX_Mirror_Wave=0,E_CHOICE_Fill_Colors=None,E_CHOICE_Wave_Direction=Right to Left,E_CHOICE_Wave_Type=Triangle,E_SLIDER_Number_Waves=900,E_SLIDER_Thickness_Percentage=10,E_SLIDER_Wave_Height=50,E_SLIDER_Wave_YOffset=0,E_TEXTCTRL_Wave_Speed=10,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1"
+        },
+        {
+          "effect": "SingleStrand",
+          "startMs": 950.0,
+          "endMs": 1750.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_SLIDER_PivotPointX=100,B_SLIDER_PivotPointY=11,E_CHECKBOX_Chase_3dFade1=1,E_CHECKBOX_Chase_Group_All=0,E_CHOICE_Chase_Type1=From Middle,E_CHOICE_SingleStrand_Colors=Palette,E_CHOICE_SingleStrand_FX=Fireworks 1D,E_CHOICE_SingleStrand_FX_Palette=* Colors Only,E_CHOICE_Skips_Direction=Left,E_NOTEBOOK_SSEFFECT_TYPE=Chase,E_SLIDER_Color_Mix1=75,E_SLIDER_FX_Intensity=128,E_SLIDER_FX_Speed=128,E_SLIDER_Number_Chases=1,E_SLIDER_Skips_Advance=0,E_SLIDER_Skips_BandSize=1,E_SLIDER_Skips_SkipSize=1,E_SLIDER_Skips_StartPos=1,E_TEXTCTRL_Chase_Rotations=1,T_TEXTCTRL_Fadein=0.1,T_TEXTCTRL_Fadeout=0.1,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+        },
+        {
+          "effect": "SingleStrand",
+          "startMs": 1750.0,
+          "endMs": 2600.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_SLIDER_PivotPointX=100,B_SLIDER_PivotPointY=11,E_CHECKBOX_Chase_3dFade1=1,E_CHECKBOX_Chase_Group_All=0,E_CHOICE_Chase_Type1=From Middle,E_CHOICE_SingleStrand_Colors=Palette,E_CHOICE_SingleStrand_FX=Fireworks 1D,E_CHOICE_SingleStrand_FX_Palette=* Colors Only,E_CHOICE_Skips_Direction=Left,E_NOTEBOOK_SSEFFECT_TYPE=Chase,E_SLIDER_Color_Mix1=75,E_SLIDER_FX_Intensity=128,E_SLIDER_FX_Speed=128,E_SLIDER_Number_Chases=1,E_SLIDER_Skips_Advance=0,E_SLIDER_Skips_BandSize=1,E_SLIDER_Skips_SkipSize=1,E_SLIDER_Skips_StartPos=1,E_TEXTCTRL_Chase_Rotations=1,T_TEXTCTRL_Fadein=0.1,T_TEXTCTRL_Fadeout=0.1,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FF00,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+        },
+        {
+          "effect": "SingleStrand",
+          "startMs": 2600.0,
+          "endMs": 3450.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_SLIDER_PivotPointX=100,B_SLIDER_PivotPointY=11,E_CHECKBOX_Chase_3dFade1=1,E_CHECKBOX_Chase_Group_All=0,E_CHOICE_Chase_Type1=From Middle,E_CHOICE_SingleStrand_Colors=Palette,E_CHOICE_SingleStrand_FX=Fireworks 1D,E_CHOICE_SingleStrand_FX_Palette=* Colors Only,E_CHOICE_Skips_Direction=Left,E_NOTEBOOK_SSEFFECT_TYPE=Chase,E_SLIDER_Color_Mix1=75,E_SLIDER_FX_Intensity=128,E_SLIDER_FX_Speed=128,E_SLIDER_Number_Chases=1,E_SLIDER_Skips_Advance=0,E_SLIDER_Skips_BandSize=1,E_SLIDER_Skips_SkipSize=1,E_SLIDER_Skips_StartPos=1,E_TEXTCTRL_Chase_Rotations=1,T_TEXTCTRL_Fadein=0.1,T_TEXTCTRL_Fadeout=0.1,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+        },
+        {
+          "effect": "SingleStrand",
+          "startMs": 3450.0,
+          "endMs": 4300.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_SLIDER_PivotPointX=100,B_SLIDER_PivotPointY=11,E_CHECKBOX_Chase_3dFade1=1,E_CHECKBOX_Chase_Group_All=0,E_CHOICE_Chase_Type1=From Middle,E_CHOICE_SingleStrand_Colors=Palette,E_CHOICE_SingleStrand_FX=Fireworks 1D,E_CHOICE_SingleStrand_FX_Palette=* Colors Only,E_CHOICE_Skips_Direction=Left,E_NOTEBOOK_SSEFFECT_TYPE=Chase,E_SLIDER_Color_Mix1=75,E_SLIDER_FX_Intensity=128,E_SLIDER_FX_Speed=128,E_SLIDER_Number_Chases=1,E_SLIDER_Skips_Advance=0,E_SLIDER_Skips_BandSize=1,E_SLIDER_Skips_SkipSize=1,E_SLIDER_Skips_StartPos=1,E_TEXTCTRL_Chase_Rotations=1,T_TEXTCTRL_Fadein=0.1,T_TEXTCTRL_Fadeout=0.1,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FF00,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+        },
+        {
+          "effect": "SingleStrand",
+          "startMs": 4300.0,
+          "endMs": 5150.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_SLIDER_PivotPointX=100,B_SLIDER_PivotPointY=11,E_CHECKBOX_Chase_3dFade1=1,E_CHECKBOX_Chase_Group_All=0,E_CHOICE_Chase_Type1=From Middle,E_CHOICE_SingleStrand_Colors=Palette,E_CHOICE_SingleStrand_FX=Fireworks 1D,E_CHOICE_SingleStrand_FX_Palette=* Colors Only,E_CHOICE_Skips_Direction=Left,E_NOTEBOOK_SSEFFECT_TYPE=Chase,E_SLIDER_Color_Mix1=75,E_SLIDER_FX_Intensity=128,E_SLIDER_FX_Speed=128,E_SLIDER_Number_Chases=1,E_SLIDER_Skips_Advance=0,E_SLIDER_Skips_BandSize=1,E_SLIDER_Skips_SkipSize=1,E_SLIDER_Skips_StartPos=1,E_TEXTCTRL_Chase_Rotations=1,T_TEXTCTRL_Fadein=0.1,T_TEXTCTRL_Fadeout=0.1,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+        },
+        {
+          "effect": "SingleStrand",
+          "startMs": 5150.0,
+          "endMs": 6000.0,
+          "settings": "B_CHOICE_BufferStyle=Per Preview,B_SLIDER_PivotPointX=100,B_SLIDER_PivotPointY=11,E_CHECKBOX_Chase_3dFade1=1,E_CHECKBOX_Chase_Group_All=0,E_CHOICE_Chase_Type1=From Middle,E_CHOICE_SingleStrand_Colors=Palette,E_CHOICE_SingleStrand_FX=Fireworks 1D,E_CHOICE_SingleStrand_FX_Palette=* Colors Only,E_CHOICE_Skips_Direction=Left,E_NOTEBOOK_SSEFFECT_TYPE=Chase,E_SLIDER_Color_Mix1=75,E_SLIDER_FX_Intensity=128,E_SLIDER_FX_Speed=128,E_SLIDER_Number_Chases=1,E_SLIDER_Skips_Advance=0,E_SLIDER_Skips_BandSize=1,E_SLIDER_Skips_SkipSize=1,E_SLIDER_Skips_StartPos=1,E_TEXTCTRL_Chase_Rotations=1,T_TEXTCTRL_Fadein=0.1,T_TEXTCTRL_Fadeout=0.1,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FF00,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+        }
+      ]
+    },
+    {
+      "layer": 2,
+      "effects": [
+        {
+          "effect": "Wave",
+          "startMs": -4000.0,
+          "endMs": 950.0,
+          "settings": "B_CHOICE_BufferTransform=Flip Horizontal,E_CHECKBOX_Mirror_Wave=0,E_CHOICE_Fill_Colors=None,E_CHOICE_Wave_Direction=Right to Left,E_CHOICE_Wave_Type=Triangle,E_SLIDER_Number_Waves=900,E_SLIDER_Thickness_Percentage=10,E_SLIDER_Wave_Height=50,E_SLIDER_Wave_YOffset=0,E_TEXTCTRL_Wave_Speed=10,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+        },
+        {
+          "effect": "Pinwheel",
+          "startMs": 950.0,
+          "endMs": 7700.0,
+          "settings": "E_CHECKBOX_Pinwheel_Rotation=0,E_CHOICE_Pinwheel_3D=3D,E_CHOICE_Pinwheel_Style=New Render Method,E_SLIDER_PinwheelXC=0,E_SLIDER_PinwheelYC=-100,E_SLIDER_Pinwheel_ArmSize=220,E_SLIDER_Pinwheel_Arms=2,E_SLIDER_Pinwheel_Offset=0,E_SLIDER_Pinwheel_Speed=10,E_SLIDER_Pinwheel_Thickness=100,E_SLIDER_Pinwheel_Twist=180,T_TEXTCTRL_Fadein=.1,T_TEXTCTRL_Fadeout=.25,T_VALUECURVE_In_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_In_Transition_Adjust|Type=Ramp|Min=0.00|Max=100.00|P1=33.00|P2=67.00|RV=TRUE|,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+          "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#00FF00,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+        }
+      ]
+    },
+    {
+      "layer": 3,
+      "effects": {
+        "effect": "Wave",
+        "startMs": -3200.0,
+        "endMs": 950.0,
+        "settings": "B_CHOICE_BufferTransform=Flip Vertical,E_CHECKBOX_Mirror_Wave=0,E_CHOICE_Fill_Colors=None,E_CHOICE_Wave_Direction=Right to Left,E_CHOICE_Wave_Type=Triangle,E_SLIDER_Number_Waves=900,E_SLIDER_Thickness_Percentage=10,E_SLIDER_Wave_Height=50,E_SLIDER_Wave_YOffset=0,E_TEXTCTRL_Wave_Speed=10,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+      }
+    },
+    {
+      "layer": 4,
+      "effects": {
+        "effect": "Wave",
+        "startMs": -5800.0,
+        "endMs": 950.0,
+        "settings": "B_CHOICE_BufferTransform=Rotate 180,E_CHECKBOX_Mirror_Wave=0,E_CHOICE_Fill_Colors=None,E_CHOICE_Wave_Direction=Left to Right,E_CHOICE_Wave_Type=Triangle,E_SLIDER_Number_Waves=900,E_SLIDER_Thickness_Percentage=10,E_SLIDER_Wave_Height=50,E_SLIDER_Wave_YOffset=0,E_TEXTCTRL_Wave_Speed=12,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+        "palette": "C_BUTTON_Palette1=#FF0000,C_BUTTON_Palette2=#00FF00,C_BUTTON_Palette3=#FFFFFF,C_BUTTON_Palette4=Active=TRUE|Id=ID_BUTTON_Palette4|Values=x=0.000^c=#ff0000;x=1.000^c=#00ff00|,C_BUTTON_Palette5=Active=TRUE|Id=ID_BUTTON_Palette5|Values=x=0.000^c=#ff0000;x=0.500^c=#00ff00;x=1.000^c=#ffffff|,C_BUTTON_Palette6=Active=TRUE|Id=ID_BUTTON_Palette6|Values=x=0.000^c=#ff0000;x=0.500^c=#00ff00;x=1.000^c=#ff0000|,C_BUTTON_Palette7=Active=TRUE|Id=ID_BUTTON_Palette7|Values=x=0.000^c=#ff0000;x=0.330^c=#00ff00;x=0.670^c=#ffffff;x=1.000^c=#ff0000|,C_BUTTON_Palette8=#000000,C_CHECKBOX_Palette2=1"
+      }
+    },
+    {
+      "layer": 5,
+      "effects": {
+        "effect": "Wave",
+        "startMs": -4800.0,
+        "endMs": 950.0,
+        "settings": "E_CHECKBOX_Mirror_Wave=0,E_CHOICE_Fill_Colors=None,E_CHOICE_Wave_Direction=Left to Right,E_CHOICE_Wave_Type=Triangle,E_SLIDER_Number_Waves=900,E_SLIDER_Thickness_Percentage=10,E_SLIDER_Wave_Height=50,E_SLIDER_Wave_YOffset=0,E_TEXTCTRL_Wave_Speed=10,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette3=1"
+      }
+    },
+    {
+      "layer": 6,
+      "effects": {
+        "effect": "Wave",
+        "startMs": -4000.0,
+        "endMs": 950.0,
+        "settings": "B_CHOICE_BufferTransform=Flip Horizontal,E_CHECKBOX_Mirror_Wave=0,E_CHOICE_Fill_Colors=None,E_CHOICE_Wave_Direction=Left to Right,E_CHOICE_Wave_Type=Triangle,E_SLIDER_Number_Waves=900,E_SLIDER_Thickness_Percentage=10,E_SLIDER_Wave_Height=50,E_SLIDER_Wave_YOffset=0,E_TEXTCTRL_Wave_Speed=10,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1"
+      }
+    },
+    {
+      "layer": 7,
+      "effects": {
+        "effect": "Wave",
+        "startMs": -3200.0,
+        "endMs": 950.0,
+        "settings": "B_CHOICE_BufferTransform=Flip Vertical,E_CHECKBOX_Mirror_Wave=0,E_CHOICE_Fill_Colors=None,E_CHOICE_Wave_Direction=Left to Right,E_CHOICE_Wave_Type=Triangle,E_SLIDER_Number_Waves=900,E_SLIDER_Thickness_Percentage=10,E_SLIDER_Wave_Height=50,E_SLIDER_Wave_YOffset=0,E_TEXTCTRL_Wave_Speed=10,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2,T_VALUECURVE_Out_Transition_Adjust=Active=TRUE|Id=ID_VALUECURVE_Out_Transition_Adjust|Type=Custom|Min=0.00|Max=100.00|RV=TRUE|Values=0.00:0.30;0.14:0.50;0.22:0.63;0.31:0.78;0.42:0.85;0.51:0.78;0.57:0.69;0.64:0.56;0.73:0.40;0.80:0.28;0.89:0.20;0.93:0.20;1.00:0.29|",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette2=1,C_CHECKBOX_Palette3=1"
+      }
+    },
+    {
+      "layer": 8,
+      "effects": {
+        "effect": "Bars",
+        "startMs": -6150.0,
+        "endMs": 950.0,
+        "settings": "E_CHECKBOX_Bars_3D=1,E_CHECKBOX_Bars_Gradient=0,E_CHECKBOX_Bars_Highlight=0,E_CHOICE_Bars_Direction=H-expand,E_SLIDER_Bars_BarCount=5,E_TEXTCTRL_Bars_Center=0,E_TEXTCTRL_Bars_Cycles=5,T_TEXTCTRL_Fadein=.2,T_TEXTCTRL_Fadeout=.2",
+        "palette": "C_BUTTON_Palette1=#FFFFFF,C_BUTTON_Palette2=#FF0000,C_BUTTON_Palette3=#00FF00,C_BUTTON_Palette4=#0000FF,C_BUTTON_Palette5=#FFFF00,C_BUTTON_Palette6=#000000,C_BUTTON_Palette7=#00FFFF,C_BUTTON_Palette8=#FF00FF,C_CHECKBOX_Palette1=1,C_CHECKBOX_Palette6=1"
+      }
+    }
+  ]
+}

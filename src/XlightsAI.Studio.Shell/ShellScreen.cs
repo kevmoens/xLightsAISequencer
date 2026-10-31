@@ -14,6 +14,16 @@ public enum ShellScreen
     /// <summary>PHASE-02 Step 009: SCREEN 04 SHOW IMPORT (read-only initial discovery only).</summary>
     ShowImport,
 
+    /// <summary>
+    /// Choreography generation + xLights delivery: the whole-song plan, the XSQ export and the
+    /// "open in xLights" hand-off. Split out of <see cref="ShowImport"/> (which had grown to host
+    /// five unrelated jobs on one scroll) so the import screen answers only "what props does this
+    /// show have," and this one answers only "turn the imported show + probed song into a file
+    /// xLights can open." Both bind the same <see cref="ShowImportViewModel"/> — this is a view
+    /// split, not a second copy of that state.
+    /// </summary>
+    GenerateExport,
+
     /// <summary>PHASE-03 Step 016: SCREEN 13 TIMELINE (time ruler, horizontal scroll and zoom).</summary>
     Timeline,
 

@@ -264,10 +264,25 @@ public sealed class PhraseSegmenter : IPhraseSegmenter
                 "SectionLabelAnalysis.SourceFingerprintSetVersionId does not match the supplied SongFingerprintSet.VersionId -- stale or mismatched analysis.");
         }
 
-        if (context.MelodyTrack is not null && context.MelodyTrack.SourceAssetHash != context.SourceHash)
+        if (context.MelodyTrack is not null)
         {
-            throw new PhraseSegmentationInvalidException(context.SongId,
-                "MelodyTrack.SourceAssetHash does not match the supplied SourceHash -- stale or mismatched analysis.");
+            // Deliberately compared against MelodySourceAssetHash, not SourceHash: a real MelodyTrack is
+            // routinely derived from an isolated lead stem (see PhraseSegmentationContext's own doc
+            // comment and StructureAnalysisRunner), whose hash is legitimately never the full song's own
+            // hash. MelodySourceAssetHash is this context's own explicitly threaded-through answer to
+            // "what should MelodyTrack.SourceAssetHash actually equal" -- required whenever a MelodyTrack
+            // is supplied at all.
+            if (string.IsNullOrWhiteSpace(context.MelodySourceAssetHash))
+            {
+                throw new PhraseSegmentationInvalidException(context.SongId,
+                    "PhraseSegmentationContext.MelodySourceAssetHash is empty but a MelodyTrack was supplied -- missing provenance.");
+            }
+
+            if (context.MelodyTrack.SourceAssetHash != context.MelodySourceAssetHash)
+            {
+                throw new PhraseSegmentationInvalidException(context.SongId,
+                    "MelodyTrack.SourceAssetHash does not match PhraseSegmentationContext.MelodySourceAssetHash -- stale or mismatched analysis.");
+            }
         }
 
         if (settings.TargetPhraseLengthBars <= 0)

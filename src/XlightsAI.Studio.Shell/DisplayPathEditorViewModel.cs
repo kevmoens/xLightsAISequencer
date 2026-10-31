@@ -28,6 +28,8 @@ public sealed class DisplayPathEditorViewModel : ObservableObject
     private SpatialDisplayGraph? _graph;
     private DisplayLayoutCorrections? _corrections;
     private ModelId? _selectedNodeId;
+    private string _pendingPositionXText = string.Empty;
+    private string _pendingPositionYText = string.Empty;
     private SpatialPathSet? _pathSet;
     private RoleAssignmentSet? _roleAssignmentSet;
     private ResolvedGesturePreview? _gesturePreview;
@@ -185,19 +187,52 @@ public sealed class DisplayPathEditorViewModel : ObservableObject
     /// <summary>Identity of the most recently produced <see cref="RouteIssues"/> run, or <see langword="null"/> while none has been validated yet.</summary>
     public Guid? RouteValidationVersionId => _routeValidation?.VersionId;
 
+    /// <summary>
+    /// Bindable pending-correction text for <see cref="CorrectSelectedNodePositionAsync"/> — same
+    /// "text field + button, parsed on explicit action" convention as
+    /// <see cref="TimelineViewModel.ScrubTargetTicksText"/>. Pre-filled with the selected node's
+    /// current position by <see cref="SelectNode"/> so entering a position means nudging the current
+    /// value, not re-typing it from scratch.
+    /// </summary>
+    public string PendingPositionXText
+    {
+        get => _pendingPositionXText;
+        set => SetField(ref _pendingPositionXText, value);
+    }
+
+    public string PendingPositionYText
+    {
+        get => _pendingPositionYText;
+        set => SetField(ref _pendingPositionYText, value);
+    }
+
     /// <summary>Selects <paramref name="nodeId"/> -- a no-op (not a crash, not a dangling selection) when no layout is open or <paramref name="nodeId"/> does not exist in it.</summary>
     public void SelectNode(ModelId nodeId)
     {
-        if (_graph is null || !_graph.Nodes.Any(n => n.Id == nodeId))
+        if (_graph is not { } graph)
+        {
+            return;
+        }
+
+        var node = graph.Nodes.FirstOrDefault(n => n.Id == nodeId);
+        if (node is null)
         {
             return;
         }
 
         SelectedNodeId = nodeId;
+        var row = Rows.FirstOrDefault(r => r.NodeId == nodeId);
+        PendingPositionXText = (row?.X ?? 0d).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
+        PendingPositionYText = (row?.Y ?? 0d).ToString("0.###", System.Globalization.CultureInfo.InvariantCulture);
     }
 
     /// <summary>Clears the current selection; a no-op when nothing is selected.</summary>
-    public void ClearSelection() => SelectedNodeId = null;
+    public void ClearSelection()
+    {
+        SelectedNodeId = null;
+        PendingPositionXText = string.Empty;
+        PendingPositionYText = string.Empty;
+    }
 
     /// <summary>
     /// Opens <paramref name="graph"/> (Step 059/060's own already-built <see cref="SpatialDisplayGraph"/>),

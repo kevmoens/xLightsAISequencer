@@ -22,3 +22,29 @@ not a hand-maintained guess.
 | SharpCompress | 0.48.0 | MIT | Adam Hathcock |
 
 No upstream reference project is vendored, submoduled, or otherwise present in this repository.
+
+## Runtime-downloaded (not bundled) third-party assets
+
+Unlike the NuGet packages above, none of the following is bundled with the app install. Each is
+downloaded to the user's own machine only after an explicit, per-asset consent action in the UI, and
+each is verified against a pinned SHA-256 before use — a download is never started implicitly.
+
+| Component | Pinned version | License | Consent action | Source |
+|---|---|---|---|---|
+| ffmpeg (win64, shared build) | 9.0.2 | LGPL-3.0-or-later | Audio screen → "Download ffmpeg" | [BtbN/FFmpeg-Builds](https://github.com/BtbN/FFmpeg-Builds) |
+| sherpa-onnx-spleeter-2stems (ONNX model weights) | `source-separation-models` release | See the disclosure below | Show Import screen → "Download separation model" | [k2-fsa/sherpa-onnx](https://github.com/k2-fsa/sherpa-onnx) |
+
+### Disclosure: sherpa-onnx-spleeter-2stems weight licensing is unresolved
+
+This model is used by the whole-song generation pipeline (`XlightsAI.Studio.Pipeline`) to isolate a
+vocal/lead stem for melody analysis. The sherpa-onnx conversion tooling and code are permissively
+licensed (MIT / Apache-2.0), but **the redistribution license of the underlying Spleeter pretrained
+weights is genuinely contested and unresolved** — see `SherpaOnnxSpleeterModelAsset`'s own doc comment
+(`src/XlightsAI.Studio.Stems/SherpaOnnxSpleeterModelAsset.cs`) and `docs/phase-specs/PHASE-06A.md` §3/§8
+for the full, previously-recorded analysis.
+
+This project does **not** redistribute those weights: nothing is bundled in the installer, and the file
+is fetched directly from the upstream project's own release by the user's own machine, only on an
+explicit click. That posture is what keeps the open question off this project's own distribution — it is
+not a claim that the upstream licensing question has been answered. Anyone planning to bundle, mirror,
+or otherwise redistribute these weights should resolve that question first.

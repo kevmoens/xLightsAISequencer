@@ -1,0 +1,25 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:screens="using:XlightsAI.Studio.App.Views.Screens"
+             x:Class="XlightsAI.Studio.App.Views.Screens.UnbuiltScreenView"
+             x:DataType="screens:UnbuiltScreenView"
+             x:CompileBindings="True">
+
+  <!--
+    An honest placeholder for a screen whose view model exists and whose navigation is wired, but
+    which has no view yet. See the code-behind for why this control exists at all.
+  -->
+
+  <StackPanel Spacing="12" MaxWidth="620" HorizontalAlignment="Left"
+              DataContext="{Binding $parent[screens:UnbuiltScreenView]}">
+    <TextBlock Classes="page-title" Text="{Binding ScreenTitle}" />
+    <Border Classes="panel">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="Not built yet" />
+        <TextBlock Classes="hint" Text="{Binding Summary}" />
+        <TextBlock Classes="hint"
+                   Text="The logic behind this screen exists and is tested; the screen itself has not been drawn." />
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

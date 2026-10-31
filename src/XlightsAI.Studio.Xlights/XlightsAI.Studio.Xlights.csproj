@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Knowledge\XlightsAI.Studio.Knowledge.csproj" />
   </ItemGroup>
 
 </Project>

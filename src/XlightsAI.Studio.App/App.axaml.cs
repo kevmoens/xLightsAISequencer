@@ -3,9 +3,11 @@ using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using XlightsAI.Studio.App.Views;
 using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Pipeline;
 using XlightsAI.Studio.Projects;
 using XlightsAI.Studio.Distribution;
 using XlightsAI.Studio.Shell;
+using XlightsAI.Studio.Stems;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.App;
@@ -52,6 +54,47 @@ public partial class App : Application
     /// <summary>Set by <see cref="Program.Main"/>; falls back to a real <see cref="RuntimeCapabilityDetector"/> if unset (PHASE-15 Step 095 — pure, stateless-at-construction collaborator, same reasoning as <see cref="AudioDecoder"/>).</summary>
     public static IRuntimeCapabilityDetector? RuntimeCapabilityDetector { get; set; }
 
+    /// <summary>Set by <see cref="Program.Main"/>; falls back to <see cref="NullFfmpegInstaller"/> if unset (needs a real configured install directory, same reasoning as <see cref="SongAssetStore"/>). Backs the Audio screen's "Download ffmpeg" action; independent of whichever <see cref="AudioDecoder"/> is wired.</summary>
+    public static IFfmpegInstaller? FfmpegInstaller { get; set; }
+
+    /// <summary>Set by <see cref="Program.Main"/>; falls back to <see cref="NullWholeSongGenerator"/> if unset (needs real analysis-cache directories/a real stem-separation model this layer does not yet own). Backs the Show Import screen's "Generate Whole-Song Plan" action.</summary>
+    public static IWholeSongGenerator? WholeSongGenerator { get; set; }
+
+    /// <summary>Set by <see cref="Program.Main"/>; falls back to <see cref="NullModelAssetManager"/> if unset. Backs the Show Import screen's "Download separation model" action; independent of whichever <see cref="WholeSongGenerator"/> is wired.</summary>
+    public static IModelAssetManager? StemModelAssetManager { get; set; }
+
+    /// <summary>Set by <see cref="Program.Main"/>; falls back to <see cref="XlightsAI.Studio.Melody.NullNoteTrackEditor"/> if unset (needs a real melody-revision-store directory this layer does not yet own). Backs the Piano Roll screen.</summary>
+    public static XlightsAI.Studio.Melody.INoteTrackEditor? NoteTrackEditor { get; set; }
+
+    /// <summary>Set by <see cref="Program.Main"/>; falls back to <see cref="XlightsAI.Studio.Structure.NullMotifLinkOverrideStore"/> if unset. Backs the Structure screen.</summary>
+    public static XlightsAI.Studio.Structure.IMotifLinkOverrideStore? MotifLinkOverrideStore { get; set; }
+
+    /// <summary>Set by <see cref="Program.Main"/>; falls back to <see cref="XlightsAI.Studio.Display.NullDisplayLayoutEditor"/> if unset. Backs the Display Paths screen.</summary>
+    public static XlightsAI.Studio.Display.IDisplayLayoutEditor? DisplayLayoutEditor { get; set; }
+
+    /// <summary>
+    /// Set by <see cref="Program.Main"/>; falls back to <see cref="XlightsAI.Studio.Xlights.XsqExporter"/>'s
+    /// own parameterless constructor if unset -- which only knows <c>EffectRecipeCatalog.CreateDefault()</c>'s
+    /// single hardcoded "On" recipe (id <c>effect.on.v1</c>), not the generated-vocabulary recipe ids
+    /// (e.g. <c>effect.generated.on.v1</c>) <see cref="WholeSongGenerator"/> actually produces. Confirmed
+    /// as a real bug against a real export: "Generate Whole-Song Plan" and "Export sequence" used to
+    /// silently disagree on which recipe catalog is authoritative, so export rejected every effect the
+    /// generator had just produced. Backs the Generate & Export screen's "Export sequence" action.
+    /// </summary>
+    public static XlightsAI.Studio.Xlights.IXsqExporter? XsqExporter { get; set; }
+
+    /// <summary>
+    /// Set by <see cref="Program.Main"/>; build-plan Phase 10 §3f ("Activate corpus mining") -- the
+    /// directory the Generate &amp; Export screen's Developer Tools "Run corpus mining" action persists
+    /// <see cref="XlightsAI.Studio.Pipeline.CraftRules"/>/<see cref="XlightsAI.Studio.Pipeline.ExemplarIndex"/>
+    /// under, same one <see cref="WholeSongGenerator"/> (when it is a real <c>AiChoreographyWholeSongGenerator</c>)
+    /// reads back on every generation. Falls back to <see langword="null"/> if unset -- the Developer
+    /// Tools action then stays disabled, same "needs a real configured directory this layer does not
+    /// yet own" reasoning as <see cref="SequenceDocumentStore"/>/<see cref="SongAssetStore"/>, rather
+    /// than guessing a directory no composition root actually confirmed.
+    /// </summary>
+    public static string? CorpusKnowledgeDirectory { get; set; }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -73,6 +116,14 @@ public partial class App : Application
             var waveformPyramidStore = WaveformPyramidStore ?? NullWaveformPyramidStore.Instance;
             var waveformBuilder = new WaveformPyramidBuilder(audioDecoder, waveformPyramidStore);
             var runtimeCapabilityDetector = RuntimeCapabilityDetector ?? new RuntimeCapabilityDetector();
+            var ffmpegInstaller = FfmpegInstaller ?? NullFfmpegInstaller.Instance;
+            var wholeSongGenerator = WholeSongGenerator ?? NullWholeSongGenerator.Instance;
+            var stemModelAssetManager = StemModelAssetManager ?? NullModelAssetManager.Instance;
+            var noteTrackEditor = NoteTrackEditor ?? XlightsAI.Studio.Melody.NullNoteTrackEditor.Instance;
+            var motifLinkOverrideStore = MotifLinkOverrideStore ?? XlightsAI.Studio.Structure.NullMotifLinkOverrideStore.Instance;
+            var displayLayoutEditor = DisplayLayoutEditor ?? XlightsAI.Studio.Display.NullDisplayLayoutEditor.Instance;
+            var displayGraphBuilder = new XlightsAI.Studio.Display.DisplayGraphBuilder();
+            var xsqExporter = XsqExporter;
             var navigator = new ShellNavigator();
 
             // ProjectsViewModel.Load still takes a synchronous Func<IReadOnlyList<string>> (its
@@ -99,7 +150,16 @@ public partial class App : Application
                 audioTransport: audioTransport,
                 waveformPyramidStore: waveformPyramidStore,
                 waveformBuilder: waveformBuilder,
-                runtimeCapabilityDetector: runtimeCapabilityDetector);
+                runtimeCapabilityDetector: runtimeCapabilityDetector,
+                ffmpegInstaller: ffmpegInstaller,
+                wholeSongGenerator: wholeSongGenerator,
+                stemModelAssetManager: stemModelAssetManager,
+                noteTrackEditor: noteTrackEditor,
+                motifLinkOverrideStore: motifLinkOverrideStore,
+                displayLayoutEditor: displayLayoutEditor,
+                displayGraphBuilder: displayGraphBuilder,
+                xsqExporter: xsqExporter,
+                corpusKnowledgeDirectory: CorpusKnowledgeDirectory);
             shellViewModel.RunStartup();
 
             desktop.MainWindow = new MainWindow(shellViewModel);

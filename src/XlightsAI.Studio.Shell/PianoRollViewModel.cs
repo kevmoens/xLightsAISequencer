@@ -34,6 +34,9 @@ public sealed class PianoRollViewModel : ObservableObject
     private string? _actionErrorMessage;
     private MelodyTrackRevisionState? _state;
     private Guid? _selectedNoteId;
+    private string _pendingMidiNoteText = string.Empty;
+    private string _pendingStartTicksText = string.Empty;
+    private string _pendingEndTicksText = string.Empty;
     private double _ticksPerPixel = DefaultTicksPerPixel;
     private double _lowConfidenceThreshold = GestureClassificationSettings.Default.MinNoteConfidence;
 
@@ -153,19 +156,52 @@ public sealed class PianoRollViewModel : ObservableObject
         }
     }
 
+    /// <summary>
+    /// Bindable pending-correction text for <see cref="CorrectSelectedNoteAsync"/> — same "text field
+    /// + button, parsed on explicit action" convention as
+    /// <see cref="DisplayPathEditorViewModel.PendingPositionXText"/>. Pre-filled with the selected
+    /// note's current pitch/timing by <see cref="SelectNote"/>.
+    /// </summary>
+    public string PendingMidiNoteText
+    {
+        get => _pendingMidiNoteText;
+        set => SetField(ref _pendingMidiNoteText, value);
+    }
+
+    public string PendingStartTicksText
+    {
+        get => _pendingStartTicksText;
+        set => SetField(ref _pendingStartTicksText, value);
+    }
+
+    public string PendingEndTicksText
+    {
+        get => _pendingEndTicksText;
+        set => SetField(ref _pendingEndTicksText, value);
+    }
+
     /// <summary>Selects <paramref name="noteId"/> — a no-op (not a crash, not a dangling selection) when no track is loaded or <paramref name="noteId"/> does not exist in it.</summary>
     public void SelectNote(Guid noteId)
     {
-        if (_state is null || !_state.Current.Notes.Any(n => n.Id == noteId))
+        if (_state?.Current.Notes.FirstOrDefault(n => n.Id == noteId) is not { } note)
         {
             return;
         }
 
         SelectedNoteId = noteId;
+        PendingMidiNoteText = note.MidiNote.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        PendingStartTicksText = note.StartTicks.ToString(System.Globalization.CultureInfo.InvariantCulture);
+        PendingEndTicksText = note.EndTicks.ToString(System.Globalization.CultureInfo.InvariantCulture);
     }
 
     /// <summary>Clears the current selection; a no-op when nothing is selected.</summary>
-    public void ClearSelection() => SelectedNoteId = null;
+    public void ClearSelection()
+    {
+        SelectedNoteId = null;
+        PendingMidiNoteText = string.Empty;
+        PendingStartTicksText = string.Empty;
+        PendingEndTicksText = string.Empty;
+    }
 
     /// <summary>
     /// Begins a new correction session for <paramref name="analyzedTrack"/> (Step 045/046/047/048's

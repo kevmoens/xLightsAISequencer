@@ -1,0 +1,39 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>latest</AnalysisLevel>
+    <WarningsAsErrors>Nullable</WarningsAsErrors>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Build-plan Phase 5 (architecture section 5/14): L2 Director. Needs the generated vocabulary/
+         corpus knowledge (Knowledge, Pipeline's ExemplarIndex/CraftRules/PatternLibrary), the real
+         analysis types a MusicModel is built from (Rhythm/Structure/Stems), real layout geometry
+         (Xlights), the Look/LookLibrary schema it must produce (Choreography), and the BYOK credential
+         store / provider-selection conventions already proven in AiEdits, reused directly rather than
+         rebuilt (ICredentialStore/AiProviderKind). None of these reference Director, so this is not
+         a cyclic reference (verified before adding each one). -->
+    <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Knowledge\XlightsAI.Studio.Knowledge.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Rhythm\XlightsAI.Studio.Rhythm.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Structure\XlightsAI.Studio.Structure.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Stems\XlightsAI.Studio.Stems.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Pipeline\XlightsAI.Studio.Pipeline.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.Choreography\XlightsAI.Studio.Choreography.csproj" />
+    <ProjectReference Include="..\XlightsAI.Studio.AiEdits\XlightsAI.Studio.AiEdits.csproj" />
+    <!-- Build-plan Phase 7c: VisualCritic rasterizes real rendered PreviewFrames (RenderPipeline's own
+         output) for the vision-model pairwise comparison call. Rendering does not reference Director
+         (verified before adding), so this is not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Rendering\XlightsAI.Studio.Rendering.csproj" />
+    <!-- Build-plan Phase 7d: RevisionDirectiveDeriver consumes Phase 7b/7c's own CritiqueFinding/
+         SectionVisualCritique types directly rather than re-declaring parallel copies. Refinement does
+         not reference Director (verified before adding), so this is not a cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Refinement\XlightsAI.Studio.Refinement.csproj" />
+  </ItemGroup>
+
+</Project>

@@ -1,0 +1,90 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.StructureInspectorView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    SCREEN 11 SONG STRUCTURE AND MOTIFS (PHASE-08 Step 058): phrase relationship/propagation
+    inspector. The last of the three screens docs/UI-CLEANUP-PLAN.md item 2 (Phase 2a) names: a
+    fully implemented, fully tested view model (PhraseRelationshipInspectorViewModel) with no view
+    at all before this file.
+
+    Opens automatically once "Generate whole-song plan" succeeds, against the exact phrase/motif
+    analysis that plan was built from (see ShellViewModel.RunGenerateWholeSongPlanAsync). Choreography
+    template selection/preview (Step 057's IChoreographyTemplatePlanner) is a real, tested surface on
+    this same view model too, but is left for a follow-up pass — same disclosed scope decision as the
+    Display Paths screen's paths/roles/gesture-preview/route-validation.
+  -->
+
+  <StackPanel Spacing="14" MaxWidth="900" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="Structure" />
+    <TextBlock Classes="page-subtitle"
+               Text="Phrases the analysis detected, and which ones it believes repeat the same musical idea. Link phrases that should share choreography, or unlink a false match." />
+
+    <TextBlock Classes="hint" IsVisible="{Binding StructureInspector.IsEmpty}"
+               Text="Nothing to show yet. Generate a whole-song plan (Generate &amp; export screen) to analyse song structure." />
+    <TextBlock Classes="error" IsVisible="{Binding StructureInspector.IsError}" Text="{Binding StructureInspector.ErrorMessage}" />
+
+    <Grid IsVisible="{Binding StructureInspector.IsLoaded}" ColumnDefinitions="*,320" ColumnSpacing="14">
+
+      <StackPanel Grid.Column="0" Spacing="6">
+        <TextBlock Classes="section" Text="Phrases" />
+        <Border Classes="panel" MaxHeight="500">
+          <ScrollViewer VerticalScrollBarVisibility="Auto">
+            <ItemsControl ItemsSource="{Binding StructureInspector.Rows}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <Button Classes="nav" Classes.active="{Binding IsSelected}" Command="{Binding SelectCommand}"
+                          HorizontalAlignment="Stretch" Margin="0,1">
+                    <Grid ColumnDefinitions="Auto,*,Auto" ColumnSpacing="8">
+                      <TextBlock Grid.Column="0" Text="{Binding StartBarIndex, StringFormat='Bar {0}'}" FontWeight="SemiBold" />
+                      <TextBlock Grid.Column="1" Classes="hint"
+                                 Text="Unique phrase"
+                                 IsVisible="{Binding MotifGroupId, Converter={x:Static conv:ObjectConverters.IsNull}}" />
+                      <TextBlock Grid.Column="1" Classes="hint"
+                                 Text="{Binding LinkedPhraseIds.Count, StringFormat='Linked to {0} other phrase(s)'}"
+                                 IsVisible="{Binding MotifGroupId, Converter={x:Static conv:ObjectConverters.IsNotNull}}" />
+                      <TextBlock Grid.Column="2" Classes="nav-done" Text="TEMPLATE" FontSize="9"
+                                 IsVisible="{Binding IsTemplateSource}" />
+                    </Grid>
+                  </Button>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </Border>
+      </StackPanel>
+
+      <StackPanel Grid.Column="1" Spacing="10">
+        <TextBlock Classes="section" Text="Selected phrase" />
+        <TextBlock Classes="hint" IsVisible="{Binding !StructureInspector.SelectedPhraseId.HasValue}"
+                   Text="Click a phrase on the left to select it." />
+
+        <StackPanel IsVisible="{Binding StructureInspector.SelectedPhraseId.HasValue}" Spacing="8">
+          <Button Content="Unlink from its group" Command="{Binding UnlinkSelectedPhraseCommand}" />
+
+          <Separator Classes="rule" />
+
+          <TextBlock Classes="field" Text="LINK TO ANOTHER PHRASE" />
+          <ComboBox HorizontalAlignment="Stretch"
+                    ItemsSource="{Binding StructureInspector.Rows}"
+                    SelectedValueBinding="{Binding PhraseId}"
+                    SelectedValue="{Binding StructureInspector.PendingLinkTargetPhraseId}">
+            <ComboBox.ItemTemplate>
+              <DataTemplate>
+                <TextBlock Text="{Binding StartBarIndex, StringFormat='Bar {0}'}" />
+              </DataTemplate>
+            </ComboBox.ItemTemplate>
+          </ComboBox>
+          <Button Classes="primary" Content="Link" Command="{Binding LinkSelectedPhraseCommand}" />
+
+          <TextBlock Classes="error"
+                     IsVisible="{Binding StructureInspector.ActionErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                     Text="{Binding StructureInspector.ActionErrorMessage}" />
+        </StackPanel>
+      </StackPanel>
+    </Grid>
+  </StackPanel>
+</UserControl>

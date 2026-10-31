@@ -11,6 +11,9 @@
 
   <ItemGroup>
     <ProjectReference Include="..\XlightsAI.Studio.Contracts\XlightsAI.Studio.Contracts.csproj" />
+    <!-- TranscodingAudioDecoder resolves ffmpeg via IFfmpegInstaller. Distribution only references
+         Contracts, so this introduces no cyclic reference. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Distribution\XlightsAI.Studio.Distribution.csproj" />
   </ItemGroup>
 
 </Project>

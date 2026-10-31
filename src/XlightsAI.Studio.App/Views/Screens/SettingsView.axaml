@@ -1,0 +1,49 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:screens="using:XlightsAI.Studio.App.Views.Screens"
+             x:Class="XlightsAI.Studio.App.Views.Screens.SettingsView"
+             x:DataType="vm:ShellViewModel">
+
+  <StackPanel Spacing="14" MaxWidth="640" HorizontalAlignment="Left" Margin="0,0,0,24">
+    <TextBlock Classes="page-title" Text="Settings" />
+    <TextBlock Classes="page-subtitle"
+               Text="What this app has persisted about your setup. These values are read-only here — they are written by the screens that own them." />
+
+    <TextBlock Classes="busy" IsVisible="{Binding Settings.IsLoading}" Text="Loading settings…" />
+    <TextBlock Classes="error" IsVisible="{Binding Settings.IsError}" Text="{Binding Settings.ErrorMessage}" />
+
+    <Border Classes="card" IsVisible="{Binding Settings.IsLoaded}">
+      <StackPanel Spacing="10">
+        <StackPanel Spacing="2">
+          <TextBlock Classes="field" Text="WORKSPACE FOLDER" />
+          <TextBlock TextWrapping="Wrap" Text="{Binding Settings.Settings.WorkspaceDirectory}" />
+        </StackPanel>
+        <StackPanel Spacing="2">
+          <TextBlock Classes="field" Text="LAST SCREEN" />
+          <TextBlock Text="{Binding Settings.Settings.LastScreen}" />
+        </StackPanel>
+        <StackPanel Spacing="2">
+          <TextBlock Classes="field" Text="FIRST RUN COMPLETED" />
+          <TextBlock Text="{Binding Settings.Settings.HasCompletedFirstRun}" />
+        </StackPanel>
+        <TextBlock Classes="detail" Text="{Binding Settings.Settings.SchemaVersion, StringFormat='Settings schema version: {0}'}" />
+      </StackPanel>
+    </Border>
+
+    <!-- The only way back into the first-run wizard. It used to be a permanent button in the main
+         navigation bar, sitting as a peer of Timeline, where re-entering one-time setup was one
+         mis-click away. Here it is a deliberate choice, described as what it does. -->
+    <Border Classes="panel">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="section" Text="Re-run setup" />
+        <TextBlock Classes="hint" Text="Re-opens the first-run wizard to choose a different workspace folder and re-probe this machine's runtime." />
+        <Button Content="Re-run setup" HorizontalAlignment="Left" Command="{Binding NavigateToFirstRunCommand}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="panel">
+      <screens:AiProviderSettingsView />
+    </Border>
+  </StackPanel>
+</UserControl>

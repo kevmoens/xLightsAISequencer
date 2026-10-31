@@ -1,0 +1,89 @@
+{
+    "effectName": "Fire",
+    "properties": [
+        {
+            "id": "Fire_Height",
+            "label": "Height",
+            "type": "int",
+            "controlType": "slider",
+            "default": 50,
+            "min": 1,
+            "max": 100,
+            "valueCurve": true,
+            "lockable": true,
+            "description": "Controls how tall the flames reach. Higher values produce taller flames that extend further across the buffer."
+        },
+        {
+            "id": "Fire_HueShift",
+            "label": "Hue Shift",
+            "type": "int",
+            "controlType": "slider",
+            "default": 0,
+            "min": 0,
+            "max": 100,
+            "valueCurve": true,
+            "lockable": true,
+            "description": "Shifts the fire color palette hue. At zero the fire is red/yellow; increasing values shift toward other colors like blue or green."
+        },
+        {
+            "id": "Fire_GrowthCycles",
+            "label": "Growth Cycles",
+            "type": "float",
+            "controlType": "slider",
+            "default": 0.0,
+            "divisor": 10,
+            "valueCurve": true,
+            "lockable": true,
+            "min": 0,
+            "max": 200,
+            "description": "Number of times the fire height oscillates (grows and shrinks) over the effect duration. Zero means no oscillation."
+        },
+        {
+            "id": "Fire_GrowWithMusic",
+            "label": "Grow with music",
+            "type": "bool",
+            "controlType": "checkbox",
+            "default": false,
+            "lockable": true,
+            "description": "When enabled, flame height is driven by audio volume instead of the Height and Growth Cycles settings."
+        },
+        {
+            "id": "Fire_Location",
+            "label": "Location",
+            "type": "enum",
+            "controlType": "choice",
+            "options": [
+                "Bottom",
+                "Top",
+                "Left",
+                "Right"
+            ],
+            "default": "Bottom",
+            "description": "Which edge of the buffer the fire originates from."
+        },
+        {
+            "id": "Fire_Style",
+            "label": "Style",
+            "type": "enum",
+            "controlType": "choice",
+            "options": [
+                "Old Render Method",
+                "New Render Method"
+            ],
+            "default": "New Render Method",
+            "description": "Selects the rendering algorithm. Old Render Method rebuilds the whole flame every frame, so it flickers in place. New Render Method carries the flame from frame to frame so it rises and drifts like real fire, and renders far faster because the whole grid updates at once (on the GPU where available)."
+        }
+    ],
+    "visibilityRules": [
+        {
+            "when": {
+                "property": "Fire_GrowWithMusic",
+                "equals": true
+            },
+            "disable": [
+                "Fire_Height",
+                "Fire_GrowthCycles"
+            ]
+        }
+    ]
+}

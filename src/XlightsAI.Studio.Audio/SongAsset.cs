@@ -10,7 +10,18 @@ namespace XlightsAI.Studio.Audio;
 /// spec's bare proposed shape). Contains no Avalonia types and performs no I/O itself.
 /// </summary>
 /// <param name="Id">Stable identity for this probed import, independent of <see cref="FilePath"/> (a file can be re-probed after being moved).</param>
-/// <param name="FilePath">The original local path this asset was probed from. Never mutated after a successful probe; "audio file moved after import" is a disclosed known risk (Section 7), not silently tolerated here.</param>
+/// <param name="FilePath">
+/// The real, decodable WAV path this asset's analysis/decode pipeline reads from — for a source that was
+/// already WAV, the original file itself; for anything else, <see cref="XlightsAI.Studio.Audio.TranscodingAudioDecoder"/>'s
+/// own transcoded cache entry, never the original non-WAV source (so every consumer of this field can
+/// decode it directly without re-dispatching on content). Use <see cref="OriginalFilePath"/> instead when
+/// what's needed is the user's own source file (e.g. an exported <c>.xsq</c>'s <c>mediaFile</c>).
+/// </param>
+/// <param name="OriginalFilePath">
+/// The real local path the user actually provided, before any transcoding -- identical to
+/// <see cref="FilePath"/> when the source was already WAV. "Audio file moved after import" is a disclosed
+/// known risk (Section 7), not silently tolerated here.
+/// </param>
 /// <param name="Sha256">SHA-256 of the full file's bytes, lower-case hex — the content-identity half of "hash-addressed" (Section 2).</param>
 /// <param name="SampleCount">Total decodable PCM sample frames (not raw bytes) in the file's audio data, after <see cref="EncoderDelaySamples"/> priming is accounted for.</param>
 /// <param name="SampleRate">The file's own native sample rate in Hz, as declared by its container/codec — never a resampled/target rate.</param>
@@ -22,6 +33,7 @@ namespace XlightsAI.Studio.Audio;
 public sealed record SongAsset(
     SongId Id,
     string FilePath,
+    string OriginalFilePath,
     string Sha256,
     long SampleCount,
     int SampleRate,

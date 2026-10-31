@@ -1,0 +1,272 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.GenerateExportView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    Generate the choreography, write the .xsq, hand it to xLights. Split out of the Show Import
+    screen (see ShowImportView) against the same ShowImportViewModel.
+
+    Three things changed beyond moving the markup:
+
+    1. The prerequisites are stated up front and are *links*. Generating a whole-song plan needs an
+       imported layout and a probed song, but the only thing the old screen said about that was one
+       line of italic prose on the button's own description; getting a prerequisite wrong meant a
+       failure message after the click. Each unmet prerequisite is now a one-click jump to the
+       screen that satisfies it.
+
+    2. Each stage is gated on the previous one's output, so the screen only ever offers you the
+       action you can actually take. Export used to be fully interactive with no plan in existence.
+
+    3. The hardcoded three-effect demo generator is behind a disclosure, labelled as the developer
+       tool it is. It previously sat directly beneath the real pipeline at identical visual weight,
+       under a heading of the same size, with a field asking the user to type three prop names
+       comma-separated and a song duration in 100-nanosecond ticks.
+
+    A "Project open" prerequisite was added once ShellViewModel.CurrentProject started existing
+    (see docs/UI-CLEANUP-PLAN.md item 1): the export path below now defaults into the current
+    project's own exports/ folder, so a project genuinely needs to be open before export has
+    anywhere sensible to default to.
+  -->
+
+  <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="Generate &amp; export" />
+    <TextBlock Classes="page-subtitle"
+               Text="Analyse the song, choreograph every prop in the imported layout, and write a sequence file xLights can open." />
+
+    <!-- ================= Prerequisites ================= -->
+    <Border Classes="panel">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="field" Text="BEFORE YOU GENERATE" />
+
+        <Grid ColumnDefinitions="18,*,Auto">
+          <TextBlock Grid.Column="0" Classes="nav-done" Text="&#x2713;" IsVisible="{Binding HasCurrentProject}" />
+          <TextBlock Grid.Column="0" Classes="hint" Text="&#x2022;" IsVisible="{Binding !HasCurrentProject}" />
+          <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Project open" />
+          <Button Grid.Column="2" Classes="link" Content="Open a project &#x2192;"
+                  IsVisible="{Binding !HasCurrentProject}"
+                  Command="{Binding NavigateToProjectsCommand}" />
+        </Grid>
+
+        <Grid ColumnDefinitions="18,*,Auto">
+          <TextBlock Grid.Column="0" Classes="nav-done" Text="&#x2713;" IsVisible="{Binding ShowImport.IsLoaded}" />
+          <TextBlock Grid.Column="0" Classes="hint" Text="&#x2022;" IsVisible="{Binding !ShowImport.IsLoaded}" />
+          <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Show layout imported" />
+          <Button Grid.Column="2" Classes="link" Content="Import a show &#x2192;"
+                  IsVisible="{Binding !ShowImport.IsLoaded}"
+                  Command="{Binding NavigateToShowImportCommand}" />
+        </Grid>
+
+        <Grid ColumnDefinitions="18,*,Auto">
+          <TextBlock Grid.Column="0" Classes="nav-done" Text="&#x2713;" IsVisible="{Binding Audio.HasProbedAsset}" />
+          <TextBlock Grid.Column="0" Classes="hint" Text="&#x2022;" IsVisible="{Binding !Audio.HasProbedAsset}" />
+          <TextBlock Grid.Column="1" VerticalAlignment="Center" Text="Song loaded" />
+          <Button Grid.Column="2" Classes="link" Content="Load a song &#x2192;"
+                  IsVisible="{Binding !Audio.HasProbedAsset}"
+                  Command="{Binding NavigateToAudioCommand}" />
+        </Grid>
+      </StackPanel>
+    </Border>
+
+    <!-- ================= Generate ================= -->
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="Choreograph the song" />
+        <TextBlock Classes="hint"
+                   Text="Runs real tempo, melody and structure analysis against the loaded song and composes effects for every prop in the imported layout. This can take several minutes." />
+
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Classes="primary" Content="Generate whole-song plan"
+                  Command="{Binding GenerateWholeSongPlanCommand}"
+                  IsEnabled="{Binding ShowImport.IsLoaded}" />
+          <TextBlock Classes="busy" VerticalAlignment="Center" IsVisible="{Binding ShowImport.IsPlanBusy}"
+                     Text="Analysing and composing…" />
+        </StackPanel>
+
+        <!-- Surfaced only once generation has actually hit the missing-model case, same
+             download-on-demand convention as ffmpeg on the Song screen. -->
+        <Border Classes="panel" IsVisible="{Binding ShowImport.RequiresStemModelDownload}">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="section" Text="Stem separation model needed" />
+            <TextBlock Classes="hint" Text="Separating vocals and instruments needs a model file, downloaded once." />
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <Button Classes="primary" Content="Download model" Command="{Binding DownloadStemSeparationModelCommand}" />
+              <TextBlock Classes="busy" VerticalAlignment="Center"
+                         IsVisible="{Binding ShowImport.IsDownloadingStemModel}" Text="Downloading…" />
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <TextBlock Classes="hint"
+                   IsVisible="{Binding ShowImport.StemModelStatusMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding ShowImport.StemModelStatusMessage}" />
+
+        <TextBlock Classes="error"
+                   IsVisible="{Binding ShowImport.PlanErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding ShowImport.PlanErrorMessage}" />
+
+        <StackPanel IsVisible="{Binding ShowImport.HasPlan}" Spacing="4" Margin="0,4,0,0">
+          <TextBlock Classes="detail" Text="{Binding ShowImport.PlanSavedPath, StringFormat='Saved plan: {0}'}" />
+          <TextBlock Classes="detail" Text="{Binding ShowImport.Plan.Revision, StringFormat='Revision: {0}'}" />
+          <Expander Header="Effects in this plan">
+            <Border Classes="panel" MaxHeight="260" Margin="0,4">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding ShowImport.Plan.Effects}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Classes="detail" Text="{Binding}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Border>
+          </Expander>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Classes="hint" VerticalAlignment="Center" Text="Plan ready." />
+            <Button Classes="link" Content="Review it on the timeline &#x2192;" Command="{Binding NavigateToTimelineCommand}" />
+          </StackPanel>
+
+          <!-- Build-plan Phase 10 §6b task 4: names which seed multi-layer template (if any) informed
+               each generated Look, so the mechanism is visible during generation rather than hidden
+               inside the prompt. Only shown once the Director actually declared at least one. -->
+          <Expander Header="Seed templates used" IsVisible="{Binding ShowImport.HasTemplatedLookUsage}">
+            <Border Classes="panel" MaxHeight="220" Margin="0,4">
+              <ScrollViewer VerticalScrollBarVisibility="Auto">
+                <ItemsControl ItemsSource="{Binding ShowImport.TemplatedLookUsageSummaries}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Classes="detail" Text="{Binding}" />
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </ScrollViewer>
+            </Border>
+          </Expander>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- ================= Export ================= -->
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="Export to xLights" />
+        <TextBlock Classes="hint" IsVisible="{Binding !ShowImport.HasPlan}"
+                   Text="Generate a plan above first — there is nothing to export yet." />
+
+        <StackPanel IsVisible="{Binding ShowImport.HasPlan}" Spacing="8">
+          <TextBlock Classes="field" Text="OUTPUT FILE" />
+          <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+            <TextBox Grid.Column="0" Text="{Binding ShowImport.XsqOutputPath}"
+                     Watermark="C:\path\to\exports\sequence.xsq" />
+            <Button Grid.Column="1" Content="Browse…" Click="OnBrowseXsqOutput" />
+          </Grid>
+
+          <Grid ColumnDefinitions="*,*" ColumnSpacing="10">
+            <StackPanel Grid.Column="0" Spacing="4">
+              <TextBlock Classes="field" Text="TARGET XLIGHTS VERSION" />
+              <TextBox Text="{Binding ShowImport.TargetXlightsVersion}" />
+            </StackPanel>
+            <StackPanel Grid.Column="1" Spacing="4">
+              <!-- PHASE-02 Step 015: explicit, caller-chosen collision policy; never a silent overwrite. -->
+              <TextBlock Classes="field" Text="IF THAT FILE ALREADY EXISTS" />
+              <ComboBox HorizontalAlignment="Stretch"
+                        ItemsSource="{Binding ShowImport.ExportPolicyOptions}"
+                        SelectedItem="{Binding ShowImport.ExportPolicy}" />
+            </StackPanel>
+          </Grid>
+
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="primary" Content="Export sequence" Command="{Binding ExportXsqCommand}" />
+            <TextBlock Classes="busy" VerticalAlignment="Center"
+                       IsVisible="{Binding ShowImport.IsExportBusy}" Text="Writing the sequence…" />
+          </StackPanel>
+
+          <TextBlock Classes="error"
+                     IsVisible="{Binding ShowImport.ExportErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                     Text="{Binding ShowImport.ExportErrorMessage}" />
+
+          <StackPanel IsVisible="{Binding ShowImport.HasExport}" Spacing="3" Margin="0,4,0,0">
+            <TextBlock Text="{Binding ShowImport.LastExport.Path, StringFormat='Exported to {0}'}" TextWrapping="Wrap" />
+            <TextBlock Classes="detail" Text="{Binding ShowImport.LastExport.Sha256, StringFormat='SHA256: {0}'}" />
+            <TextBlock Classes="warn"
+                       IsVisible="{Binding ShowImport.LastExport.BackupPath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                       Text="{Binding ShowImport.LastExport.BackupPath, StringFormat='The previous file was backed up to {0}'}" />
+            <ItemsControl ItemsSource="{Binding ShowImport.LastExport.Warnings}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Classes="warn" Text="{Binding}" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- ================= Open in xLights ================= -->
+    <!-- PHASE-02 Step 014: open the exported XSQ in installed xLights for human-attested verification. -->
+    <Border Classes="card" IsVisible="{Binding ShowImport.HasExport}">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="Open in xLights" />
+        <TextBlock Classes="field" Text="INSTALLED XLIGHTS PROGRAM" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <TextBox Grid.Column="0" Text="{Binding ShowImport.XlightsExecutablePath}"
+                   Watermark="C:\Program Files\xLights\xLights.exe" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowseXlightsExecutable" />
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="Open in xLights" Command="{Binding LaunchXlightsCommand}" />
+          <TextBlock Classes="busy" VerticalAlignment="Center"
+                     IsVisible="{Binding ShowImport.IsLaunchBusy}" Text="Launching xLights…" />
+        </StackPanel>
+        <TextBlock Classes="error"
+                   IsVisible="{Binding ShowImport.LaunchErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding ShowImport.LaunchErrorMessage}" />
+        <StackPanel IsVisible="{Binding ShowImport.HasLaunch}" Spacing="2">
+          <TextBlock Classes="detail" Text="{Binding ShowImport.LastLaunch.ExecutablePath, StringFormat='Launched: {0}'}" />
+          <TextBlock Classes="detail" Text="{Binding ShowImport.LastLaunch.ExecutableVersion, StringFormat='Reported version: {0}'}" />
+          <TextBlock Classes="detail" Text="{Binding ShowImport.LastLaunch.ProcessId, StringFormat='Process id: {0}'}" />
+        </StackPanel>
+      </StackPanel>
+    </Border>
+
+    <!-- ================= Developer tools ================= -->
+    <Expander Header="Developer tools" IsVisible="{Binding ShowImport.IsLoaded}">
+      <StackPanel Spacing="8" Margin="0,8">
+        <!-- PHASE-02 Step 012: hardcoded three-effect plan on selected real props. A debugging
+             aid for the export path that does not require the analysis pipeline to run. -->
+        <TextBlock Classes="section" Text="Three-effect demo plan" />
+        <TextBlock Classes="hint"
+                   Text="Writes a fixed three-effect plan onto named props, bypassing song analysis entirely. Useful for exercising export without waiting for a real generation; it is not choreography." />
+        <TextBlock Classes="field" Text="THREE PROP NAMES, COMMA-SEPARATED" />
+        <TextBox Text="{Binding ShowImport.EffectTargetNamesCsv}" Watermark="Roofline, Arch 1, Arch 2" />
+        <TextBlock Classes="field" Text="SONG DURATION (100 NS TICKS)" />
+        <TextBox Text="{Binding ShowImport.SongDurationTicks}" Width="220" HorizontalAlignment="Left" />
+        <Button Content="Generate 3 effects" Command="{Binding GenerateEffectPlanCommand}" HorizontalAlignment="Left" />
+
+        <!-- Build-plan Phase 10 §3f: the real, reachable invocation path for CorpusMiningRunner:
+             runs manifest-build/per-song-analysis/PatternLibrary-ExemplarIndex-CraftRules against a
+             real xLights-shaped corpus directory and persists the result for AiChoreographyWholeSongGenerator
+             to load on every subsequent generation. -->
+        <TextBlock Classes="section" Text="Run corpus mining" Margin="0,16,0,0" />
+        <TextBlock Classes="hint"
+                   Text="Analyzes every real song folder under the corpus root (or a representative subset) and persists CraftRules/ExemplarIndex for the Director to use on future generations. Can take up to roughly an hour against a full real corpus; progress is shown below." />
+        <TextBlock Classes="field" Text="CORPUS ROOT DIRECTORY" />
+        <TextBox Text="{Binding ShowImport.CorpusRootDirectory}" Watermark="C:\xLights" />
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="Run corpus mining" Command="{Binding RunCorpusMiningCommand}" HorizontalAlignment="Left" />
+          <TextBlock Classes="busy" VerticalAlignment="Center"
+                     IsVisible="{Binding ShowImport.IsCorpusMiningBusy}" Text="Mining corpus…" />
+        </StackPanel>
+        <TextBlock Classes="detail"
+                   IsVisible="{Binding ShowImport.CorpusMiningStatusMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding ShowImport.CorpusMiningStatusMessage}" />
+        <TextBlock Classes="error"
+                   IsVisible="{Binding ShowImport.CorpusMiningErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding ShowImport.CorpusMiningErrorMessage}" />
+      </StackPanel>
+    </Expander>
+  </StackPanel>
+</UserControl>

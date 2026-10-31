@@ -4,5 +4,6 @@
              RequestedThemeVariant="Default">
   <Application.Styles>
     <FluentTheme />
+    <StyleInclude Source="avares://XlightsAI.Studio/Styles/Theme.axaml" />
   </Application.Styles>
 </Application>

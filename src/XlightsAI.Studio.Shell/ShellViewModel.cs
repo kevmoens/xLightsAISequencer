@@ -1,8 +1,12 @@
 using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Pipeline;
 using XlightsAI.Studio.Projects;
+using XlightsAI.Studio.Stems;
 using XlightsAI.Studio.Xlights;
 using XlightsAI.Studio.Display;
 using XlightsAI.Studio.Distribution;
+using XlightsAI.Studio.Melody;
+using XlightsAI.Studio.Structure;
 
 namespace XlightsAI.Studio.Shell;
 
@@ -47,7 +51,16 @@ public sealed class ShellViewModel : ObservableObject
     private readonly IStartupHealthChecks _startupHealthChecks;
     private readonly IAssetInstaller _assetInstaller;
     private readonly DownloadableAsset? _optionalModelAsset;
+    private readonly IFfmpegInstaller _ffmpegInstaller;
+    private readonly IWholeSongGenerator _wholeSongGenerator;
+    private readonly IModelAssetManager _stemModelAssetManager;
+    private readonly INoteTrackEditor _noteTrackEditor;
+    private readonly IMotifLinkOverrideStore _motifLinkOverrideStore;
+    private readonly IDisplayLayoutEditor _displayLayoutEditor;
+    private readonly IDisplayGraphBuilder _displayGraphBuilder;
+    private readonly string? _corpusKnowledgeDirectory;
     private bool _isRestoringLastScreen;
+    private ProjectManifest? _currentProject;
 
     /// <summary>PHASE-03 Step 016: how many pixels <see cref="TimelineScrollLeftCommand"/>/<see cref="TimelineScrollRightCommand"/> scroll per click.</summary>
     public const double TimelineScrollStepPixels = 80d;
@@ -73,7 +86,15 @@ public sealed class ShellViewModel : ObservableObject
         IRuntimeCapabilityDetector? runtimeCapabilityDetector = null,
         IStartupHealthChecks? startupHealthChecks = null,
         IAssetInstaller? assetInstaller = null,
-        DownloadableAsset? optionalModelAsset = null)
+        DownloadableAsset? optionalModelAsset = null,
+        IFfmpegInstaller? ffmpegInstaller = null,
+        IWholeSongGenerator? wholeSongGenerator = null,
+        IModelAssetManager? stemModelAssetManager = null,
+        INoteTrackEditor? noteTrackEditor = null,
+        IMotifLinkOverrideStore? motifLinkOverrideStore = null,
+        IDisplayLayoutEditor? displayLayoutEditor = null,
+        IDisplayGraphBuilder? displayGraphBuilder = null,
+        string? corpusKnowledgeDirectory = null)
     {
         _navigator = navigator ?? throw new ArgumentNullException(nameof(navigator));
         _projectNamesSource = projectNamesSource ?? throw new ArgumentNullException(nameof(projectNamesSource));
@@ -183,6 +204,40 @@ public sealed class ShellViewModel : ObservableObject
         _assetInstaller = assetInstaller ?? NullAssetInstaller.Instance;
         _optionalModelAsset = optionalModelAsset;
 
+        // Same "needs a real install/extraction directory this layer does not yet own" reasoning as
+        // _assetInstaller above. Deliberately independent of _audioDecoder: whichever decoder this
+        // instance ends up with (a plain WavAudioDecoder here, or a real TranscodingAudioDecoder wired
+        // in by the App composition root) is unaffected by this collaborator, which only backs the
+        // Audio screen's own explicit "Download ffmpeg" action.
+        _ffmpegInstaller = ffmpegInstaller ?? NullFfmpegInstaller.Instance;
+
+        // Same "needs a real analysis-cache directory tree/stem-separation model this layer does not yet
+        // own" reasoning as _assetInstaller/_ffmpegInstaller above.
+        _wholeSongGenerator = wholeSongGenerator ?? NullWholeSongGenerator.Instance;
+        _stemModelAssetManager = stemModelAssetManager ?? NullModelAssetManager.Instance;
+
+        // Same "needs a real directory-backed store this layer does not yet own" reasoning as
+        // _sequenceDocumentStore/_songAssetStore above — each backs one of the Piano Roll/Structure/
+        // Display Paths screens (see docs/UI-CLEANUP-PLAN.md item 2, Phase 2a) and needs a real
+        // on-disk directory only a real composition root can supply.
+        _noteTrackEditor = noteTrackEditor ?? NullNoteTrackEditor.Instance;
+        _motifLinkOverrideStore = motifLinkOverrideStore ?? NullMotifLinkOverrideStore.Instance;
+        _displayLayoutEditor = displayLayoutEditor ?? NullDisplayLayoutEditor.Instance;
+
+        // Pure, stateless domain logic (same reasoning as _showLayoutImporter/_xsqExporter above):
+        // DisplayGraphBuilder takes the imported layout as a per-call argument and needs nothing
+        // configured, so it defaults to a real instance rather than a throwing NullX stub.
+        _displayGraphBuilder = displayGraphBuilder ?? new DisplayGraphBuilder();
+
+        // Build-plan Phase 10 §3f ("Activate corpus mining"): the directory RunCorpusMiningCommand
+        // persists CraftRules/ExemplarIndex/PatternLibrary under (same base as App.axaml.cs's other
+        // %AppData% stores). Deliberately nullable, not defaulted to a real path here -- unlike every
+        // other JSON-backed store above, only the real composition root knows the real %AppData% base;
+        // null just means "corpus mining unavailable," surfaced as an explicit error rather than a
+        // silent wrong-directory write, same as every other "needs a real configured directory this
+        // layer does not yet own" collaborator in this constructor.
+        _corpusKnowledgeDirectory = corpusKnowledgeDirectory;
+
         Welcome = new WelcomeViewModel();
         Projects = new ProjectsViewModel();
         Settings = new SettingsViewModel();
@@ -210,6 +265,9 @@ public sealed class ShellViewModel : ObservableObject
         NavigateToShowImportCommand = new DelegateCommand(
             () => _navigator.NavigateTo(ShellScreen.ShowImport),
             () => _navigator.State == StartupState.Ready);
+        NavigateToGenerateExportCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.GenerateExport),
+            () => _navigator.State == StartupState.Ready);
         NavigateToTimelineCommand = new DelegateCommand(
             () => _navigator.NavigateTo(ShellScreen.Timeline),
             () => _navigator.State == StartupState.Ready);
@@ -225,6 +283,25 @@ public sealed class ShellViewModel : ObservableObject
         NavigateToDisplayPathEditorCommand = new DelegateCommand(
             () => _navigator.NavigateTo(ShellScreen.DisplayPathEditor),
             () => _navigator.State == StartupState.Ready);
+        OpenDisplayPathEditorCommand = new DelegateCommand(
+            () => LastOpenDisplayPathEditorCommandTask = RunOpenDisplayPathEditorAsync(),
+            () => _navigator.State == StartupState.Ready && ShowImport.IsLoaded);
+        CorrectDisplayNodePositionCommand = new DelegateCommand(
+            () => LastCorrectDisplayNodePositionCommandTask = RunCorrectDisplayNodePositionAsync(),
+            () => _navigator.State == StartupState.Ready && DisplayPathEditor.IsLoaded && DisplayPathEditor.SelectedNodeId.HasValue);
+        CorrectSelectedNoteCommand = new DelegateCommand(
+            () => LastCorrectSelectedNoteCommandTask = RunCorrectSelectedNoteAsync(),
+            () => _navigator.State == StartupState.Ready && PianoRoll.IsLoaded && PianoRoll.SelectedNoteId.HasValue);
+        ToggleLockSelectedNoteCommand = new DelegateCommand(
+            () => LastToggleLockSelectedNoteCommandTask = PianoRoll.ToggleLockSelectedNoteAsync(_noteTrackEditor),
+            () => _navigator.State == StartupState.Ready && PianoRoll.IsLoaded && PianoRoll.SelectedNoteId.HasValue);
+        UnlinkSelectedPhraseCommand = new DelegateCommand(
+            () => LastUnlinkSelectedPhraseCommandTask = RunUnlinkSelectedPhraseAsync(),
+            () => _navigator.State == StartupState.Ready && StructureInspector.IsLoaded && StructureInspector.SelectedPhraseId.HasValue);
+        LinkSelectedPhraseCommand = new DelegateCommand(
+            () => LastLinkSelectedPhraseCommandTask = RunLinkSelectedPhraseAsync(),
+            () => _navigator.State == StartupState.Ready && StructureInspector.IsLoaded
+                && StructureInspector.SelectedPhraseId.HasValue && StructureInspector.PendingLinkTargetPhraseId.HasValue);
         NavigateToFirstRunCommand = new DelegateCommand(
             () => _navigator.NavigateTo(ShellScreen.FirstRun),
             () => _navigator.State == StartupState.Ready);
@@ -282,21 +359,36 @@ public sealed class ShellViewModel : ObservableObject
             () => LastGenerateEffectPlanCommandTask = ShowImport.GenerateEffectPlanAsync(
                 _threeEffectPlanFactory, _effectRecipeRegistry, _sequenceDocumentStore),
             () => _navigator.State == StartupState.Ready && !ShowImport.IsPlanBusy);
+        GenerateWholeSongPlanCommand = new DelegateCommand(
+            () => LastGenerateEffectPlanCommandTask = RunGenerateWholeSongPlanAsync(),
+            () => _navigator.State == StartupState.Ready && !ShowImport.IsPlanBusy);
+        DownloadStemSeparationModelCommand = new DelegateCommand(
+            () => LastDownloadStemSeparationModelCommandTask = ShowImport.DownloadStemSeparationModelAsync(_stemModelAssetManager),
+            () => _navigator.State == StartupState.Ready && ShowImport.RequiresStemModelDownload && !ShowImport.IsDownloadingStemModel);
         ExportXsqCommand = new DelegateCommand(
             () => LastExportXsqCommandTask = ShowImport.ExportXsqAsync(_xsqExporter),
             () => _navigator.State == StartupState.Ready && !ShowImport.IsExportBusy);
         LaunchXlightsCommand = new DelegateCommand(
             () => LastLaunchXlightsCommandTask = ShowImport.LaunchXlightsAsync(_xlightsLauncher),
             () => _navigator.State == StartupState.Ready && !ShowImport.IsLaunchBusy);
+        RunCorpusMiningCommand = new DelegateCommand(
+            () => LastRunCorpusMiningCommandTask = RunCorpusMiningAsync(),
+            () => _navigator.State == StartupState.Ready && !ShowImport.IsCorpusMiningBusy && _corpusKnowledgeDirectory is not null);
         CreateProjectCommand = new DelegateCommand(
             () => LastProjectCommandTask = RunCreateProjectAsync(),
             () => _navigator.State == StartupState.Ready && !Projects.IsBusy);
         OpenProjectCommand = new DelegateCommand(
             () => LastProjectCommandTask = RunOpenProjectAsync(),
             () => _navigator.State == StartupState.Ready && !Projects.IsBusy);
+        CloseProjectCommand = new DelegateCommand(
+            () => RunCloseCurrentProject(),
+            () => _navigator.State == StartupState.Ready && HasCurrentProject);
         ProbeAudioFileCommand = new DelegateCommand(
             () => LastProbeAudioFileCommandTask = Audio.ProbeAudioFileAsync(_audioDecoder, _songAssetStore),
             () => _navigator.State == StartupState.Ready && !Audio.IsBusy);
+        DownloadFfmpegCommand = new DelegateCommand(
+            () => LastDownloadFfmpegCommandTask = Audio.DownloadFfmpegAsync(_ffmpegInstaller),
+            () => _navigator.State == StartupState.Ready && Audio.RequiresFfmpegDownload && !Audio.IsDownloadingFfmpeg);
         OpenAudioPlaybackCommand = new DelegateCommand(
             () => LastOpenAudioPlaybackCommandTask = Audio.OpenPlaybackAsync(_audioTransport),
             () => _navigator.State == StartupState.Ready && Audio.HasProbedAsset);
@@ -357,9 +449,20 @@ public sealed class ShellViewModel : ObservableObject
                 DiscoverShowDirectoryCommand.RaiseCanExecuteChanged();
             }
 
+            if (e.PropertyName == nameof(ShowImportViewModel.IsLoaded))
+            {
+                OpenDisplayPathEditorCommand.RaiseCanExecuteChanged();
+            }
+
             if (e.PropertyName == nameof(ShowImportViewModel.IsPlanBusy))
             {
                 GenerateEffectPlanCommand.RaiseCanExecuteChanged();
+                GenerateWholeSongPlanCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName is nameof(ShowImportViewModel.RequiresStemModelDownload) or nameof(ShowImportViewModel.IsDownloadingStemModel))
+            {
+                DownloadStemSeparationModelCommand.RaiseCanExecuteChanged();
             }
 
             if (e.PropertyName == nameof(ShowImportViewModel.IsExportBusy))
@@ -370,6 +473,11 @@ public sealed class ShellViewModel : ObservableObject
             if (e.PropertyName == nameof(ShowImportViewModel.IsLaunchBusy))
             {
                 LaunchXlightsCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName == nameof(ShowImportViewModel.IsCorpusMiningBusy))
+            {
+                RunCorpusMiningCommand.RaiseCanExecuteChanged();
             }
         };
 
@@ -391,6 +499,11 @@ public sealed class ShellViewModel : ObservableObject
             if (e.PropertyName == nameof(AudioImportViewModel.IsBusy))
             {
                 ProbeAudioFileCommand.RaiseCanExecuteChanged();
+            }
+
+            if (e.PropertyName is nameof(AudioImportViewModel.RequiresFfmpegDownload) or nameof(AudioImportViewModel.IsDownloadingFfmpeg))
+            {
+                DownloadFfmpegCommand.RaiseCanExecuteChanged();
             }
 
             if (e.PropertyName == nameof(AudioImportViewModel.HasProbedAsset))
@@ -459,6 +572,34 @@ public sealed class ShellViewModel : ObservableObject
                 ClearTimelineLoopCommand.RaiseCanExecuteChanged();
             }
         };
+
+        DisplayPathEditor.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(DisplayPathEditorViewModel.IsLoaded) or nameof(DisplayPathEditorViewModel.SelectedNodeId))
+            {
+                CorrectDisplayNodePositionCommand.RaiseCanExecuteChanged();
+            }
+        };
+
+        PianoRoll.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(PianoRollViewModel.IsLoaded) or nameof(PianoRollViewModel.SelectedNoteId))
+            {
+                CorrectSelectedNoteCommand.RaiseCanExecuteChanged();
+                ToggleLockSelectedNoteCommand.RaiseCanExecuteChanged();
+            }
+        };
+
+        StructureInspector.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName is nameof(PhraseRelationshipInspectorViewModel.IsLoaded)
+                or nameof(PhraseRelationshipInspectorViewModel.SelectedPhraseId)
+                or nameof(PhraseRelationshipInspectorViewModel.PendingLinkTargetPhraseId))
+            {
+                UnlinkSelectedPhraseCommand.RaiseCanExecuteChanged();
+                LinkSelectedPhraseCommand.RaiseCanExecuteChanged();
+            }
+        };
     }
 
     public WelcomeViewModel Welcome { get; }
@@ -499,6 +640,9 @@ public sealed class ShellViewModel : ObservableObject
 
     public DelegateCommand NavigateToShowImportCommand { get; }
 
+    /// <summary>Navigates to <see cref="ShellScreen.GenerateExport"/> (same <see cref="ShowImport"/> view model).</summary>
+    public DelegateCommand NavigateToGenerateExportCommand { get; }
+
     public DelegateCommand NavigateToTimelineCommand { get; }
 
     public DelegateCommand NavigateToAudioCommand { get; }
@@ -508,6 +652,30 @@ public sealed class ShellViewModel : ObservableObject
     public DelegateCommand NavigateToStructureInspectorCommand { get; }
 
     public DelegateCommand NavigateToDisplayPathEditorCommand { get; }
+
+    /// <summary>
+    /// Builds a <see cref="XlightsAI.Studio.Display.SpatialDisplayGraph"/> from
+    /// <see cref="ShowImportViewModel.Layout"/> and opens it on <see cref="DisplayPathEditor"/> —
+    /// enabled only once a show layout has actually been imported. Same "nothing happens until an
+    /// explicit user action" convention as every other screen action in this class; navigating to
+    /// the Display Paths screen alone never triggers this.
+    /// </summary>
+    public DelegateCommand OpenDisplayPathEditorCommand { get; }
+
+    /// <summary>Applies <see cref="DisplayPathEditorViewModel.PendingPositionXText"/>/<see cref="DisplayPathEditorViewModel.PendingPositionYText"/> to the selected node — the "drag" action, entered numerically rather than by pointer drag (same scope decision as <see cref="TimelineViewModel"/>'s own numeric range selection).</summary>
+    public DelegateCommand CorrectDisplayNodePositionCommand { get; }
+
+    /// <summary>Applies <see cref="PianoRollViewModel.PendingMidiNoteText"/>/<see cref="PianoRollViewModel.PendingStartTicksText"/>/<see cref="PianoRollViewModel.PendingEndTicksText"/> to the selected note.</summary>
+    public DelegateCommand CorrectSelectedNoteCommand { get; }
+
+    /// <summary>Toggles the selected note's locked bit.</summary>
+    public DelegateCommand ToggleLockSelectedNoteCommand { get; }
+
+    /// <summary>Unlinks the selected phrase from every other phrase currently in its effective motif group.</summary>
+    public DelegateCommand UnlinkSelectedPhraseCommand { get; }
+
+    /// <summary>Links the selected phrase to <see cref="PhraseRelationshipInspectorViewModel.PendingLinkTargetPhraseId"/>.</summary>
+    public DelegateCommand LinkSelectedPhraseCommand { get; }
 
     /// <summary>PHASE-15 Step 095: navigates to the first-run onboarding wizard (also entered automatically on a fresh install — see <see cref="RunStartup"/>).</summary>
     public DelegateCommand NavigateToFirstRunCommand { get; }
@@ -545,8 +713,14 @@ public sealed class ShellViewModel : ObservableObject
 
     public DelegateCommand OpenProjectCommand { get; }
 
+    /// <summary>Clears <see cref="CurrentProject"/> without touching disk — the explicit "I'm done with this project" action; the project itself, and everything it persisted, is untouched.</summary>
+    public DelegateCommand CloseProjectCommand { get; }
+
     /// <summary>PHASE-04 Step 024 "Probe Audio File" action.</summary>
     public DelegateCommand ProbeAudioFileCommand { get; }
+
+    /// <summary>"Download ffmpeg" action: enabled only once a probe attempt has set <see cref="AudioImportViewModel.RequiresFfmpegDownload"/>.</summary>
+    public DelegateCommand DownloadFfmpegCommand { get; }
 
     /// <summary>PHASE-04 Step 025 "Open Playback" action: opens the real device transport against the most recently probed asset.</summary>
     public DelegateCommand OpenAudioPlaybackCommand { get; }
@@ -604,11 +778,20 @@ public sealed class ShellViewModel : ObservableObject
     /// <summary>PHASE-02 Step 012 "Generate 3 Effects" action.</summary>
     public DelegateCommand GenerateEffectPlanCommand { get; }
 
+    /// <summary>Real whole-song AI pipeline "Generate Whole-Song Plan" action (uses every real prop, never a manually-typed 3-name list).</summary>
+    public DelegateCommand GenerateWholeSongPlanCommand { get; }
+
+    /// <summary>"Download separation model" action: enabled only once a whole-song plan attempt has set <see cref="ShowImportViewModel.RequiresStemModelDownload"/>.</summary>
+    public DelegateCommand DownloadStemSeparationModelCommand { get; }
+
     /// <summary>PHASE-02 Step 013 "Export XSQ" action.</summary>
     public DelegateCommand ExportXsqCommand { get; }
 
     /// <summary>PHASE-02 Step 014 "Open in xLights" action.</summary>
     public DelegateCommand LaunchXlightsCommand { get; }
+
+    /// <summary>Build-plan Phase 10 §3f "Run corpus mining" action (Generate &amp; Export screen's Developer Tools). Disabled while a run is already in progress, or while no <c>corpusKnowledgeDirectory</c> was supplied by the composition root.</summary>
+    public DelegateCommand RunCorpusMiningCommand { get; }
 
     /// <summary>
     /// The in-flight task started by the most recent <see cref="CreateProjectCommand"/>/
@@ -624,8 +807,29 @@ public sealed class ShellViewModel : ObservableObject
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="DiscoverShowDirectoryCommand"/>.</summary>
     public Task? LastShowImportCommandTask { get; private set; }
 
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="OpenDisplayPathEditorCommand"/>.</summary>
+    public Task? LastOpenDisplayPathEditorCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="CorrectDisplayNodePositionCommand"/>.</summary>
+    public Task? LastCorrectDisplayNodePositionCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="CorrectSelectedNoteCommand"/>.</summary>
+    public Task? LastCorrectSelectedNoteCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="ToggleLockSelectedNoteCommand"/>.</summary>
+    public Task? LastToggleLockSelectedNoteCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="UnlinkSelectedPhraseCommand"/>.</summary>
+    public Task? LastUnlinkSelectedPhraseCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="LinkSelectedPhraseCommand"/>.</summary>
+    public Task? LastLinkSelectedPhraseCommandTask { get; private set; }
+
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="GenerateEffectPlanCommand"/>.</summary>
     public Task? LastGenerateEffectPlanCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="DownloadStemSeparationModelCommand"/>.</summary>
+    public Task? LastDownloadStemSeparationModelCommandTask { get; private set; }
 
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="ExportXsqCommand"/>.</summary>
     public Task? LastExportXsqCommandTask { get; private set; }
@@ -633,8 +837,14 @@ public sealed class ShellViewModel : ObservableObject
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="LaunchXlightsCommand"/>.</summary>
     public Task? LastLaunchXlightsCommandTask { get; private set; }
 
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="RunCorpusMiningCommand"/>.</summary>
+    public Task? LastRunCorpusMiningCommandTask { get; private set; }
+
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="ProbeAudioFileCommand"/>.</summary>
     public Task? LastProbeAudioFileCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="DownloadFfmpegCommand"/>.</summary>
+    public Task? LastDownloadFfmpegCommandTask { get; private set; }
 
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="OpenAudioPlaybackCommand"/>.</summary>
     public Task? LastOpenAudioPlaybackCommandTask { get; private set; }
@@ -666,6 +876,33 @@ public sealed class ShellViewModel : ObservableObject
 
     public ShellScreen CurrentScreen => _navigator.CurrentScreen;
 
+    /// <summary>
+    /// The project created/opened via <see cref="CreateProjectCommand"/>/<see cref="OpenProjectCommand"/>
+    /// this session, or <see langword="null"/> if none has been (or it has been explicitly closed via
+    /// <see cref="CloseProjectCommand"/>). Set from the real <see cref="ProjectManifest"/>
+    /// <see cref="ProjectsViewModel.CreateProjectAsync"/>/<see cref="ProjectsViewModel.OpenProjectAsync"/>
+    /// already return — previously discarded immediately after a successful create/open, which is
+    /// why no other screen could ever answer "which project is this." Restored across a restart only
+    /// as a pre-filled, re-openable suggestion (<see cref="AppSettings.LastProjectRootDirectory"/> via
+    /// <see cref="ProjectsViewModel.RestoreLastProjectDirectory"/>), never auto-reopened, same
+    /// "restore the typed value, require an explicit action" convention as every other restored path
+    /// in this class.
+    /// </summary>
+    public ProjectManifest? CurrentProject
+    {
+        get => _currentProject;
+        private set
+        {
+            if (SetField(ref _currentProject, value))
+            {
+                OnPropertyChanged(nameof(HasCurrentProject));
+                CloseProjectCommand.RaiseCanExecuteChanged();
+            }
+        }
+    }
+
+    public bool HasCurrentProject => CurrentProject is not null;
+
     public bool IsStarting => State == StartupState.Starting;
 
     public bool IsFailed => State == StartupState.Failed;
@@ -679,6 +916,8 @@ public sealed class ShellViewModel : ObservableObject
     public bool IsShowingDiagnostics => State == StartupState.Ready && CurrentScreen == ShellScreen.Diagnostics;
 
     public bool IsShowingShowImport => State == StartupState.Ready && CurrentScreen == ShellScreen.ShowImport;
+
+    public bool IsShowingGenerateExport => State == StartupState.Ready && CurrentScreen == ShellScreen.GenerateExport;
 
     public bool IsShowingTimeline => State == StartupState.Ready && CurrentScreen == ShellScreen.Timeline;
 
@@ -753,6 +992,7 @@ public sealed class ShellViewModel : ObservableObject
             {
                 case ShellScreen.Projects:
                     Projects.Load(_projectNamesSource);
+                    Projects.RestoreLastProjectDirectory(_settingsStore.Load().LastProjectRootDirectory);
                     break;
                 case ShellScreen.Settings:
                     Settings.Load(_settingsStore.Load);
@@ -762,6 +1002,14 @@ public sealed class ShellViewModel : ObservableObject
                     break;
                 case ShellScreen.ShowImport:
                     ShowImport.RestoreLastDirectory(_settingsStore.Load().LastShowDirectory);
+                    break;
+                case ShellScreen.GenerateExport:
+                    // Same "nothing happens until an explicit user action" convention as Timeline
+                    // below: this screen reads the ShowImport view model the import screen already
+                    // populated, and never re-runs discovery or a plan on navigation alone. Restoring
+                    // CorpusRootDirectory is the one exception -- same "fill in a blank field only"
+                    // convention as ShowImport.RestoreLastDirectory above, it never runs mining itself.
+                    ShowImport.RestoreLastCorpusRootDirectory(_settingsStore.Load().CorpusRootDirectory);
                     break;
                 case ShellScreen.Timeline:
                     // Deliberately does not auto-load: the required failure/edge case ("missing
@@ -810,14 +1058,22 @@ public sealed class ShellViewModel : ObservableObject
         NavigateToSettingsCommand.RaiseCanExecuteChanged();
         NavigateToDiagnosticsCommand.RaiseCanExecuteChanged();
         NavigateToShowImportCommand.RaiseCanExecuteChanged();
+        NavigateToGenerateExportCommand.RaiseCanExecuteChanged();
         NavigateToTimelineCommand.RaiseCanExecuteChanged();
         NavigateToAudioCommand.RaiseCanExecuteChanged();
         NavigateToPianoRollCommand.RaiseCanExecuteChanged();
         NavigateToStructureInspectorCommand.RaiseCanExecuteChanged();
         NavigateToDisplayPathEditorCommand.RaiseCanExecuteChanged();
+        OpenDisplayPathEditorCommand.RaiseCanExecuteChanged();
+        CorrectDisplayNodePositionCommand.RaiseCanExecuteChanged();
+        CorrectSelectedNoteCommand.RaiseCanExecuteChanged();
+        ToggleLockSelectedNoteCommand.RaiseCanExecuteChanged();
+        UnlinkSelectedPhraseCommand.RaiseCanExecuteChanged();
+        LinkSelectedPhraseCommand.RaiseCanExecuteChanged();
         NavigateToFirstRunCommand.RaiseCanExecuteChanged();
         CompleteFirstRunCommand.RaiseCanExecuteChanged();
         ProbeAudioFileCommand.RaiseCanExecuteChanged();
+        DownloadFfmpegCommand.RaiseCanExecuteChanged();
         OpenAudioPlaybackCommand.RaiseCanExecuteChanged();
         PlayAudioCommand.RaiseCanExecuteChanged();
         PauseAudioCommand.RaiseCanExecuteChanged();
@@ -840,8 +1096,11 @@ public sealed class ShellViewModel : ObservableObject
         ClearTimelineLoopCommand.RaiseCanExecuteChanged();
         CreateProjectCommand.RaiseCanExecuteChanged();
         OpenProjectCommand.RaiseCanExecuteChanged();
+        CloseProjectCommand.RaiseCanExecuteChanged();
         DiscoverShowDirectoryCommand.RaiseCanExecuteChanged();
         GenerateEffectPlanCommand.RaiseCanExecuteChanged();
+        GenerateWholeSongPlanCommand.RaiseCanExecuteChanged();
+        DownloadStemSeparationModelCommand.RaiseCanExecuteChanged();
         ExportXsqCommand.RaiseCanExecuteChanged();
         LaunchXlightsCommand.RaiseCanExecuteChanged();
     }
@@ -869,26 +1128,57 @@ public sealed class ShellViewModel : ObservableObject
     /// Creates a project from <see cref="ProjectsViewModel.WorkspaceDirectory"/>/
     /// <see cref="ProjectsViewModel.NewProjectName"/>, then — on success — reloads the Projects
     /// list from the same <paramref name="_projectNamesSource"/> the screen already uses, so the
-    /// newly created project is immediately visible without a separate manual refresh.
+    /// newly created project is immediately visible without a separate manual refresh, and adopts
+    /// the returned manifest as <see cref="CurrentProject"/> (see <see cref="OnProjectOpened"/>).
     /// </summary>
     private async Task RunCreateProjectAsync()
     {
-        var succeeded = await Projects.CreateProjectAsync(_projectService).ConfigureAwait(true);
-        if (succeeded)
+        var manifest = await Projects.CreateProjectAsync(_projectService).ConfigureAwait(true);
+        if (manifest is not null)
         {
             Projects.Load(_projectNamesSource);
+            OnProjectOpened(manifest);
         }
     }
 
-    /// <summary>Opens the project at <see cref="ProjectsViewModel.WorkspaceDirectory"/>; same reload-on-success contract as <see cref="RunCreateProjectAsync"/>.</summary>
+    /// <summary>Opens the project at <see cref="ProjectsViewModel.WorkspaceDirectory"/>; same reload-on-success/adopt-as-current contract as <see cref="RunCreateProjectAsync"/>.</summary>
     private async Task RunOpenProjectAsync()
     {
-        var succeeded = await Projects.OpenProjectAsync(_projectService).ConfigureAwait(true);
-        if (succeeded)
+        var manifest = await Projects.OpenProjectAsync(_projectService).ConfigureAwait(true);
+        if (manifest is not null)
         {
             Projects.Load(_projectNamesSource);
+            OnProjectOpened(manifest);
         }
     }
+
+    /// <summary>
+    /// Adopts <paramref name="manifest"/> as <see cref="CurrentProject"/> and persists its root
+    /// directory as <see cref="AppSettings.LastProjectRootDirectory"/> (restored, never
+    /// auto-reopened, next time the Projects screen is shown — see
+    /// <see cref="ProjectsViewModel.RestoreLastProjectDirectory"/>), same "preserve the other
+    /// restorable fields" `with`-pattern every other persisted-path save in this class uses.
+    /// </summary>
+    private void OnProjectOpened(ProjectManifest manifest)
+    {
+        CurrentProject = manifest;
+        ShowImport.SetDefaultXsqOutputDirectory(manifest.RootDirectory);
+
+        var existing = _settingsStore.Load();
+        _settingsStore.Save(existing with
+        {
+            SchemaVersion = AppSettings.CurrentSchemaVersion,
+            LastProjectRootDirectory = manifest.RootDirectory,
+        });
+    }
+
+    /// <summary>
+    /// Clears <see cref="CurrentProject"/> — the <see cref="CloseProjectCommand"/> action. Never
+    /// touches disk or <see cref="AppSettings.LastProjectRootDirectory"/>: closing is a session-local
+    /// "nothing is open right now," not "forget this project exists," so the directory is still
+    /// offered back on the Projects screen next time.
+    /// </summary>
+    private void RunCloseCurrentProject() => CurrentProject = null;
 
     /// <summary>
     /// Runs discovery against <see cref="ShowImportViewModel.ShowDirectory"/>; on success, persists
@@ -904,6 +1194,132 @@ public sealed class ShellViewModel : ObservableObject
             var existing = _settingsStore.Load();
             _settingsStore.Save(existing with { SchemaVersion = AppSettings.CurrentSchemaVersion, LastShowDirectory = ShowImport.ShowDirectory });
         }
+    }
+
+    /// <summary>
+    /// Runs <see cref="ShowImportViewModel.RunCorpusMiningAsync"/> against <see cref="_corpusKnowledgeDirectory"/>;
+    /// on success, persists <see cref="ShowImportViewModel.CorpusRootDirectory"/> as the new "last
+    /// corpus root" (same reasoning as <see cref="RunDiscoverShowDirectoryAsync"/>'s own
+    /// <see cref="AppSettings.LastShowDirectory"/> persistence) -- a failed run never updates the
+    /// persisted value, so a prior good corpus root survives a later failed attempt. A <see langword="null"/>
+    /// <see cref="_corpusKnowledgeDirectory"/> (no real composition root configured it) surfaces as an
+    /// explicit error rather than silently doing nothing.
+    /// </summary>
+    private async Task RunCorpusMiningAsync()
+    {
+        if (_corpusKnowledgeDirectory is null)
+        {
+            return;
+        }
+
+        var succeeded = await ShowImport.RunCorpusMiningAsync(_corpusKnowledgeDirectory).ConfigureAwait(true);
+        if (succeeded)
+        {
+            var existing = _settingsStore.Load();
+            _settingsStore.Save(existing with { SchemaVersion = AppSettings.CurrentSchemaVersion, CorpusRootDirectory = ShowImport.CorpusRootDirectory });
+        }
+    }
+
+    /// <summary>
+    /// Runs <see cref="ShowImportViewModel.GenerateWholeSongPlanAsync"/>; on success, also opens the
+    /// Piano Roll/Structure screens against the exact same real
+    /// <see cref="ShowImportViewModel.LastWholeSongGeneration"/> run just produced — see
+    /// docs/UI-CLEANUP-PLAN.md item 2 (Phase 2a) for why this was previously impossible (the
+    /// pipeline computed this melody/phrase/motif analysis internally but never returned it).
+    /// Tries <see cref="PianoRollViewModel.OpenTrackAsync"/> before
+    /// <see cref="PianoRollViewModel.BeginEditingAsync"/> so a melody id that *does* already have an
+    /// open session (never discarding its corrections) resumes rather than being rejected by the
+    /// real editor's own "a session already exists" guard — in practice each analysis run mints a
+    /// fresh <see cref="MelodyTrack.Id"/>, so today this always begins a brand-new session; the
+    /// resume path is defensive, not yet reachable through ordinary re-generation (see
+    /// <c>PianoRollStructureDisplayPathsWiringTests</c> for the disclosed, empirically-confirmed
+    /// reasoning).
+    /// </summary>
+    private async Task RunGenerateWholeSongPlanAsync()
+    {
+        var succeeded = await ShowImport.GenerateWholeSongPlanAsync(
+            _wholeSongGenerator, Audio.ProbedAsset, _sequenceDocumentStore).ConfigureAwait(true);
+        if (!succeeded || ShowImport.LastWholeSongGeneration is not { } generation)
+        {
+            return;
+        }
+
+        var resumed = await PianoRoll.OpenTrackAsync(_noteTrackEditor, generation.Melody.Id).ConfigureAwait(true);
+        if (!resumed)
+        {
+            await PianoRoll.BeginEditingAsync(_noteTrackEditor, generation.Melody).ConfigureAwait(true);
+        }
+
+        await StructureInspector.OpenAsync(
+            _motifLinkOverrideStore, generation.SongId, generation.Phrases, generation.Motifs, templateAnalysis: null).ConfigureAwait(true);
+    }
+
+    /// <summary>
+    /// Default <see cref="GeometryPolicy"/> for <see cref="RunOpenDisplayPathEditorAsync"/> — not yet
+    /// user-configurable; <c>0.3</c>/<c>true</c> matches the value exercised by this project's own
+    /// Display tests (<c>Step060AcceptanceTests</c>) as a reasonable starting default.
+    /// </summary>
+    private static readonly GeometryPolicy DefaultDisplayGeometryPolicy = new(MaxNeighborDistance: 0.3, RespectGroups: true);
+
+    /// <summary>
+    /// Builds a <see cref="SpatialDisplayGraph"/> from the already-imported
+    /// <see cref="ShowImportViewModel.Layout"/> and opens it on <see cref="DisplayPathEditor"/> — the
+    /// <see cref="OpenDisplayPathEditorCommand"/> action.
+    /// </summary>
+    private async Task RunOpenDisplayPathEditorAsync()
+    {
+        if (ShowImport.Layout is not { } layout)
+        {
+            return;
+        }
+
+        var graph = _displayGraphBuilder.Build(layout, DefaultDisplayGeometryPolicy);
+        await DisplayPathEditor.OpenAsync(_displayLayoutEditor, graph).ConfigureAwait(true);
+    }
+
+    /// <summary>Parses <see cref="DisplayPathEditorViewModel.PendingPositionXText"/>/<see cref="DisplayPathEditorViewModel.PendingPositionYText"/> and applies them via <see cref="CorrectDisplayNodePositionCommand"/>.</summary>
+    private async Task RunCorrectDisplayNodePositionAsync()
+    {
+        if (!double.TryParse(DisplayPathEditor.PendingPositionXText, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var x)
+            || !double.TryParse(DisplayPathEditor.PendingPositionYText, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out var y))
+        {
+            return;
+        }
+
+        await DisplayPathEditor.CorrectSelectedNodePositionAsync(_displayLayoutEditor, x, y).ConfigureAwait(true);
+    }
+
+    /// <summary>Parses <see cref="PianoRollViewModel.PendingMidiNoteText"/>/<see cref="PianoRollViewModel.PendingStartTicksText"/>/<see cref="PianoRollViewModel.PendingEndTicksText"/> and applies them via <see cref="CorrectSelectedNoteCommand"/>.</summary>
+    private async Task RunCorrectSelectedNoteAsync()
+    {
+        if (!int.TryParse(PianoRoll.PendingMidiNoteText, out var midiNote)
+            || !long.TryParse(PianoRoll.PendingStartTicksText, out var startTicks)
+            || !long.TryParse(PianoRoll.PendingEndTicksText, out var endTicks))
+        {
+            return;
+        }
+
+        await PianoRoll.CorrectSelectedNoteAsync(_noteTrackEditor, midiNote, startTicks, endTicks).ConfigureAwait(true);
+    }
+
+    private async Task RunUnlinkSelectedPhraseAsync()
+    {
+        if (StructureInspector.SelectedPhraseId is not { } phraseId)
+        {
+            return;
+        }
+
+        await StructureInspector.UnlinkPhraseAsync(_motifLinkOverrideStore, phraseId).ConfigureAwait(true);
+    }
+
+    private async Task RunLinkSelectedPhraseAsync()
+    {
+        if (StructureInspector.SelectedPhraseId is not { } phraseAId || StructureInspector.PendingLinkTargetPhraseId is not { } phraseBId)
+        {
+            return;
+        }
+
+        await StructureInspector.LinkPhrasesAsync(_motifLinkOverrideStore, phraseAId, phraseBId).ConfigureAwait(true);
     }
 
     /// <summary>
@@ -1061,6 +1477,8 @@ public sealed class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(State));
         OnPropertyChanged(nameof(Failure));
         OnPropertyChanged(nameof(CurrentScreen));
+        OnPropertyChanged(nameof(CurrentProject));
+        OnPropertyChanged(nameof(HasCurrentProject));
         OnPropertyChanged(nameof(IsStarting));
         OnPropertyChanged(nameof(IsFailed));
         OnPropertyChanged(nameof(IsShowingWelcome));
@@ -1068,6 +1486,7 @@ public sealed class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(IsShowingSettings));
         OnPropertyChanged(nameof(IsShowingDiagnostics));
         OnPropertyChanged(nameof(IsShowingShowImport));
+        OnPropertyChanged(nameof(IsShowingGenerateExport));
         OnPropertyChanged(nameof(IsShowingTimeline));
         OnPropertyChanged(nameof(IsShowingAudio));
         OnPropertyChanged(nameof(IsShowingPianoRoll));

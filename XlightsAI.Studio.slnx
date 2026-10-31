@@ -4,6 +4,7 @@
     <Project Path="src/XlightsAI.Studio.Contracts/XlightsAI.Studio.Contracts.csproj" />
     <Project Path="src/XlightsAI.Studio.Projects/XlightsAI.Studio.Projects.csproj" />
     <Project Path="src/XlightsAI.Studio.Xlights/XlightsAI.Studio.Xlights.csproj" />
+    <Project Path="src/XlightsAI.Studio.Knowledge/XlightsAI.Studio.Knowledge.csproj" />
     <Project Path="src/XlightsAI.Studio.Editing/XlightsAI.Studio.Editing.csproj" />
     <Project Path="src/XlightsAI.Studio.Audio/XlightsAI.Studio.Audio.csproj" />
     <Project Path="src/XlightsAI.Studio.Rhythm/XlightsAI.Studio.Rhythm.csproj" />
@@ -12,10 +13,13 @@
     <Project Path="src/XlightsAI.Studio.Structure/XlightsAI.Studio.Structure.csproj" />
     <Project Path="src/XlightsAI.Studio.Display/XlightsAI.Studio.Display.csproj" />
     <Project Path="src/XlightsAI.Studio.Composition/XlightsAI.Studio.Composition.csproj" />
+    <Project Path="src/XlightsAI.Studio.Choreography/XlightsAI.Studio.Choreography.csproj" />
+    <Project Path="src/XlightsAI.Studio.Director/XlightsAI.Studio.Director.csproj" />
     <Project Path="src/XlightsAI.Studio.AiEdits/XlightsAI.Studio.AiEdits.csproj" />
     <Project Path="src/XlightsAI.Studio.Refinement/XlightsAI.Studio.Refinement.csproj" />
     <Project Path="src/XlightsAI.Studio.Rendering/XlightsAI.Studio.Rendering.csproj" />
     <Project Path="src/XlightsAI.Studio.WholeSong/XlightsAI.Studio.WholeSong.csproj" />
+    <Project Path="src/XlightsAI.Studio.Pipeline/XlightsAI.Studio.Pipeline.csproj" />
     <Project Path="src/XlightsAI.Studio.Distribution/XlightsAI.Studio.Distribution.csproj" />
     <Project Path="src/XlightsAI.Studio.Release/XlightsAI.Studio.Release.csproj" />
     <Project Path="src/XlightsAI.Studio.Shell/XlightsAI.Studio.Shell.csproj" />
@@ -25,6 +29,7 @@
     <Project Path="tests/XlightsAI.Studio.Reference.Tests/XlightsAI.Studio.Reference.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Projects.Tests/XlightsAI.Studio.Projects.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Xlights.Tests/XlightsAI.Studio.Xlights.Tests.csproj" />
+    <Project Path="tests/XlightsAI.Studio.Knowledge.Tests/XlightsAI.Studio.Knowledge.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Editing.Tests/XlightsAI.Studio.Editing.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Audio.Tests/XlightsAI.Studio.Audio.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Rhythm.Tests/XlightsAI.Studio.Rhythm.Tests.csproj" />
@@ -33,10 +38,13 @@
     <Project Path="tests/XlightsAI.Studio.Structure.Tests/XlightsAI.Studio.Structure.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Display.Tests/XlightsAI.Studio.Display.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Composition.Tests/XlightsAI.Studio.Composition.Tests.csproj" />
+    <Project Path="tests/XlightsAI.Studio.Choreography.Tests/XlightsAI.Studio.Choreography.Tests.csproj" />
+    <Project Path="tests/XlightsAI.Studio.Director.Tests/XlightsAI.Studio.Director.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.AiEdits.Tests/XlightsAI.Studio.AiEdits.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Refinement.Tests/XlightsAI.Studio.Refinement.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Rendering.Tests/XlightsAI.Studio.Rendering.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.WholeSong.Tests/XlightsAI.Studio.WholeSong.Tests.csproj" />
+    <Project Path="tests/XlightsAI.Studio.Pipeline.Tests/XlightsAI.Studio.Pipeline.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Distribution.Tests/XlightsAI.Studio.Distribution.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Release.Tests/XlightsAI.Studio.Release.Tests.csproj" />
     <Project Path="tests/XlightsAI.Studio.Shell.Tests/XlightsAI.Studio.Shell.Tests.csproj" />
@@ -44,5 +52,6 @@
   <Folder Name="/tools/">
     <Project Path="tools/FixtureCorpusGenerator/FixtureCorpusGenerator.csproj" />
     <Project Path="tools/FakeXlightsHost/FakeXlightsHost.csproj" />
+    <Project Path="tools/CorpusMiner/CorpusMiner.csproj" />
   </Folder>
 </Solution>

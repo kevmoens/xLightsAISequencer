@@ -1,7 +1,11 @@
 namespace XlightsAI.Studio.Composition;
 
 /// <summary>
-/// PHASE-10 Step 066: one source track's semantic role for one phrase, targeting one named spatial path.
+/// SUPERSEDED, kept only as reference material — see <see cref="IChoreographyCompiler"/>'s own doc comment
+/// for the full "why" (build-plan Phase 10 §3g). The live Director/Choreography path performs prop-role
+/// assignment via band-energy mapping instead (build-plan §3d), not this type.
+///
+/// Historical summary — PHASE-10 Step 066: one source track's semantic role for one phrase, targeting one named spatial path.
 /// Named <c>MusicalRoleAssignment</c> (not the bare <c>RoleAssignment</c> PHASE-10.md Section 3's own
 /// proposed C# signature uses) to avoid a confusing same-shape-different-meaning collision with the
 /// already-accepted <see cref="XlightsAI.Studio.Display.RoleAssignment"/> (a *prop's* artistic role,

@@ -13,13 +13,25 @@ namespace XlightsAI.Studio.Structure;
 /// every internal boundary falls back to the bar-based hypothesis, never an error).
 /// </summary>
 /// <param name="SongId">The song every supplied analysis input must share.</param>
-/// <param name="SourceHash">The source audio hash <see cref="LabelAnalysis"/>, <see cref="FingerprintSet"/> and (when present) <see cref="MelodyTrack"/> must themselves have been built from -- "missing media" is an empty value here.</param>
+/// <param name="SourceHash">The source audio hash <see cref="LabelAnalysis"/> and <see cref="FingerprintSet"/> must themselves have been built from -- "missing media" is an empty value here.</param>
 /// <param name="LabelAnalysis">The approved section labels this run segments into phrases.</param>
 /// <param name="FingerprintSet">The approved, already-computed per-bar fingerprints this run's phrase signatures are computed from.</param>
 /// <param name="MelodyTrack">The approved melody track (if any) this run's melodic-cadence evidence is computed from.</param>
+/// <param name="MelodySourceAssetHash">
+/// The hash <see cref="MelodyTrack"/>'s own <c>SourceAssetHash</c> is expected to equal -- required
+/// (non-empty) whenever <see cref="MelodyTrack"/> is supplied, ignored otherwise. Deliberately a
+/// separate value from <see cref="SourceHash"/>: a real <see cref="MelodyTrack"/> is routinely derived
+/// from an isolated lead *stem* (see <see cref="StructureAnalysisRunner"/>'s own doc comment), whose hash
+/// is legitimately never the full song's own hash -- that is the stem's correct cache-key identity, not
+/// a mismatch to paper over by comparing it to <see cref="SourceHash"/> instead. Threading the real
+/// expected hash through here (rather than fabricating a match, or giving up and passing a
+/// <see langword="null"/> <see cref="MelodyTrack"/>) is what lets cadence-aware phrasing actually run
+/// against a real, stem-derived melody.
+/// </param>
 public sealed record PhraseSegmentationContext(
     SongId SongId,
     string SourceHash,
     SectionLabelAnalysis LabelAnalysis,
     SongFingerprintSet FingerprintSet,
-    MelodyTrack? MelodyTrack);
+    MelodyTrack? MelodyTrack,
+    string? MelodySourceAssetHash = null);

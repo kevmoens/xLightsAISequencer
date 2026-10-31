@@ -1,0 +1,111 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.ShowImportView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    SCREEN 04 SHOW IMPORT (PHASE-02 Step 009): read-only discovery of an xLights show folder.
+
+    This screen had grown to host five unrelated jobs on one scroll — discover the show, generate a
+    whole-song plan, generate a hardcoded three-effect debug plan, export an XSQ, and launch
+    xLights — roughly 130 lines of markup with no visual separation between a primary action and a
+    developer convenience. Everything downstream of "what props does this show have" now lives on
+    the Generate & export screen, against the same ShowImportViewModel.
+  -->
+
+  <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="Show layout" />
+    <TextBlock Classes="page-subtitle"
+               Text="Read the props, groups and geometry out of your xLights show folder. This is strictly read-only — nothing in that folder is modified." />
+
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="field" Text="XLIGHTS SHOW FOLDER" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <TextBox Grid.Column="0" Text="{Binding ShowImport.ShowDirectory}" Watermark="C:\path\to\xlights-show" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowseShowFolder" />
+        </Grid>
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Classes="primary" Content="Read show folder" Command="{Binding DiscoverShowDirectoryCommand}" />
+          <TextBlock Classes="busy" VerticalAlignment="Center"
+                     IsVisible="{Binding ShowImport.IsBusy}" Text="Reading…" />
+        </StackPanel>
+        <TextBlock Classes="hint" IsVisible="{Binding ShowImport.IsEmpty}"
+                   Text="Choose the folder containing xlights_rgbeffects.xml, then click Read show folder." />
+        <TextBlock Classes="error" IsVisible="{Binding ShowImport.IsError}" Text="{Binding ShowImport.ErrorMessage}" />
+      </StackPanel>
+    </Border>
+
+    <StackPanel IsVisible="{Binding ShowImport.IsLoaded}" Spacing="14">
+
+      <Border Classes="panel">
+        <StackPanel Spacing="3">
+          <TextBlock Classes="detail" Text="{Binding ShowImport.Discovery.ShowDirectory, StringFormat='Folder: {0}'}" />
+          <TextBlock Classes="detail" Text="{Binding ShowImport.Discovery.HasRgbEffectsFile, StringFormat='xlights_rgbeffects.xml found: {0}'}" />
+          <TextBlock Classes="detail" Text="{Binding ShowImport.Discovery.HasNetworksFile, StringFormat='xlights_networks.xml found: {0}'}" />
+          <TextBlock Classes="detail" Text="{Binding ShowImport.Layout.SourceLayoutHash, StringFormat='Layout hash: {0}'}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Warnings from discovery and from reference validation are the same kind of thing to the
+           reader, so they are shown together rather than split across two unlabelled lists. -->
+      <StackPanel Spacing="4">
+        <ItemsControl ItemsSource="{Binding ShowImport.Discovery.Warnings}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Classes="warn" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+        <ItemsControl ItemsSource="{Binding ShowImport.Layout.Warnings}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Classes="warn" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+
+      <Grid ColumnDefinitions="*,*" ColumnSpacing="14">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Classes="section" Text="Props" />
+          <Border Classes="panel" MaxHeight="280">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding ShowImport.Layout.Models}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding XlightsName}" Margin="0,1" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Border>
+        </StackPanel>
+
+        <StackPanel Grid.Column="1" Spacing="4">
+          <TextBlock Classes="section" Text="Groups" />
+          <Border Classes="panel" MaxHeight="280">
+            <ScrollViewer VerticalScrollBarVisibility="Auto">
+              <ItemsControl ItemsSource="{Binding ShowImport.Layout.Groups}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate>
+                    <TextBlock Text="{Binding Name}" Margin="0,1" />
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Border>
+        </StackPanel>
+      </Grid>
+
+      <Border Classes="panel">
+        <StackPanel Orientation="Horizontal" Spacing="6">
+          <TextBlock Classes="hint" VerticalAlignment="Center" Text="Layout imported." />
+          <Button Classes="link" Content="Next: load the song &#x2192;" Command="{Binding NavigateToAudioCommand}" />
+        </StackPanel>
+      </Border>
+    </StackPanel>
+  </StackPanel>
+</UserControl>

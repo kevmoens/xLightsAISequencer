@@ -1,0 +1,63 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             xmlns:conv="using:Avalonia.Data.Converters"
+             x:Class="XlightsAI.Studio.App.Views.Screens.FirstRunView"
+             x:DataType="vm:ShellViewModel">
+
+  <!-- PHASE-15 Step 095: first-run onboarding, shown automatically on a fresh install before any
+       other screen. It is a takeover, not a destination — see ShellNavigationView for why it no
+       longer appears in the navigation list. -->
+
+  <StackPanel Spacing="14" MaxWidth="640" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="Set up xLights AI Studio" />
+    <TextBlock Classes="page-subtitle"
+               Text="One question before you start: where should your projects live? Pick a folder you own — never an administrator-only location such as Program Files." />
+
+    <Border Classes="card">
+      <StackPanel Spacing="6">
+        <TextBlock Classes="field" Text="WORKSPACE FOLDER" />
+        <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
+          <TextBox Grid.Column="0" Text="{Binding FirstRun.WorkspaceDirectory}"
+                   Watermark="C:\Users\you\Documents\XlightsAI Studio Projects" />
+          <Button Grid.Column="1" Content="Browse…" Click="OnBrowseWorkspace" />
+        </Grid>
+
+        <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,8,0,0">
+          <Button Classes="primary" Content="Continue" Command="{Binding CompleteFirstRunCommand}" />
+          <TextBlock Classes="busy" VerticalAlignment="Center"
+                     IsVisible="{Binding FirstRun.IsBusy}" Text="Setting up…" />
+        </StackPanel>
+
+        <TextBlock Classes="error"
+                   IsVisible="{Binding FirstRun.ErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
+                   Text="{Binding FirstRun.ErrorMessage}" />
+      </StackPanel>
+    </Border>
+
+    <!-- Runtime facts and health warnings are secondary to the one decision above, and are styled
+         that way. Neither ever blocks completion — that is this step's own stated contract. -->
+    <Expander Header="Detected runtime"
+              IsVisible="{Binding FirstRun.ProbedCapability, Converter={x:Static conv:ObjectConverters.IsNotNull}}">
+      <StackPanel Spacing="2" Margin="0,4">
+        <TextBlock Classes="detail" Text="{Binding FirstRun.ProbedCapability.OperatingSystem, StringFormat='OS: {0}'}" />
+        <TextBlock Classes="detail" Text="{Binding FirstRun.ProbedCapability.Architecture, StringFormat='Architecture: {0}'}" />
+        <TextBlock Classes="detail" Text="{Binding FirstRun.ProbedCapability.XlightsDetected, StringFormat='xLights detected: {0}'}" />
+      </StackPanel>
+    </Expander>
+
+    <Border Classes="panel" IsVisible="{Binding FirstRun.HasHealthIssues}">
+      <StackPanel Spacing="4">
+        <TextBlock Classes="section" Text="Worth knowing" />
+        <TextBlock Classes="hint" Text="None of these stop you from continuing." />
+        <ItemsControl ItemsSource="{Binding FirstRun.HealthIssues}">
+          <ItemsControl.ItemTemplate>
+            <DataTemplate>
+              <TextBlock Classes="warn" Text="{Binding}" />
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

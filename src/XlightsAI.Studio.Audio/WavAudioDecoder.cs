@@ -45,6 +45,7 @@ public sealed class WavAudioDecoder : IAudioDecoder
         return new SongAsset(
             Id: new SongId(Guid.NewGuid()),
             FilePath: path,
+            OriginalFilePath: path,
             Sha256: sha256,
             SampleCount: header.FrameCount,
             SampleRate: header.SampleRate,

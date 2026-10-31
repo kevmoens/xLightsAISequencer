@@ -88,34 +88,39 @@ public sealed class ProjectsViewModel : ObservableObject
 
     /// <summary>
     /// Creates a project at <see cref="WorkspaceDirectory"/> named <see cref="NewProjectName"/> via
-    /// <paramref name="projectService"/>. Returns <see langword="true"/> on success; on failure,
-    /// <see cref="ActionErrorMessage"/> is set with the real exception message and
-    /// <see langword="false"/> is returned — never an unhandled exception out of a UI command.
+    /// <paramref name="projectService"/>. Returns the created <see cref="ProjectManifest"/> on
+    /// success; on failure, <see cref="ActionErrorMessage"/> is set with the real exception message
+    /// and <see langword="null"/> is returned — never an unhandled exception out of a UI command.
+    /// <para>
+    /// Previously returned <see langword="bool"/> and discarded the manifest
+    /// <see cref="IProjectService.CreateAsync"/> already hands back, which was the entire reason the
+    /// shell had no concept of "the current project": the one thing a caller needs — which project,
+    /// at what id/root directory — was thrown away immediately after a successful create.
+    /// </para>
     /// </summary>
-    public async Task<bool> CreateProjectAsync(IProjectService projectService, CancellationToken ct = default)
+    public async Task<ProjectManifest?> CreateProjectAsync(IProjectService projectService, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(projectService);
 
         // Reentrancy guard: this check-and-set happens synchronously (no await before it), so even
         // if the UI command is invoked twice before CanExecuteChanged disables it (e.g. a fast
-        // double-click), only the first call proceeds. The second returns false immediately without
+        // double-click), only the first call proceeds. The second returns null immediately without
         // touching the store, instead of racing the first call's atomic-write temp file.
         if (_isBusy)
         {
-            return false;
+            return null;
         }
 
         IsBusy = true;
         ActionErrorMessage = null;
         try
         {
-            await projectService.CreateAsync(WorkspaceDirectory, NewProjectName, ct).ConfigureAwait(true);
-            return true;
+            return await projectService.CreateAsync(WorkspaceDirectory, NewProjectName, ct).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
             ActionErrorMessage = ex.Message;
-            return false;
+            return null;
         }
         finally
         {
@@ -127,31 +132,46 @@ public sealed class ProjectsViewModel : ObservableObject
     /// Opens the project at <see cref="WorkspaceDirectory"/> via <paramref name="projectService"/>.
     /// Same success/failure contract as <see cref="CreateProjectAsync"/>.
     /// </summary>
-    public async Task<bool> OpenProjectAsync(IProjectService projectService, CancellationToken ct = default)
+    public async Task<ProjectManifest?> OpenProjectAsync(IProjectService projectService, CancellationToken ct = default)
     {
         ArgumentNullException.ThrowIfNull(projectService);
 
         // Reentrancy guard: see CreateProjectAsync's identical guard above.
         if (_isBusy)
         {
-            return false;
+            return null;
         }
 
         IsBusy = true;
         ActionErrorMessage = null;
         try
         {
-            await projectService.OpenAsync(WorkspaceDirectory, ct).ConfigureAwait(true);
-            return true;
+            return await projectService.OpenAsync(WorkspaceDirectory, ct).ConfigureAwait(true);
         }
         catch (Exception ex)
         {
             ActionErrorMessage = ex.Message;
-            return false;
+            return null;
         }
         finally
         {
             IsBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Restores a previously persisted project root directory into the bindable
+    /// <see cref="WorkspaceDirectory"/> text, without touching the filesystem (opening it still
+    /// requires the explicit "Open existing" action) — same convention as
+    /// <see cref="ShowImportViewModel.RestoreLastDirectory"/> and
+    /// <see cref="FirstRunViewModel.RestoreLastWorkspaceDirectory"/>. Never overwrites text the
+    /// user has already typed into the field this session.
+    /// </summary>
+    public void RestoreLastProjectDirectory(string? lastProjectRootDirectory)
+    {
+        if (!string.IsNullOrWhiteSpace(lastProjectRootDirectory) && string.IsNullOrEmpty(WorkspaceDirectory))
+        {
+            WorkspaceDirectory = lastProjectRootDirectory;
         }
     }
 

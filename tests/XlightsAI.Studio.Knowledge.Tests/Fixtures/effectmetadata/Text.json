@@ -1,0 +1,23 @@
+{
+    "effectName": "Text",
+    "properties": [
+        {
+            "id": "Text",
+            "label": "Text",
+            "description": "The text string to display. Supports multiple lines and special tokens for countdown modes. When non-empty, the file picker and lyric track are disabled.",
+            "type": "string",
+            "controlType": "text",
+            "default": ""
+        },
+        {
+            "id": "Text_LyricTrack",
+            "label": "From Lyrics",
+            "description": "Selects a lyric timing track to use as the text source. The current lyric phrase or word is displayed at each point in time. Disabled when Text or From File is set.",
+            "type": "enum",
+            "controlType": "choice",
+            "options": [],
+            "dynamicOptions": "lyricTimingTracks",
+            "default": ""
+        }
+    ]
+}

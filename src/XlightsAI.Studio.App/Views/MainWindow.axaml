@@ -2,20 +2,30 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:XlightsAI.Studio.Shell"
         xmlns:conv="using:Avalonia.Data.Converters"
-        xmlns:local="using:XlightsAI.Studio.App.Converters"
+        xmlns:views="using:XlightsAI.Studio.App.Views"
+        xmlns:screens="using:XlightsAI.Studio.App.Views.Screens"
         x:Class="XlightsAI.Studio.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="xLights AI Choreography Studio"
-        Width="900" Height="600"
-        MinWidth="600" MinHeight="400">
+        Width="1180" Height="760"
+        MinWidth="860" MinHeight="560">
 
-  <!-- PHASE-04 Step 029 ("...shortcuts, keyboard focus handling..."): real Window-level keyboard
-       shortcuts for the Timeline screen's own navigation/zoom/loop actions — closing the gap
-       PHASE-03 Step 018's own evidence explicitly disclosed ("Keyboard navigation is button-driven...
-       a future step should wire a real KeyBinding... for a more natural keyboard-only workflow").
-       Each command's own CanExecute guard (Timeline.IsLoaded, a real selection, etc.) already makes
-       every one of these a safe no-op while on another screen or before its precondition holds, so a
-       single Window-level binding list is sufficient — no per-screen scoping is needed. -->
+  <!--
+    The shell. It owns three things and nothing else: the startup states, the navigation rail, and
+    which screen is mounted. Every screen's markup lives in its own file under Views/Screens.
+
+    This file was previously 578 lines holding all eight screens as sibling StackPanels in one Grid
+    cell, each toggled by its own IsVisible binding — so every screen's controls were constructed
+    and laid out at all times, a change to the Audio screen risked the Timeline, and finding the
+    markup for any one screen meant scrolling past the other seven. Screens keep binding against
+    ShellViewModel (each UserControl declares x:DataType="vm:ShellViewModel" and inherits this
+    window's DataContext), so no binding path changed in the split.
+
+    PHASE-04 Step 029: Window-level keyboard shortcuts for the Timeline screen's navigation, zoom
+    and loop actions. Each command's own CanExecute guard (Timeline.IsLoaded, a real selection, and
+    so on) already makes every one of these a safe no-op on another screen or before its
+    precondition holds, so one Window-level binding list needs no per-screen scoping.
+  -->
   <Window.KeyBindings>
     <KeyBinding Gesture="Right" Command="{Binding TimelineSelectNextEffectCommand}" />
     <KeyBinding Gesture="Left" Command="{Binding TimelineSelectPreviousEffectCommand}" />
@@ -27,528 +37,62 @@
     <KeyBinding Gesture="Shift+L" Command="{Binding ClearTimelineLoopCommand}" />
   </Window.KeyBindings>
 
-  <Grid RowDefinitions="Auto,*" Margin="12">
+  <Panel>
 
-    <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8" Margin="0,0,0,12"
-                IsVisible="{Binding !IsStarting}">
-      <Button Content="Welcome" Command="{Binding NavigateToWelcomeCommand}" />
-      <Button Content="Projects" Command="{Binding NavigateToProjectsCommand}" />
-      <Button Content="Show Import" Command="{Binding NavigateToShowImportCommand}" />
-      <Button Content="Timeline" Command="{Binding NavigateToTimelineCommand}" />
-      <Button Content="Audio" Command="{Binding NavigateToAudioCommand}" />
-      <Button Content="Settings" Command="{Binding NavigateToSettingsCommand}" />
-      <Button Content="Diagnostics" Command="{Binding NavigateToDiagnosticsCommand}" />
-      <Button Content="First Run" Command="{Binding NavigateToFirstRunCommand}" />
+    <!-- ===== Startup ===== -->
+    <StackPanel IsVisible="{Binding IsStarting}" Spacing="8"
+                HorizontalAlignment="Center" VerticalAlignment="Center">
+      <TextBlock Classes="page-title" Text="Starting…" HorizontalAlignment="Center" />
     </StackPanel>
 
-    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
-    <Grid>
-
-      <!-- Startup state -->
-      <TextBlock IsVisible="{Binding IsStarting}" Text="Starting..." FontSize="18" />
-
-      <!-- Startup failure state: never a blank window -->
-      <StackPanel IsVisible="{Binding IsFailed}" Spacing="8">
-        <TextBlock Text="Startup failed" FontSize="20" FontWeight="Bold" Foreground="Red" />
-        <TextBlock Text="{Binding Failure.Code}" />
+    <!-- Startup failure: never a blank window. -->
+    <Border IsVisible="{Binding IsFailed}" Classes="card" Margin="40"
+            MaxWidth="560" HorizontalAlignment="Center" VerticalAlignment="Center">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="page-title" Foreground="{DynamicResource AppDangerBrush}" Text="Startup failed" />
         <TextBlock Text="{Binding Failure.Message}" TextWrapping="Wrap" />
+        <TextBlock Classes="detail" Text="{Binding Failure.Code, StringFormat='Code: {0}'}" />
       </StackPanel>
+    </Border>
 
-      <!-- Welcome screen -->
-      <StackPanel IsVisible="{Binding IsShowingWelcome}" Spacing="8" x:DataType="vm:ShellViewModel">
-        <TextBlock Text="{Binding Welcome.Title}" FontSize="24" FontWeight="Bold" />
-        <TextBlock Text="{Binding Welcome.Subtitle}" />
-      </StackPanel>
-
-      <!-- PHASE-15 Step 095: first-run onboarding wizard. Shown automatically on a fresh install
-           (no persisted AppSettings.HasCompletedFirstRun yet) before any other screen. -->
-      <StackPanel IsVisible="{Binding IsShowingFirstRun}" Spacing="8" x:DataType="vm:ShellViewModel">
-        <TextBlock Text="Welcome — first run setup" FontSize="24" FontWeight="Bold" />
-        <TextBlock Text="Choose a workspace folder for your projects (never an administrator-only location)." TextWrapping="Wrap" />
-        <TextBox Text="{Binding FirstRun.WorkspaceDirectory}" Watermark="C:\Users\you\Documents\XlightsAI Studio Projects" />
-        <Button Content="Continue" Command="{Binding CompleteFirstRunCommand}" />
-        <TextBlock IsVisible="{Binding FirstRun.IsBusy}" Text="Setting up..." />
-        <TextBlock IsVisible="{Binding FirstRun.ErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                   Text="{Binding FirstRun.ErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-        <StackPanel IsVisible="{Binding FirstRun.ProbedCapability, Converter={x:Static conv:ObjectConverters.IsNotNull}}" Spacing="2">
-          <TextBlock Text="Detected runtime" FontWeight="Bold" Margin="0,8,0,0" />
-          <TextBlock Text="{Binding FirstRun.ProbedCapability.OperatingSystem, StringFormat='OS: {0}'}" />
-          <TextBlock Text="{Binding FirstRun.ProbedCapability.Architecture, StringFormat='Architecture: {0}'}" />
-          <TextBlock Text="{Binding FirstRun.ProbedCapability.XlightsDetected, StringFormat='xLights detected: {0}'}" />
-        </StackPanel>
-
-        <!-- Required failure/edge case, verbatim: "Clean machine and unsupported runtime must
-             produce user-readable diagnostics." Never blocks completion by itself. -->
-        <StackPanel IsVisible="{Binding FirstRun.HasHealthIssues}" Spacing="2">
-          <TextBlock Text="Diagnostics" FontWeight="Bold" Margin="0,8,0,0" />
-          <ItemsControl ItemsSource="{Binding FirstRun.HealthIssues}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding}" Foreground="Orange" TextWrapping="Wrap" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-        </StackPanel>
-      </StackPanel>
-
-      <!-- Projects screen: loading / empty / error / loaded, never silently blank -->
-      <StackPanel IsVisible="{Binding IsShowingProjects}" Spacing="8" x:DataType="vm:ShellViewModel">
-        <TextBlock Text="Projects" FontSize="24" FontWeight="Bold" />
-        <TextBlock IsVisible="{Binding Projects.IsLoading}" Text="Loading projects..." />
-        <TextBlock IsVisible="{Binding Projects.IsEmpty}" Text="No projects yet. Create one to get started." />
-        <TextBlock IsVisible="{Binding Projects.IsError}" Text="{Binding Projects.ErrorMessage}" Foreground="Red" />
-        <ItemsControl IsVisible="{Binding Projects.IsLoaded}" ItemsSource="{Binding Projects.ProjectNames}" />
-
-        <!-- Step 006: create/open project with a versioned manifest, no show-folder writes -->
-        <StackPanel Spacing="4" Margin="0,16,0,0">
-          <TextBlock Text="Workspace directory" FontWeight="Bold" />
-          <TextBox Text="{Binding Projects.WorkspaceDirectory}" Watermark="C:\path\to\project-workspace" />
-          <TextBlock Text="New project name" FontWeight="Bold" />
-          <TextBox Text="{Binding Projects.NewProjectName}" Watermark="Demo Song" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Create Project" Command="{Binding CreateProjectCommand}" />
-            <Button Content="Open Project" Command="{Binding OpenProjectCommand}" />
-          </StackPanel>
-          <TextBlock IsVisible="{Binding Projects.IsBusy}" Text="Working..." />
-          <TextBlock IsVisible="{Binding Projects.ActionErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                     Text="{Binding Projects.ActionErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-        </StackPanel>
-      </StackPanel>
-
-      <!-- SCREEN 04 SHOW IMPORT (PHASE-02 Step 009): read-only initial discovery only. -->
-      <StackPanel IsVisible="{Binding IsShowingShowImport}" Spacing="8" x:DataType="vm:ShellViewModel">
-        <TextBlock Text="Show Import" FontSize="24" FontWeight="Bold" />
-        <TextBlock Text="Show directory" FontWeight="Bold" />
-        <TextBox Text="{Binding ShowImport.ShowDirectory}" Watermark="C:\path\to\xlights-show" />
-        <Button Content="Discover" Command="{Binding DiscoverShowDirectoryCommand}" />
-        <TextBlock IsVisible="{Binding ShowImport.IsBusy}" Text="Discovering..." />
-
-        <TextBlock IsVisible="{Binding ShowImport.IsEmpty}" Text="Select a show directory and click Discover." />
-        <TextBlock IsVisible="{Binding ShowImport.IsError}" Text="{Binding ShowImport.ErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-        <StackPanel IsVisible="{Binding ShowImport.IsLoaded}" Spacing="4">
-          <TextBlock Text="{Binding ShowImport.Discovery.ShowDirectory, StringFormat='Directory: {0}'}" />
-          <TextBlock Text="{Binding ShowImport.Discovery.HasRgbEffectsFile, StringFormat='xlights_rgbeffects.xml found: {0}'}" />
-          <TextBlock Text="{Binding ShowImport.Discovery.HasNetworksFile, StringFormat='xlights_networks.xml found: {0}'}" />
-          <ItemsControl ItemsSource="{Binding ShowImport.Discovery.Warnings}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding}" Foreground="Orange" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <!-- PHASE-02 Step 010: normalized models/groups/geometry parsed from xlights_rgbeffects.xml. -->
-          <TextBlock Text="{Binding ShowImport.Layout.SourceLayoutHash, StringFormat='Layout hash: {0}'}" />
-          <TextBlock Text="Models" FontWeight="Bold" Margin="0,8,0,0" />
-          <ItemsControl ItemsSource="{Binding ShowImport.Layout.Models}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding XlightsName, StringFormat='{}{0}'}" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <!-- PHASE-02 Step 011: model-group targets and non-destructive reference-validation warnings. -->
-          <TextBlock Text="Groups" FontWeight="Bold" Margin="0,8,0,0" />
-          <ItemsControl ItemsSource="{Binding ShowImport.Layout.Groups}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding Name, StringFormat='{}{0}'}" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <ItemsControl ItemsSource="{Binding ShowImport.Layout.Warnings}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding}" Foreground="Orange" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <!-- PHASE-02 Step 012: hardcoded three-effect plan on selected real props. -->
-          <TextBlock Text="Generate Effect Plan" FontWeight="Bold" Margin="0,16,0,0" />
-          <TextBlock Text="Three real props (comma-separated)" />
-          <TextBox Text="{Binding ShowImport.EffectTargetNamesCsv}" Watermark="Roofline, Arch 1, Arch 2" />
-          <TextBlock Text="Song duration (100 ns ticks)" />
-          <TextBox Text="{Binding ShowImport.SongDurationTicks}" />
-          <Button Content="Generate 3 Effects" Command="{Binding GenerateEffectPlanCommand}" />
-          <TextBlock IsVisible="{Binding ShowImport.IsPlanBusy}" Text="Generating plan..." />
-          <TextBlock IsVisible="{Binding ShowImport.PlanErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                     Text="{Binding ShowImport.PlanErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-          <StackPanel IsVisible="{Binding ShowImport.HasPlan}" Spacing="2">
-            <TextBlock Text="{Binding ShowImport.PlanSavedPath, StringFormat='Saved plan: {0}'}" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding ShowImport.Plan.Revision, StringFormat='Revision: {0}'}" />
-            <ItemsControl ItemsSource="{Binding ShowImport.Plan.Effects}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                  <TextBlock Text="{Binding}" />
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-
-          <!-- PHASE-02 Step 013: minimal editable XSQ writer. -->
-          <TextBlock Text="Export XSQ" FontWeight="Bold" Margin="0,16,0,0" />
-          <TextBlock Text="Output path" />
-          <TextBox Text="{Binding ShowImport.XsqOutputPath}" Watermark="C:\path\to\exports\sequence.xsq" />
-          <TextBlock Text="Target xLights version" />
-          <TextBox Text="{Binding ShowImport.TargetXlightsVersion}" />
-          <!-- PHASE-02 Step 015: explicit, caller-chosen collision policy; never a silent overwrite. -->
-          <TextBlock Text="If a file already exists at the output path" />
-          <ComboBox ItemsSource="{Binding ShowImport.ExportPolicyOptions}" SelectedItem="{Binding ShowImport.ExportPolicy}" />
-          <Button Content="Export XSQ" Command="{Binding ExportXsqCommand}" />
-          <TextBlock IsVisible="{Binding ShowImport.IsExportBusy}" Text="Exporting..." />
-          <TextBlock IsVisible="{Binding ShowImport.ExportErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                     Text="{Binding ShowImport.ExportErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-          <StackPanel IsVisible="{Binding ShowImport.HasExport}" Spacing="2">
-            <TextBlock Text="{Binding ShowImport.LastExport.Path, StringFormat='Exported: {0}'}" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding ShowImport.LastExport.Sha256, StringFormat='SHA256: {0}'}" TextWrapping="Wrap" />
-            <TextBlock IsVisible="{Binding ShowImport.LastExport.BackupPath, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                       Text="{Binding ShowImport.LastExport.BackupPath, StringFormat='Backup of previous file: {0}'}" TextWrapping="Wrap" />
-            <ItemsControl ItemsSource="{Binding ShowImport.LastExport.Warnings}">
-              <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                  <TextBlock Text="{Binding}" Foreground="Orange" TextWrapping="Wrap" />
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </StackPanel>
-
-          <!-- PHASE-02 Step 014: open the exported XSQ in installed xLights for human-attested verification. -->
-          <TextBlock Text="Open in xLights" FontWeight="Bold" Margin="0,16,0,0" />
-          <TextBlock Text="Installed xLights executable path" />
-          <TextBox Text="{Binding ShowImport.XlightsExecutablePath}" Watermark="C:\Program Files\xLights\xLights.exe" />
-          <Button Content="Open in xLights" Command="{Binding LaunchXlightsCommand}" />
-          <TextBlock IsVisible="{Binding ShowImport.IsLaunchBusy}" Text="Launching xLights..." />
-          <TextBlock IsVisible="{Binding ShowImport.LaunchErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                     Text="{Binding ShowImport.LaunchErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-          <StackPanel IsVisible="{Binding ShowImport.HasLaunch}" Spacing="2">
-            <TextBlock Text="{Binding ShowImport.LastLaunch.ExecutablePath, StringFormat='Launched: {0}'}" TextWrapping="Wrap" />
-            <TextBlock Text="{Binding ShowImport.LastLaunch.ExecutableVersion, StringFormat='Reported version: {0}'}" />
-            <TextBlock Text="{Binding ShowImport.LastLaunch.ProcessId, StringFormat='Process id: {0}'}" />
-          </StackPanel>
-        </StackPanel>
-      </StackPanel>
-
-      <!-- SCREEN 13 TIMELINE (PHASE-03 Step 016): time ruler, horizontal scroll and zoom. -->
-      <StackPanel IsVisible="{Binding IsShowingTimeline}" Spacing="8" x:DataType="vm:ShellViewModel">
-        <TextBlock Text="Timeline" FontSize="24" FontWeight="Bold" />
-        <TextBlock Text="Total duration (100 ns ticks)" FontWeight="Bold" />
-        <TextBox Text="{Binding Timeline.TotalDurationTicks}" />
-        <Button Content="Load Timeline" Command="{Binding LoadTimelineCommand}" />
-
-        <TextBlock IsVisible="{Binding Timeline.IsEmpty}" Text="No media loaded. Set a duration and click Load Timeline." />
-        <TextBlock IsVisible="{Binding Timeline.IsError}" Text="{Binding Timeline.ErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-        <StackPanel IsVisible="{Binding Timeline.IsLoaded}" Spacing="4">
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Zoom In" Command="{Binding TimelineZoomInCommand}" />
-            <Button Content="Zoom Out" Command="{Binding TimelineZoomOutCommand}" />
-            <Button Content="Scroll Left" Command="{Binding TimelineScrollLeftCommand}" />
-            <Button Content="Scroll Right" Command="{Binding TimelineScrollRightCommand}" />
-          </StackPanel>
-          <TextBlock Text="{Binding Timeline.TicksPerPixel, StringFormat='Ticks per pixel: {0}'}" />
-          <TextBlock Text="{Binding Timeline.VisibleStartTicks, StringFormat='Visible start (ticks): {0}'}" />
-          <TextBlock Text="{Binding Timeline.VisibleEndTicks, StringFormat='Visible end (ticks): {0}'}" />
-
-          <!-- Time ruler: only the currently visible, virtualized set of ticks is ever rendered;
-               each tick's absolute pixel offset is a left margin relative to the previous tick, so
-               a plain horizontal panel lays them out left-to-right (see TimelineRulerTickView).
-               PHASE-04 Step 028: a thin playhead marker is overlaid on the same Grid cell, positioned
-               through the exact same TimelineViewport.XFromTime transform (Timeline.PlayheadMarginLeft)
-               the ruler ticks themselves use — "one authoritative playhead," not a second coordinate
-               system. -->
-          <Grid Width="760" Height="48">
-            <Border BorderBrush="Gray" BorderThickness="1" Height="48" Width="760" ClipToBounds="True" Background="White">
-              <ItemsControl ItemsSource="{Binding Timeline.RulerTicks}">
-                <ItemsControl.ItemsPanel>
-                  <ItemsPanelTemplate>
-                    <StackPanel Orientation="Horizontal" />
-                  </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                  <DataTemplate>
-                    <StackPanel Orientation="Vertical" Spacing="0"
-                                Margin="{Binding MarginLeft, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}">
-                      <Rectangle Width="1" Height="12" Fill="Black" />
-                      <TextBlock Text="{Binding Label}" FontSize="10" Foreground="Black" />
-                    </StackPanel>
-                  </DataTemplate>
-                </ItemsControl.ItemTemplate>
-              </ItemsControl>
-            </Border>
-            <Rectangle IsVisible="{Binding Timeline.IsPlayheadVisible}"
-                       Width="2" Height="48" Fill="OrangeRed" HorizontalAlignment="Left" IsHitTestVisible="False"
-                       Margin="{Binding Timeline.PlayheadMarginLeft, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}" />
-          </Grid>
-
-          <!-- PHASE-04 Step 027: synchronized waveform rendered beneath the ruler, through the
-               exact same TimelineViewport pixel/tick transform the ruler above maps through. Only
-               the currently visible, virtualized set of bars is ever rendered (see
-               WaveformBarLayoutBuilder); each bar's absolute pixel X is a left margin relative to
-               the previous bar (see WaveformBarView), same convention as the ruler ticks above. -->
-          <TextBlock Text="Waveform" FontWeight="Bold" Margin="0,8,0,0" />
-          <TextBlock IsVisible="{Binding !Timeline.HasWaveform}"
-                     Text="No waveform loaded. Build a waveform cache on the Audio screen, then click Load Timeline again."
-                     FontStyle="Italic" />
-          <Border IsVisible="{Binding Timeline.HasWaveform}"
-                  BorderBrush="Gray" BorderThickness="1" Height="48" Width="760" ClipToBounds="True" Background="Black">
-            <ItemsControl ItemsSource="{Binding Timeline.WaveformBars}">
-              <ItemsControl.ItemsPanel>
-                <ItemsPanelTemplate>
-                  <StackPanel Orientation="Horizontal" />
-                </ItemsPanelTemplate>
-              </ItemsControl.ItemsPanel>
-              <ItemsControl.ItemTemplate>
-                <DataTemplate>
-                  <Rectangle Fill="LimeGreen" Width="{Binding Width}" Height="{Binding BarHeight}"
-                             VerticalAlignment="Center"
-                             Margin="{Binding MarginLeft, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}" />
-                </DataTemplate>
-              </ItemsControl.ItemTemplate>
-            </ItemsControl>
-          </Border>
-
-          <!-- PHASE-04 Step 028: one master media time clock for playback and playhead — the exact
-               same MasterPlaybackClock reading the Audio screen's own Position display shows. -->
-          <TextBlock Text="Playhead" FontWeight="Bold" Margin="0,8,0,0" />
-          <TextBlock Text="{Binding Timeline.PlayheadTicks, StringFormat='Playhead (100 ns ticks): {0}'}" />
-          <TextBlock IsVisible="{Binding !Timeline.HasPlayhead}" Text="No playback session open. Open Playback on the Audio screen first." FontStyle="Italic" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="Scrub to (100 ns ticks):" VerticalAlignment="Center" />
-            <TextBox Text="{Binding Timeline.ScrubTargetTicksText}" Width="160" />
-            <Button Content="Scrub Playhead" Command="{Binding ScrubTimelinePlayheadCommand}" />
-          </StackPanel>
-          <TextBlock IsVisible="{Binding Timeline.ScrubErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                     Text="{Binding Timeline.ScrubErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-          <!-- PHASE-03 Step 017: prop rows / group hierarchy. Only the currently visible
-               (expanded-ancestor) rows are ever in Timeline.Rows; a collapsed group's children
-               are never flattened into this list at all (see TimelineRowFlattener). -->
-          <TextBlock Text="Props" FontWeight="Bold" Margin="0,8,0,0" />
-          <ItemsControl ItemsSource="{Binding Timeline.Rows}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <StackPanel Orientation="Vertical" Spacing="1"
-                            Margin="{Binding IndentPixels, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}">
-                  <StackPanel Orientation="Horizontal" Spacing="4">
-                    <Button Content="{Binding IsExpanded, Converter={x:Static local:ExpandedGlyphConverter.Instance}}"
-                            IsVisible="{Binding IsGroup}"
-                            Command="{Binding ToggleExpandCommand}"
-                            Padding="4,0" MinWidth="20" />
-                    <TextBlock Text="{Binding DisplayName}" FontWeight="{Binding IsGroup, Converter={x:Static local:BoolToFontWeightConverter.Instance}}" />
-                  </StackPanel>
-
-                  <!-- PHASE-03 Step 018: effect blocks for this row, one horizontal track per
-                       overlapping layer. Each block's absolute pixel X is a left margin relative to
-                       the previous block on the same track (see EffectBlockItemView); width comes
-                       straight from the real viewport transform. Clicking a block hit-tests exactly
-                       that effect id (SelectCommand), never a row index or pixel position. -->
-                  <ItemsControl ItemsSource="{Binding EffectLayers}">
-                    <ItemsControl.ItemTemplate>
-                      <DataTemplate>
-                        <ItemsControl ItemsSource="{Binding Blocks}">
-                          <ItemsControl.ItemsPanel>
-                            <ItemsPanelTemplate>
-                              <StackPanel Orientation="Horizontal" Height="18" />
-                            </ItemsPanelTemplate>
-                          </ItemsControl.ItemsPanel>
-                          <ItemsControl.ItemTemplate>
-                            <DataTemplate>
-                              <Button Content="{Binding Label}" Command="{Binding SelectCommand}"
-                                      Width="{Binding Width}" Height="16" Padding="2,0" FontSize="9"
-                                      HorizontalContentAlignment="Left"
-                                      Background="{Binding IsLocked, Converter={x:Static local:EffectBlockBrushConverter.Instance}, ConverterParameter=Locked}"
-                                      BorderBrush="{Binding IsSelected, Converter={x:Static local:EffectBlockBrushConverter.Instance}, ConverterParameter=Selected}"
-                                      BorderThickness="2"
-                                      Margin="{Binding MarginLeft, Converter={x:Static local:DoubleToLeftThicknessConverter.Instance}}">
-                                <ToolTip.Tip>
-                                  <TextBlock Text="{Binding Label}" />
-                                </ToolTip.Tip>
-                              </Button>
-                            </DataTemplate>
-                          </ItemsControl.ItemTemplate>
-                        </ItemsControl>
-                      </DataTemplate>
-                    </ItemsControl.ItemTemplate>
-                  </ItemsControl>
-                </StackPanel>
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-          <TextBlock IsVisible="{Binding !Timeline.Rows.Count}" Text="No show layout imported yet (Show Import screen) — no prop rows to display." FontStyle="Italic" />
-
-          <ItemsControl ItemsSource="{Binding Timeline.RowWarnings}" IsVisible="{Binding Timeline.RowWarnings.Count}">
-            <ItemsControl.ItemTemplate>
-              <DataTemplate>
-                <TextBlock Text="{Binding}" Foreground="OrangeRed" TextWrapping="Wrap" />
-              </DataTemplate>
-            </ItemsControl.ItemTemplate>
-          </ItemsControl>
-
-          <!-- PHASE-03 Step 018: keyboard navigation + the effect inspector. -->
-          <TextBlock Text="Inspector" FontWeight="Bold" Margin="0,8,0,0" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Previous Effect" Command="{Binding TimelineSelectPreviousEffectCommand}" />
-            <Button Content="Next Effect" Command="{Binding TimelineSelectNextEffectCommand}" />
-            <Button Content="Clear Selection" Command="{Binding TimelineClearSelectionCommand}" />
-          </StackPanel>
-          <StackPanel IsVisible="{Binding Timeline.SelectedEffectInspector, Converter={x:Static conv:ObjectConverters.IsNotNull}}" Spacing="2">
-            <TextBlock Text="{Binding Timeline.SelectedEffectInspector.EffectId, StringFormat='Effect id: {0}'}" />
-            <TextBlock Text="{Binding Timeline.SelectedEffectInspector.TargetModelName, StringFormat='Model: {0}'}" />
-            <TextBlock Text="{Binding Timeline.SelectedEffectInspector.Layer, StringFormat='Layer: {0}'}" />
-            <TextBlock Text="{Binding Timeline.SelectedEffectInspector.StartTicks, StringFormat='Start (ticks): {0}'}" />
-            <TextBlock Text="{Binding Timeline.SelectedEffectInspector.EndTicks, StringFormat='End (ticks): {0}'}" />
-            <TextBlock Text="{Binding Timeline.SelectedEffectInspector.RecipeId, StringFormat='Recipe: {0}'}" />
-            <TextBlock Text="{Binding Timeline.SelectedEffectInspector.IsLocked, StringFormat='Locked: {0}'}" />
-          </StackPanel>
-          <TextBlock IsVisible="{Binding !Timeline.SelectedEffectId.HasValue}" Text="No effect selected. Click a block or use Next/Previous Effect." FontStyle="Italic" />
-
-          <!-- PHASE-03 Step 021: multi-row time-range selection. Row indices are the same
-               pre-order, collapse-aware indices Timeline.Rows itself renders at (never a parallel
-               numbering); pixels are real horizontal offsets into the same shared viewport every
-               other timeline control maps through. -->
-          <TextBlock Text="Range selection" FontWeight="Bold" Margin="0,8,0,0" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="Start row:" VerticalAlignment="Center" />
-            <TextBox Text="{Binding Timeline.RangeSelectionStartRowIndex}" Width="50" />
-            <TextBlock Text="Start pixel:" VerticalAlignment="Center" />
-            <TextBox Text="{Binding Timeline.RangeSelectionStartPixel}" Width="60" />
-            <TextBlock Text="End row:" VerticalAlignment="Center" />
-            <TextBox Text="{Binding Timeline.RangeSelectionEndRowIndex}" Width="50" />
-            <TextBlock Text="End pixel:" VerticalAlignment="Center" />
-            <TextBox Text="{Binding Timeline.RangeSelectionEndPixel}" Width="60" />
-            <Button Content="Select Range" Command="{Binding TimelineApplyRangeSelectionCommand}" />
-            <Button Content="Clear Range" Command="{Binding TimelineClearRangeSelectionCommand}" />
-          </StackPanel>
-          <TextBlock Text="{Binding Timeline.SelectedRangeScopeSummary}"
-                     IsVisible="{Binding Timeline.SelectedRangeScopeSummary, Converter={x:Static conv:ObjectConverters.IsNotNull}}"
-                     FontWeight="Bold" TextWrapping="Wrap" />
-          <TextBlock IsVisible="{Binding Timeline.SelectedRangeScope, Converter={x:Static conv:ObjectConverters.IsNull}}"
-                     Text="No range selected." FontStyle="Italic" />
-
-          <!-- PHASE-04 Step 029 ("Add zoom-to-selection, A/B loop playback and keyboard navigation"):
-               both actions operate on the exact same SelectedRangeScope the range-selection controls
-               above already build — never a second, independently-specified window. Keyboard
-               shortcuts: Z (zoom to selection), L (set loop), Shift+L (clear loop) — see
-               Window.KeyBindings above. -->
-          <TextBlock Text="Zoom to selection / A-B loop" FontWeight="Bold" Margin="0,8,0,0" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Zoom to Selection (Z)" Command="{Binding TimelineZoomToSelectionCommand}" />
-            <Button Content="Set Loop (L)" Command="{Binding SetTimelineLoopFromSelectionCommand}" />
-            <Button Content="Clear Loop (Shift+L)" Command="{Binding ClearTimelineLoopCommand}" />
-          </StackPanel>
-          <TextBlock Text="{Binding Timeline.LoopSummary}"
-                     IsVisible="{Binding Timeline.HasLoop}" FontWeight="Bold" TextWrapping="Wrap" />
-          <TextBlock IsVisible="{Binding !Timeline.HasLoop}" Text="No loop armed." FontStyle="Italic" />
-          <TextBlock IsVisible="{Binding Timeline.LoopErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                     Text="{Binding Timeline.LoopErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-          <!-- PHASE-04 Step 030 ("Add frame/beat/off-grid snapping and timing-diagnostics panel"):
-               the snap buttons set Timeline.SnapPolicy — the one injected dependency the Scrub
-               Playhead action above and the range-selection drag both apply, never a second,
-               hardcoded rounding path. The diagnostics line is this step's own required panel:
-               current snap mode, the live playhead's xLights frame index, and the most recent
-               scrub's own real requested/actual/drift ticks. -->
-          <TextBlock Text="Snap &amp; timing diagnostics" FontWeight="Bold" Margin="0,8,0,0" />
-          <StackPanel Orientation="Horizontal" Spacing="8">
-            <Button Content="Snap: None" Command="{Binding SetTimelineSnapNoneCommand}" />
-            <Button Content="Snap: Frame" Command="{Binding SetTimelineSnapFrameCommand}" />
-          </StackPanel>
-          <TextBlock Text="{Binding Timeline.TimingDiagnosticsSummary}" TextWrapping="Wrap" />
-        </StackPanel>
-      </StackPanel>
-
-      <!-- SCREEN 06 AUDIO (PHASE-04 Step 024): import/probe a local audio file, no waveform/playback yet. -->
-      <StackPanel IsVisible="{Binding IsShowingAudio}" Spacing="8" x:DataType="vm:ShellViewModel">
-        <TextBlock Text="Audio" FontSize="24" FontWeight="Bold" />
-        <TextBlock Text="Audio file path" FontWeight="Bold" />
-        <TextBox Text="{Binding Audio.AudioFilePath}" Watermark="C:\path\to\song.wav" />
-        <Button Content="Probe Audio File" Command="{Binding ProbeAudioFileCommand}" />
-        <TextBlock IsVisible="{Binding Audio.IsBusy}" Text="Probing..." />
-        <TextBlock IsVisible="{Binding Audio.ErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                   Text="{Binding Audio.ErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-        <TextBlock IsVisible="{Binding !Audio.HasProbedAsset}" Text="No audio probed yet. Enter a .wav path and click Probe Audio File." FontStyle="Italic" />
-
-        <StackPanel IsVisible="{Binding Audio.HasProbedAsset}" Spacing="2">
-          <TextBlock Text="{Binding Audio.SavedAssetPath, StringFormat='Saved asset record: {0}'}" TextWrapping="Wrap" />
-          <TextBlock Text="{Binding Audio.ProbedAsset.Sha256, StringFormat='SHA256: {0}'}" TextWrapping="Wrap" />
-          <TextBlock Text="{Binding Audio.ProbedAsset.SampleRate, StringFormat='Sample rate (Hz): {0}'}" />
-          <TextBlock Text="{Binding Audio.ProbedAsset.Channels, StringFormat='Channels: {0}'}" />
-          <TextBlock Text="{Binding Audio.ProbedAsset.BitsPerSample, StringFormat='Bits per sample: {0}'}" />
-          <TextBlock Text="{Binding Audio.ProbedAsset.SampleCount, StringFormat='Sample count: {0}'}" />
-          <TextBlock Text="{Binding Audio.ProbedAsset.DurationTicks, StringFormat='Duration (100 ns ticks): {0}'}" />
-          <TextBlock Text="{Binding Audio.ProbedAsset.DecoderVersion, StringFormat='Decoder version: {0}'}" />
-          <TextBlock Text="{Binding Audio.ProbedAsset.EncoderDelaySamples, StringFormat='Encoder delay/priming (samples): {0}'}" />
-        </StackPanel>
-
-        <!-- PHASE-04 Step 025: real desktop audio backend playback controls. -->
-        <TextBlock Text="Playback" FontSize="18" FontWeight="Bold" Margin="0,12,0,0" />
-        <Button Content="Open Playback" Command="{Binding OpenAudioPlaybackCommand}" />
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <Button Content="Play" Command="{Binding PlayAudioCommand}" />
-          <Button Content="Pause" Command="{Binding PauseAudioCommand}" />
-          <Button Content="Refresh Position" Command="{Binding RefreshAudioPositionCommand}" />
-        </StackPanel>
-        <StackPanel Orientation="Horizontal" Spacing="8">
-          <TextBlock Text="Seek to (100 ns ticks):" VerticalAlignment="Center" />
-          <TextBox Text="{Binding Audio.SeekTargetTicksText}" Width="160" />
-          <Button Content="Seek" Command="{Binding SeekAudioCommand}" />
-        </StackPanel>
-        <TextBlock Text="{Binding Audio.IsPlaybackOpen, StringFormat='Playback open: {0}'}" />
-        <TextBlock Text="{Binding Audio.IsPlaying, StringFormat='Playing: {0}'}" />
-        <TextBlock Text="{Binding Audio.PlaybackPositionTicks, StringFormat='Position (100 ns ticks): {0}'}" />
-        <TextBlock IsVisible="{Binding Audio.PlaybackErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                   Text="{Binding Audio.PlaybackErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-
-        <!-- PHASE-04 Step 026: zoom-independent multiresolution waveform peaks cache. -->
-        <TextBlock Text="Waveform Cache" FontSize="18" FontWeight="Bold" Margin="0,12,0,0" />
-        <Button Content="Build Waveform Cache" Command="{Binding BuildWaveformCacheCommand}" />
-        <TextBlock IsVisible="{Binding Audio.IsBuildingWaveform}" Text="Building waveform cache..." />
-        <TextBlock IsVisible="{Binding Audio.WaveformErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
-                   Text="{Binding Audio.WaveformErrorMessage}" Foreground="Red" TextWrapping="Wrap" />
-        <TextBlock IsVisible="{Binding !Audio.HasWaveformCache}" Text="No waveform cache built yet." FontStyle="Italic" />
-        <StackPanel IsVisible="{Binding Audio.HasWaveformCache}" Spacing="2">
-          <TextBlock Text="{Binding Audio.WaveformCachePath, StringFormat='Cache file: {0}'}" TextWrapping="Wrap" />
-          <TextBlock Text="{Binding Audio.WaveformResolutionLevelCount, StringFormat='Resolution levels: {0}'}" />
-          <TextBlock Text="{Binding Audio.WaveformContentHash, StringFormat='Built from content hash: {0}'}" TextWrapping="Wrap" />
-        </StackPanel>
-      </StackPanel>
-
-      <!-- Settings screen: read-only display of persisted app settings -->
-      <StackPanel IsVisible="{Binding IsShowingSettings}" Spacing="8" x:DataType="vm:ShellViewModel">
-        <TextBlock Text="Settings" FontSize="24" FontWeight="Bold" />
-        <TextBlock IsVisible="{Binding Settings.IsLoading}" Text="Loading settings..." />
-        <TextBlock IsVisible="{Binding Settings.IsError}" Text="{Binding Settings.ErrorMessage}" Foreground="Red" />
-        <StackPanel IsVisible="{Binding Settings.IsLoaded}" Spacing="4">
-          <TextBlock Text="{Binding Settings.Settings.LastScreen, StringFormat='Last screen: {0}'}" />
-          <TextBlock Text="{Binding Settings.Settings.SchemaVersion, StringFormat='Settings schema version: {0}'}" />
-          <TextBlock Text="{Binding Settings.Settings.WorkspaceDirectory, StringFormat='Workspace directory: {0}'}" />
-          <TextBlock Text="{Binding Settings.Settings.HasCompletedFirstRun, StringFormat='First run completed: {0}'}" />
-        </StackPanel>
-      </StackPanel>
-
-      <!-- Diagnostics screen: loading / empty / error / loaded, never silently blank -->
-      <StackPanel IsVisible="{Binding IsShowingDiagnostics}" Spacing="8" x:DataType="vm:ShellViewModel">
-        <TextBlock Text="Diagnostics" FontSize="24" FontWeight="Bold" />
-        <TextBlock IsVisible="{Binding Diagnostics.IsLoading}" Text="Loading diagnostics..." />
-        <TextBlock IsVisible="{Binding Diagnostics.IsEmpty}" Text="No diagnostic events recorded." />
-        <TextBlock IsVisible="{Binding Diagnostics.IsError}" Text="{Binding Diagnostics.ErrorMessage}" Foreground="Red" />
-        <ItemsControl IsVisible="{Binding Diagnostics.IsLoaded}" ItemsSource="{Binding Diagnostics.Events}">
-          <ItemsControl.ItemTemplate>
-            <DataTemplate>
-              <TextBlock Text="{Binding}" />
-            </DataTemplate>
-          </ItemsControl.ItemTemplate>
-        </ItemsControl>
-      </StackPanel>
-
-    </Grid>
+    <!--
+      First-run onboarding is a takeover, not a destination: while it is showing there is no
+      navigation rail to wander off into, because nothing else in the app works until a workspace
+      folder has been chosen. It used to be a button in the main nav bar sitting between
+      "Diagnostics" and the timeline.
+    -->
+    <ScrollViewer IsVisible="{Binding IsShowingFirstRun}" VerticalScrollBarVisibility="Auto" Padding="32,28">
+      <screens:FirstRunView />
     </ScrollViewer>
-  </Grid>
+
+    <!-- ===== Ready ===== -->
+    <Grid ColumnDefinitions="210,*">
+      <Grid.IsVisible>
+        <MultiBinding Converter="{x:Static conv:BoolConverters.And}">
+          <Binding Path="!IsStarting" />
+          <Binding Path="!IsFailed" />
+          <Binding Path="!IsShowingFirstRun" />
+        </MultiBinding>
+      </Grid.IsVisible>
+
+      <views:ShellNavigationView Grid.Column="0" />
+
+      <ScrollViewer Grid.Column="1" VerticalScrollBarVisibility="Auto" Padding="28,24">
+        <Panel>
+          <screens:WelcomeView IsVisible="{Binding IsShowingWelcome}" />
+          <screens:ProjectsView IsVisible="{Binding IsShowingProjects}" />
+          <screens:ShowImportView IsVisible="{Binding IsShowingShowImport}" />
+          <screens:AudioView IsVisible="{Binding IsShowingAudio}" />
+          <screens:GenerateExportView IsVisible="{Binding IsShowingGenerateExport}" />
+          <screens:TimelineView IsVisible="{Binding IsShowingTimeline}" />
+          <screens:SettingsView IsVisible="{Binding IsShowingSettings}" />
+          <screens:DiagnosticsView IsVisible="{Binding IsShowingDiagnostics}" />
+
+          <screens:PianoRollView IsVisible="{Binding IsShowingPianoRoll}" />
+          <screens:StructureInspectorView IsVisible="{Binding IsShowingStructureInspector}" />
+          <screens:DisplayPathEditorView IsVisible="{Binding IsShowingDisplayPathEditor}" />
+        </Panel>
+      </ScrollViewer>
+    </Grid>
+  </Panel>
 </Window>

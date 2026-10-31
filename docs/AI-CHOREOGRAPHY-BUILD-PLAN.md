@@ -8,6 +8,18 @@ Each phase lists: **why it's sequenced here**, **tasks**, **depends on**, and **
 by estimated effort — some phases are small and fast, some are large, but a later phase will fail or
 produce nothing useful if an earlier one isn't solid.
 
+Phase 9 is this document's own last phase. Later phases are tracked as their own standalone documents
+(each independent of this file, slotting in after Phase 9 in numbering only) rather than appended here:
+
+- [Phase 10 — Full Signal Utilization and Choreographer Craft](AI-CHOREOGRAPHY-BUILD-PLAN-PHASE-10-SIGNAL-UTILIZATION.md)
+- [Phase 11 — AI Provider Request Correctness and Observability](AI-CHOREOGRAPHY-BUILD-PLAN-PHASE-11-PROVIDER-RELIABILITY.md)
+- [Phase 12 — Section-Energy-Driven Change Density](AI-CHOREOGRAPHY-BUILD-PLAN-PHASE-12-DYNAMIC-DENSITY.md)
+- [Phase 13 — Layering Depth and Effect-Vocabulary Diversity](AI-CHOREOGRAPHY-BUILD-PLAN-PHASE-13-LAYERING-AND-DIVERSITY.md)
+- [Phase 14 — User-Directed Custom Generation Prompt](AI-CHOREOGRAPHY-BUILD-PLAN-PHASE-14-CUSTOM-PROMPT.md)
+
+Phases 11-13 were motivated by `AI-CHOREOGRAPHY-REAL-RUN-COMPARISON-2026-10-30.md`, a real-run comparison
+against a hand-sequenced reference; that report is background reading, not a phase itself.
+
 ---
 
 ## Phase 0 — De-risk: render automation spike + exporter ground truth

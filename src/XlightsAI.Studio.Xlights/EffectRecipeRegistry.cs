@@ -3,20 +3,32 @@ using XlightsAI.Studio.Contracts;
 namespace XlightsAI.Studio.Xlights;
 
 /// <summary>
-/// Default <see cref="IEffectRecipeRegistry"/>. Step 012 ("three hardcoded simple effects") ships
-/// exactly one known-good recipe, <see cref="SimpleOnRecipeId"/> — the simplest real xLights effect
-/// (PHASE-02 Section 12 appendix's own illustrative <c>&lt;Effect name="On" ... /&gt;</c> shape).
-/// <see cref="Parameters"/> on the produced <see cref="EffectInstance"/> names this recipe's own
-/// input (which effect family it is), not a final xLights XML settings string — Section 3: "Store
-/// recipe identity independent of final xLights XML settings representation." Translating a recipe
-/// into actual xLights effect-settings XML is Step 013's own scope.
+/// Default <see cref="IEffectRecipeRegistry"/>. PHASE-1b: resolves recipe ids against an
+/// <see cref="EffectRecipeCatalog"/> (defaulting to <see cref="EffectRecipeCatalog.CreateDefault"/>)
+/// instead of a single hardcoded <c>if</c> — adding a recipe now means registering an
+/// <see cref="IEffectRecipe"/> in the catalog, not editing this class. <see cref="SimpleOnRecipeId"/>/
+/// <see cref="SimpleOnRecipeVersion"/> are kept as the same public constants every existing Step
+/// 012-093 call site already references, now forwarding to <see cref="OnEffectRecipe"/>.
 /// </summary>
 public sealed class EffectRecipeRegistry : IEffectRecipeRegistry
 {
-    /// <summary>The one recipe this build currently recognizes: a constant-duration "On" effect.</summary>
-    public const string SimpleOnRecipeId = "effect.on.v1";
+    /// <summary>The one recipe this build ships by default: a constant-duration "On" effect.</summary>
+    public const string SimpleOnRecipeId = OnEffectRecipe.Id;
 
-    public const string SimpleOnRecipeVersion = "1";
+    public const string SimpleOnRecipeVersion = OnEffectRecipe.Version;
+
+    private readonly EffectRecipeCatalog _catalog;
+
+    public EffectRecipeRegistry()
+        : this(EffectRecipeCatalog.CreateDefault())
+    {
+    }
+
+    /// <summary>Accepts a caller-supplied catalog (e.g. one with additional recipes registered) instead of only the default one.</summary>
+    public EffectRecipeRegistry(EffectRecipeCatalog catalog)
+    {
+        _catalog = catalog ?? throw new ArgumentNullException(nameof(catalog));
+    }
 
     public EffectInstance CreateVerified(string recipeId, ModelId target, long startTicks, long endTicks)
     {
@@ -38,25 +50,20 @@ public sealed class EffectRecipeRegistry : IEffectRecipeRegistry
                 $"An effect's end time ({endTicks}) must be strictly after its start time ({startTicks}) — the [start, end) window must be non-empty.");
         }
 
-        if (recipeId != SimpleOnRecipeId)
+        if (!_catalog.TryGet(recipeId, out var recipe))
         {
-            throw new EffectPlanInvalidException($"Unknown effect recipe id '{recipeId}'. Known recipes: {SimpleOnRecipeId}.");
+            var known = string.Join(", ", _catalog.Recipes.Select(r => r.RecipeId));
+            throw new EffectPlanInvalidException($"Unknown effect recipe id '{recipeId}'. Known recipes: {known}.");
         }
 
-        var parameters = new Dictionary<string, string>(StringComparer.Ordinal)
-        {
-            ["EffectFamily"] = "On",
-        };
-
-        return new EffectInstance(Guid.NewGuid(), target, Layer: 0, startTicks, endTicks, recipeId, SimpleOnRecipeVersion, parameters);
+        return new EffectInstance(
+            Guid.NewGuid(), target, Layer: 0, startTicks, endTicks, recipe.RecipeId, recipe.RecipeVersion, recipe.CreateDefaultParameters());
     }
 
     /// <summary>
-    /// PHASE-03 Step 020: <see cref="SimpleOnRecipeId"/>'s only known parameter is <c>EffectFamily</c>,
-    /// and its only verified value is <c>"On"</c> (the only xLights effect this build currently emits,
-    /// per this class's own <see cref="CreateVerified"/>). Any other key, any other value, or any other
-    /// recipe id is unsupported — this registry never invents a second accepted value it has not
-    /// verified against real xLights behavior.
+    /// PHASE-03 Step 020: delegates to the resolved recipe's own
+    /// <see cref="IEffectRecipe.IsSupportedParameterValue"/> — never invents a supported value for an
+    /// unregistered recipe id, returning <see langword="false"/> instead.
     /// </summary>
     public bool IsSupportedParameterValue(string recipeId, string key, string value)
     {
@@ -64,8 +71,6 @@ public sealed class EffectRecipeRegistry : IEffectRecipeRegistry
         ArgumentException.ThrowIfNullOrWhiteSpace(key);
         ArgumentNullException.ThrowIfNull(value);
 
-        return recipeId == SimpleOnRecipeId
-            && key == "EffectFamily"
-            && value == "On";
+        return _catalog.TryGet(recipeId, out var recipe) && recipe.IsSupportedParameterValue(key, value);
     }
 }

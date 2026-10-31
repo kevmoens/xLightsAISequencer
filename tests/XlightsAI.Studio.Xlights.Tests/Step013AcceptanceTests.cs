@@ -55,7 +55,7 @@ public sealed class Step013AcceptanceTests : IDisposable
         var structural = reader.Read(outputPath);
 
         Assert.Equal("2026.03", structural.XlightsVersion);
-        Assert.Equal(XsqExporter.FrameIntervalMs, structural.FixedPointTimingMs);
+        Assert.Equal(XsqExporter.FrameIntervalMs, structural.FrameIntervalMs);
         Assert.Equal(30.0, structural.SequenceDurationSeconds, precision: 3);
 
         Assert.Single(structural.ColorPalettes);
@@ -80,9 +80,16 @@ public sealed class Step013AcceptanceTests : IDisposable
         }
     }
 
-    /// <summary>A plan may equally target a real model group (Step 011/012's own targetable entity); the exported element is correctly typed <c>modelGroup</c>, not <c>model</c>.</summary>
+    /// <summary>
+    /// A plan may equally target a real model group (Step 011/012's own targetable entity). PHASE-00
+    /// finding (docs/PHASE0-FINDINGS.md): real xLights types both models AND model groups as
+    /// <c>type="model"</c> in DisplayElements/ElementEffects -- <c>type="modelGroup"</c> was never
+    /// observed in any of the 20 real .xsq files inspected -- so the exported element is typed
+    /// <c>model</c>, not <c>modelGroup</c>. Group membership is still validated at export time (an
+    /// unresolved target still fails safely); only the emitted XML shape changed.
+    /// </summary>
     [Fact]
-    public async Task Export_TargetingARealModelGroup_IsTypedAsModelGroup()
+    public async Task Export_TargetingARealModelGroup_IsTypedAsModel()
     {
         var layout = GateDemoLayout();
         var registry = new EffectRecipeRegistry();
@@ -95,7 +102,7 @@ public sealed class Step013AcceptanceTests : IDisposable
 
         var structural = new XsqStructuralReader().Read(outputPath);
         var groupElement = structural.DisplayElements.Single(e => e.Name == "Front-Arches");
-        Assert.Equal("modelGroup", groupElement.Type);
+        Assert.Equal("model", groupElement.Type);
     }
 
     [Fact]

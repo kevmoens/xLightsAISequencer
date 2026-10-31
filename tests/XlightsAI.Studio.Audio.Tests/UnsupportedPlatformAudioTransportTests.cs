@@ -16,6 +16,7 @@ public sealed class UnsupportedPlatformAudioTransportTests
         new(
             Id: new SongId(Guid.NewGuid()),
             FilePath: "irrelevant.wav",
+            OriginalFilePath: "irrelevant.wav",
             Sha256: new string('0', 64),
             SampleCount: 8000,
             SampleRate: 8000,

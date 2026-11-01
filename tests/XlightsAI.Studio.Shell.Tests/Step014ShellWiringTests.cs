@@ -18,8 +18,9 @@ namespace XlightsAI.Studio.Shell.Tests;
 [Trait("Category", "Integration")]
 public sealed class Step014ShellWiringTests : IDisposable
 {
-    private static readonly string StandInExecutablePath =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "where.exe");
+    private static readonly string StandInExecutablePath = OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "where.exe")
+        : "/usr/bin/true";
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "xlai-step014-shell-" + Guid.NewGuid().ToString("N"));
     private readonly List<int> _spawnedProcessIds = new();

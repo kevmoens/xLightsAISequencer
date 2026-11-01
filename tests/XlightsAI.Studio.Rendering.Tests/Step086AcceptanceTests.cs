@@ -67,7 +67,8 @@ public sealed class Step086AcceptanceTests : IDisposable
             ? "Release"
             : "Debug";
 
-        var path = Path.Combine(RepoRoot(), "tools", "FakeXlightsHost", "bin", configuration, "net10.0", "FakeXlightsHost.exe");
+        var exeName = OperatingSystem.IsWindows() ? "FakeXlightsHost.exe" : "FakeXlightsHost";
+        var path = Path.Combine(RepoRoot(), "tools", "FakeXlightsHost", "bin", configuration, "net10.0", exeName);
         if (!File.Exists(path))
         {
             throw new FileNotFoundException(

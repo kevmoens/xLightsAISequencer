@@ -52,7 +52,7 @@ public sealed class Step025ShellWiringTests : IDisposable
         return shell;
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step025_Acceptance_Passes_OpenPlayPauseSeekDriveTheRealDeviceThroughShellViewModel()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());
@@ -123,7 +123,7 @@ public sealed class Step025ShellWiringTests : IDisposable
         Assert.False(string.IsNullOrEmpty(shell.Audio.PlaybackErrorMessage));
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task ShellViewModel_WithoutAudioTransportCollaborator_DefaultsToRealWorkingTransportOnWindows()
     {
         // docs/ARCHITECTURE-AND-GUARDRAILS.md "Platform coverage": on Windows (this machine), the

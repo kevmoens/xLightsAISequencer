@@ -20,12 +20,21 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
     private readonly ICustomPromptStore _store;
     private string _promptText = "";
     private bool _stayCloseToExemplars = true;
+    private string _selectedStyle = StylePresetCatalog.HighEnergyEdmId;
     private string? _statusMessage;
     private string? _errorMessage;
 
     public CustomPromptEditorViewModel(ICustomPromptStore store)
     {
         _store = store ?? throw new ArgumentNullException(nameof(store));
+
+        // User feedback (2026-11-01): previously the style was fixed at app-startup composition-root
+        // time (Program.cs hardcoded "High-Energy / EDM" for every generation, every song) with no UI
+        // to change it -- this is that control. Defaults to the same id Program.cs has always hardcoded,
+        // so a user who never touches this control keeps getting exactly today's behavior.
+        AvailableStyles = StylePresetCatalog.All
+            .Select(s => new StyleOption(s.Id, s.Name, s.Description))
+            .ToList();
 
         SaveCommand = new DelegateCommand(() => _ = SaveAsync());
 
@@ -84,6 +93,30 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
         set => SetField(ref _stayCloseToExemplars, value);
     }
 
+    /// <summary>Every selectable style preset (id, display name, one-sentence description) for this screen's style picker, in <see cref="StylePresetCatalog.All"/> order.</summary>
+    public IReadOnlyList<StyleOption> AvailableStyles { get; }
+
+    /// <summary>
+    /// The style id this generation will use (<see cref="CustomGenerationPrompt.Style"/>) -- defaults to
+    /// <see cref="StylePresetCatalog.HighEnergyEdmId"/>, the same id every generation has always used
+    /// before this control existed, so a user who never opens this screen keeps today's exact behavior.
+    /// </summary>
+    public string SelectedStyle
+    {
+        get => _selectedStyle;
+        set
+        {
+            if (SetField(ref _selectedStyle, value))
+            {
+                OnPropertyChanged(nameof(SelectedStyleDescription));
+            }
+        }
+    }
+
+    /// <summary>One-sentence description of <see cref="SelectedStyle"/>, for the screen's own helper text under the picker.</summary>
+    public string SelectedStyleDescription =>
+        AvailableStyles.FirstOrDefault(s => s.Id == SelectedStyle)?.Description ?? string.Empty;
+
     public string? StatusMessage
     {
         get => _statusMessage;
@@ -121,6 +154,14 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
             var loaded = await _store.LoadAsync(ct).ConfigureAwait(true);
             PromptText = loaded.Text;
             StayCloseToExemplars = loaded.StayCloseToExemplars;
+            // A null Style (every save from before this control existed) keeps the field's own default
+            // (HighEnergyEdmId, the hardcoded id every generation has always used) rather than clearing
+            // a never-yet-made choice to some other value.
+            if (loaded.Style is { } style)
+            {
+                SelectedStyle = style;
+            }
+
             StatusMessage = null;
         }
         catch (Exception ex)
@@ -136,7 +177,7 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
         StatusMessage = null;
         try
         {
-            await _store.SaveAsync(new CustomGenerationPrompt(PromptText, StayCloseToExemplars), ct).ConfigureAwait(true);
+            await _store.SaveAsync(new CustomGenerationPrompt(PromptText, StayCloseToExemplars, SelectedStyle), ct).ConfigureAwait(true);
             StatusMessage = "Saved.";
             return true;
         }
@@ -163,3 +204,6 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
 
 /// <summary>One clickable example-prompt chip: <paramref name="Category"/> is the chip's own short label, <paramref name="Text"/> is what it inserts, <paramref name="ApplyCommand"/> is bound directly to a button's <c>Command</c>.</summary>
 public sealed record CustomPromptExampleChip(string Category, string Text, DelegateCommand ApplyCommand);
+
+/// <summary>One selectable entry in the style picker, condensed from a <see cref="StylePreset"/> to just what the UI needs.</summary>
+public sealed record StyleOption(string Id, string Name, string Description);

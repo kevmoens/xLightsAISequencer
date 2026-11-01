@@ -24,6 +24,27 @@
 
     <Border Classes="card">
       <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="Style" />
+        <TextBlock Classes="hint"
+                   Text="Every generation used to be hardcoded to High-Energy / EDM regardless of the song. Pick the style that actually fits this one." />
+
+        <ComboBox ItemsSource="{Binding CustomPrompt.AvailableStyles}"
+                  SelectedValue="{Binding CustomPrompt.SelectedStyle}"
+                  SelectedValueBinding="{Binding Id}"
+                  HorizontalAlignment="Left" MinWidth="320">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="vm:StyleOption">
+              <TextBlock Text="{Binding Name}" />
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+
+        <TextBlock Classes="hint" Margin="0,2" Text="{Binding CustomPrompt.SelectedStyleDescription}" TextWrapping="Wrap" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="8">
         <TextBlock Classes="section" Text="Your direction for this generation" />
 
         <TextBox Text="{Binding CustomPrompt.PromptText}"

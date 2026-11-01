@@ -62,6 +62,7 @@ jobs:
           --packTitle "xLights AI Sequencer"
           --channel ${{ matrix.channel }}
           --runtime ${{ matrix.rid }}
+          ${{ runner.os == 'Windows' && '--noPortable' || '' }}
           --outputDir Releases
 
       - name: Upload packages

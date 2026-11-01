@@ -52,6 +52,7 @@ public static class StylePresetCatalog
     public const string HighEnergyEdmId = "High-Energy / EDM";
     public const string ElegantWarmWhiteId = "Elegant / Warm-White";
     public const string SingingFaceStorytellingId = "Singing-Face Storytelling";
+    public const string SteadyWashAccentId = "Steady Wash / Accent";
 
     public static readonly StylePreset TraditionalClassic = new(
         TraditionalClassicId, TraditionalClassicId,
@@ -93,7 +94,26 @@ public static class StylePresetCatalog
         new Dictionary<string, double>(StringComparer.Ordinal) { [MusicalRole.Bass] = 0.3, [MusicalRole.Melody] = 0.9, [MusicalRole.Highs] = 0.3 },
         "Lyric-driven storytelling carried by a singing face bound to the vocal track.");
 
-    public static readonly IReadOnlyList<StylePreset> All = [TraditionalClassic, HighEnergyEdm, ElegantWarmWhite, SingingFaceStorytelling];
+    /// <summary>
+    /// Added 2026-11-01 after directly comparing a real hand-sequenced reference
+    /// ("Existence (VIP) - Shortened.xsq") against this app's own High-Energy/EDM-styled generation of
+    /// the same song: the reference was dominated (326 of 462 effects, ~70%) by the plain "On" effect --
+    /// a bold, saturated color held steady as a base layer per section -- with only a handful of accent
+    /// effects (Wave, Pinwheel, Shockwave, Fire, Spirals, Curtain, Garlands) at specific moments. The
+    /// generated version had zero "On" usage at all (not in High-Energy/EDM's effect pool) and a forced
+    /// 2.5-6.0 changes/sec density floor, so it could never produce a calm, held moment the way the real
+    /// reference does throughout. This preset is that measured "mostly steady, occasionally punchy" shape
+    /// as a real, selectable style -- not a guess, a direct fit to a real show.
+    /// </summary>
+    public static readonly StylePreset SteadyWashAccent = new(
+        SteadyWashAccentId, SteadyWashAccentId,
+        new PaletteDiscipline(2, 4, "2-4 bold, saturated colors (not pastel/warm-white) -- a held color is the point, not a blend."),
+        ["On", "Color Wash", "Wave", "Pinwheel", "Shockwave", "Fire", "Spirals", "Curtain", "Garlands", "SingleStrand"],
+        new StyleDensity(0.1, 0.6, 0.55, 0.95, "Low density: long steady full-brightness holds as the base layer, interrupted by brief bold accent bursts only at key moments."),
+        new Dictionary<string, double>(StringComparer.Ordinal) { [MusicalRole.Bass] = 0.6, [MusicalRole.Melody] = 0.5, [MusicalRole.Highs] = 0.3 },
+        "Bold, saturated color held steady as the base look -- calm most of the time, with a handful of deliberate accent bursts reserved for key moments, not constant motion.");
+
+    public static readonly IReadOnlyList<StylePreset> All = [TraditionalClassic, HighEnergyEdm, ElegantWarmWhite, SingingFaceStorytelling, SteadyWashAccent];
 
     /// <summary>
     /// Resolves <paramref name="styleNameOrId"/> against <see cref="All"/> by id or display name

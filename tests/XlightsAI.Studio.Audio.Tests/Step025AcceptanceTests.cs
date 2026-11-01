@@ -49,7 +49,7 @@ public sealed class Step025AcceptanceTests : IAsyncLifetime
         return await new WavAudioDecoder().ProbeAsync(path, CancellationToken.None);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step025_Acceptance_Passes_PlayPauseSeekWorkOnRealAudioDevice()
     {
         // 240 BPM / 6 clicks => 1.5s real-time track; short enough to keep the test fast but long
@@ -92,7 +92,7 @@ public sealed class Step025AcceptanceTests : IAsyncLifetime
         await _transport.PauseAsync(CancellationToken.None);
     }
 
-    [Fact]
+    [WindowsOnlyFact]
     public async Task OpenAsync_InvalidDeviceId_ThrowsAudioOutputDeviceUnavailableException_NegativePath()
     {
         // "missing output device handled" — deterministically exercised via an out-of-range device
@@ -124,7 +124,7 @@ public sealed class Step025AcceptanceTests : IAsyncLifetime
             () => _transport.SeekAsync(0, CancellationToken.None));
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task SeekAsync_NegativeTicks_ThrowsArgumentOutOfRangeException_NegativePath()
     {
         var song = await ProbeClickTrackAsync();
@@ -135,7 +135,7 @@ public sealed class Step025AcceptanceTests : IAsyncLifetime
             () => _transport.SeekAsync(-1, CancellationToken.None));
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task SeekAsync_BeyondDuration_ThrowsArgumentOutOfRangeException_NegativePath()
     {
         var song = await ProbeClickTrackAsync();
@@ -146,7 +146,7 @@ public sealed class Step025AcceptanceTests : IAsyncLifetime
             () => _transport.SeekAsync(song.DurationTicks + 1, CancellationToken.None));
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task SetLoop_InvalidWindow_ThrowsArgumentOutOfRangeException_NegativePath()
     {
         var song = await ProbeClickTrackAsync();
@@ -162,7 +162,7 @@ public sealed class Step025AcceptanceTests : IAsyncLifetime
             () => _transport!.SetLoop(new TimeWindow(0, song.DurationTicks + 10_000_000)));
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task SetLoop_ValidWindow_WrapsPlaybackWithoutExceedingLoopEnd()
     {
         var song = await ProbeClickTrackAsync(clickCount: 8, bpm: 240, sampleRate: 8000); // 2s track
@@ -192,7 +192,7 @@ public sealed class Step025AcceptanceTests : IAsyncLifetime
         await _transport.PauseAsync(CancellationToken.None);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task OpenAsync_SilentAudio_PlaysAndAdvancesWithoutThrowing_HandlesSilenceExplicitly()
     {
         var silentSamples = new float[8000]; // 1 second of true digital silence at 8 kHz.

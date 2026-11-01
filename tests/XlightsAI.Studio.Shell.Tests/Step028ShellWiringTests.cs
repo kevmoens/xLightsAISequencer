@@ -63,7 +63,7 @@ public sealed class Step028ShellWiringTests : IDisposable
         return shell;
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step028_Acceptance_Passes_AudioScreenActionsPushTheSamePlayheadIntoTimeline()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());
@@ -79,7 +79,7 @@ public sealed class Step028ShellWiringTests : IDisposable
         Assert.Equal(shell.Audio.PlaybackPositionTicks, shell.Timeline.PlayheadTicks);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step028_Acceptance_Passes_ScrubPlayheadSeeksTheSharedTransport_RepeatedScrubsDoNotDrift()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());
@@ -102,7 +102,7 @@ public sealed class Step028ShellWiringTests : IDisposable
         }
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task ScrubPlayheadCommand_OutOfScopeTarget_SetsErrorWithoutMovingPlayhead_NegativePath()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());
@@ -125,7 +125,7 @@ public sealed class Step028ShellWiringTests : IDisposable
         Assert.Equal(playheadBefore, transport.PositionTicks);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task ScrubPlayheadCommand_UnparsableText_SetsErrorWithoutMovingPlayhead_NegativePath()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());

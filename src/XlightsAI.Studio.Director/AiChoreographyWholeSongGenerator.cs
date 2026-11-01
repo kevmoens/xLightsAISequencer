@@ -145,8 +145,10 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         var settings = new ChoreographyGenerationSettings(
             layout, catalogs.Vocabulary, catalogs.Recipes, registry, _energyCeilingByKind, _projectDirectory);
 
+        // User feedback (2026-11-01): a non-null CustomGenerationPrompt.Style overrides this instance's
+        // own startup-configured _style for this one run -- see that property's own doc comment.
         var pipeline = new ChoreographyGenerationPipeline(
-            knowledge, _style,
+            knowledge, customPrompt?.Style ?? _style,
             directorClient, directorModel,
             choreographerClient, choreographerModel,
             _maxOutputTokens,

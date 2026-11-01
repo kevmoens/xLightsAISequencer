@@ -72,7 +72,7 @@ public sealed class Step042ShellWiringTests : IAsyncDisposable
         return condition();
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step042_Acceptance_Passes_SoloVocalsAndDrumsStayAlignedWithSourceOnRealDevice()
     {
         var manifest = await BuildManifestAsync();
@@ -111,7 +111,7 @@ public sealed class Step042ShellWiringTests : IAsyncDisposable
         await vm.PauseAsync(_transport);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step042_Acceptance_Passes_MutingAStemProducesAudiblyDifferentSignalThanFullMix()
     {
         var manifest = await BuildManifestAsync();

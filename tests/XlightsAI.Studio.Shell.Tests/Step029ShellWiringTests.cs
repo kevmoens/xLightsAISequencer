@@ -75,7 +75,7 @@ public sealed class Step029ShellWiringTests : IDisposable
         Assert.NotNull(shell.Timeline.SelectedRangeScope);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step029_Acceptance_Passes_SelectedShortRangeLoopsWithinAgreedTimingTolerance()
     {
         // 240 BPM / 8 clicks => 2s real-time track; the selection below is a real 1-second window —
@@ -118,7 +118,7 @@ public sealed class Step029ShellWiringTests : IDisposable
         await transport.PauseAsync(CancellationToken.None);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task ClearLoopCommand_ClearsRealTransportLoop()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());
@@ -138,7 +138,7 @@ public sealed class Step029ShellWiringTests : IDisposable
         await Task.CompletedTask;
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task ZoomToSelectionCommand_RezoomsTheRealTimelineViewportToTheSelection()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());
@@ -156,7 +156,7 @@ public sealed class Step029ShellWiringTests : IDisposable
         await Task.CompletedTask;
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task SetLoopCommand_OutOfScopeSelection_SetsErrorWithoutArmingRealTransportLoop_NegativePath()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());
@@ -195,7 +195,7 @@ public sealed class Step029ShellWiringTests : IDisposable
         Assert.Null(shell.Timeline.LoopWindow);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task SetLoopCommand_NoSelection_SetsErrorWithoutPartialMutation_NegativePath()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());

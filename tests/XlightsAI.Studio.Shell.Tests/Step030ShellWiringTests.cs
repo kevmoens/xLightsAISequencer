@@ -68,7 +68,7 @@ public sealed class Step030ShellWiringTests : IDisposable
         return shell;
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step030_Acceptance_Passes_FrameSnapAppliesToScrubAndRecordsRealDriftTelemetry()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());
@@ -98,7 +98,7 @@ public sealed class Step030ShellWiringTests : IDisposable
         Assert.Equal(5, shell.Timeline.PlayheadFrameIndex);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task ScrubCommand_FrameSnapMovesTargetOutOfScope_RejectsWithoutPartialMutation_NegativePath()
     {
         await using var transport = new WaveOutAudioTransport(new WavAudioDecoder());

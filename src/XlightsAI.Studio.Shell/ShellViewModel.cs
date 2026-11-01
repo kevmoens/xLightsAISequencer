@@ -1300,7 +1300,7 @@ public sealed class ShellViewModel : ObservableObject
         // waypoint, not a save-gated settings form (see CustomPromptEditorViewModel's own doc comment).
         // An empty/blank prompt here is CustomGenerationPrompt.Empty's own IsEmpty case, which every
         // downstream builder treats identically to the pre-existing no-custom-prompt default.
-        var customPrompt = new CustomGenerationPrompt(CustomPrompt.PromptText, CustomPrompt.StayCloseToExemplars);
+        var customPrompt = new CustomGenerationPrompt(CustomPrompt.PromptText, CustomPrompt.StayCloseToExemplars, CustomPrompt.SelectedStyle);
         var succeeded = await ShowImport.GenerateWholeSongPlanAsync(
             _wholeSongGenerator, Audio.ProbedAsset, _sequenceDocumentStore, ct: default, customPrompt: customPrompt).ConfigureAwait(true);
         if (!succeeded || ShowImport.LastWholeSongGeneration is not { } generation)

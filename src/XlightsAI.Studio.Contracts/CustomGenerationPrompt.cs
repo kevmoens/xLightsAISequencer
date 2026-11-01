@@ -28,7 +28,17 @@ namespace XlightsAI.Studio.Contracts;
 /// non-reproducible across runs by design -- the whole point of unchecking it -- so a provider's prompt
 /// cache does not help on a "varied" regeneration the way it does for a repeated "stay close" one.
 /// </param>
-public sealed record CustomGenerationPrompt(string Text, bool StayCloseToExemplars = true)
+/// <param name="Style">
+/// User feedback (2026-11-01): previously the style was fixed at app-startup composition-root time
+/// (<c>Program.cs</c> hardcoded "High-Energy / EDM" for every generation, every song), with no UI to
+/// change it. <see langword="null"/> (the default, and every pre-existing caller/persisted file's
+/// behavior) keeps that startup-configured default; a non-null value here -- a
+/// <c>XlightsAI.Studio.Director.StylePresetCatalog</c> id or display name -- overrides it for this one
+/// run. Declared as a plain string (not the <c>StylePreset</c> type itself) for the same cyclic-
+/// reference reason <see cref="CustomGenerationPrompt"/>'s own class doc comment already explains:
+/// Contracts cannot reference Director.
+/// </param>
+public sealed record CustomGenerationPrompt(string Text, bool StayCloseToExemplars = true, string? Style = null)
 {
     public const int MaxLength = 2000;
 

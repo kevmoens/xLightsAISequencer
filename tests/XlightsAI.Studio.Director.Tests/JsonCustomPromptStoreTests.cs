@@ -39,6 +39,38 @@ public sealed class JsonCustomPromptStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveAsync_ThenLoad_RoundTripsStyleAndStayCloseToExemplars()
+    {
+        // User feedback (2026-11-01): the style picker needs this to round-trip across sessions the
+        // same way PromptText/StayCloseToExemplars already do.
+        var store = new JsonCustomPromptStore(_root);
+        var prompt = new CustomGenerationPrompt("Use a red and gold palette throughout.", StayCloseToExemplars: false, Style: "Steady Wash / Accent");
+
+        await store.SaveAsync(prompt, CancellationToken.None);
+        var loaded = await store.LoadAsync(CancellationToken.None);
+
+        Assert.Equal(prompt, loaded);
+        Assert.Equal("Steady Wash / Accent", loaded.Style);
+        Assert.False(loaded.StayCloseToExemplars);
+    }
+
+    [Fact]
+    public async Task LoadAsync_PreExistingFileWithNoStyleProperty_DeserializesStyleAsNull()
+    {
+        // A custom-prompt.json saved before this field existed has no "Style" JSON property at all --
+        // must deserialize as null (meaning "use the app's own startup-configured default"), never throw
+        // or silently invent a value.
+        var store = new JsonCustomPromptStore(_root);
+        Directory.CreateDirectory(_root);
+        await File.WriteAllTextAsync(store.GetPath(), """{"Text":"legacy text","StayCloseToExemplars":true}""", CancellationToken.None);
+
+        var loaded = await store.LoadAsync(CancellationToken.None);
+
+        Assert.Equal("legacy text", loaded.Text);
+        Assert.Null(loaded.Style);
+    }
+
+    [Fact]
     public async Task SaveAsync_WithDistinctFileNames_NeverOverwritesEachOther()
     {
         // Build-plan Phase 14 §2c.3: ChoreographyGenerationPipeline keys the per-run record by songId

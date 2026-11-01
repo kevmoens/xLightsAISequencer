@@ -53,7 +53,7 @@ public sealed class Step028AcceptanceTests : IAsyncLifetime
         return await new WavAudioDecoder().ProbeAsync(path, CancellationToken.None);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step028_Acceptance_Passes_RepeatedSeeksToSameTargetDoNotAccumulateDrift()
     {
         var song = await ProbeClickTrackAsync();
@@ -78,7 +78,7 @@ public sealed class Step028AcceptanceTests : IAsyncLifetime
         }
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task Step028_Acceptance_Passes_AlternatingSeeksReturnExactlyToTheSameTargetEachTime()
     {
         var song = await ProbeClickTrackAsync();
@@ -101,7 +101,7 @@ public sealed class Step028AcceptanceTests : IAsyncLifetime
         }
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task CanonicalPositionTicks_IncludesSongOriginTicks_NotJustRawTransportPosition()
     {
         var song = await ProbeClickTrackAsync();
@@ -121,7 +121,7 @@ public sealed class Step028AcceptanceTests : IAsyncLifetime
         Assert.Equal(reOriginedSong.OriginTicks + relativeTarget, clock.CanonicalPositionTicks);
     }
 
-    [Fact]
+    [RequiresAudioDeviceFact]
     public async Task SeekToCanonicalAsync_OutOfScopeTarget_ThrowsWithoutPartialMutation_NegativePath()
     {
         var song = await ProbeClickTrackAsync();

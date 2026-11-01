@@ -21,8 +21,9 @@ namespace XlightsAI.Studio.Xlights.Tests;
 [Trait("Category", "Integration")]
 public sealed class Step014AcceptanceTests : IDisposable
 {
-    private static readonly string StandInExecutablePath =
-        Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "where.exe");
+    private static readonly string StandInExecutablePath = OperatingSystem.IsWindows()
+        ? Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.System), "where.exe")
+        : "/usr/bin/true";
 
     private readonly string _root = Path.Combine(Path.GetTempPath(), "xlai-step014-" + Guid.NewGuid().ToString("N"));
     private readonly List<int> _spawnedProcessIds = new();

@@ -121,7 +121,16 @@ public sealed class SqliteMigrationRunner : ISqliteMigrationRunner
         string? backupPath = null;
         if (fileExistedBefore)
         {
-            backupPath = CreateBackup(dbPath, currentVersion);
+            try
+            {
+                backupPath = CreateBackup(dbPath, currentVersion);
+            }
+            catch (IOException ex)
+            {
+                // On Unix a database held by another writer can also block the backup copy; reject it
+                // as the same typed failure the locked-write path uses, with nothing mutated.
+                throw new ProjectDatabaseMigrationFailedException(currentVersion, targetSchemaVersion, dbPath, null, ex);
+            }
         }
 
         var pending = _migrations

@@ -150,7 +150,7 @@ public sealed class PianoRollStructureDisplayPathsWiringTests : IDisposable
         return (shell, showDirectory);
     }
 
-    [Fact]
+    [RequiresOnnxRuntimeFact]
     public async Task GeneratingAWholeSongPlan_AlsoOpensPianoRoll_AgainstTheSameRealMelody()
     {
         var (shell, _) = await GenerateARealPlanAsync();
@@ -160,7 +160,7 @@ public sealed class PianoRollStructureDisplayPathsWiringTests : IDisposable
         Assert.Equal(shell.ShowImport.LastWholeSongGeneration.Melody.Notes.Count, shell.PianoRoll.OriginalNoteCount);
     }
 
-    [Fact]
+    [RequiresOnnxRuntimeFact]
     public async Task GeneratingAWholeSongPlan_AlsoOpensStructureInspector_AgainstTheSameRealPhrases()
     {
         var (shell, _) = await GenerateARealPlanAsync();
@@ -182,7 +182,7 @@ public sealed class PianoRollStructureDisplayPathsWiringTests : IDisposable
     /// end to end (a fresh session opens cleanly) rather than asserting a same-id resume that the
     /// current pipeline's own id generation cannot actually produce.
     /// </summary>
-    [Fact]
+    [RequiresOnnxRuntimeFact]
     public async Task RegeneratingAPlan_OpensAFreshPianoRollSession_WithoutError()
     {
         var (shell, _) = await GenerateARealPlanAsync();
@@ -196,7 +196,7 @@ public sealed class PianoRollStructureDisplayPathsWiringTests : IDisposable
         Assert.NotEqual(ScreenLoadState.Error, shell.PianoRoll.LoadState);
     }
 
-    [Fact]
+    [RequiresOnnxRuntimeFact]
     public async Task OpenDisplayPathEditorCommand_BuildsAndOpensARealSpatialGraph_FromTheImportedLayout()
     {
         var (shell, _) = await GenerateARealPlanAsync();

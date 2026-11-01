@@ -127,7 +127,7 @@ public sealed class WholeSongPlanShellWiringTests : IDisposable
         Assert.Contains("Discover", shell.ShowImport.PlanErrorMessage, StringComparison.OrdinalIgnoreCase);
     }
 
-    [Fact]
+    [RequiresOnnxRuntimeFact]
     public async Task GenerateWholeSongPlanCommand_RealDiscoveredLayoutAndProbedSong_ProducesRealPlanUsingAllProps()
     {
         var showDirectory = Path.Combine(_root, "show");

@@ -18,6 +18,7 @@
     <Using Include="Xunit" />
     <Using Include="XlightsAI.Studio.Tests.Shared" />
     <Compile Include="..\Shared\RequiresAudioDeviceFactAttribute.cs" Link="Shared\RequiresAudioDeviceFactAttribute.cs" />
+    <Compile Include="..\Shared\RequiresOnnxRuntimeFactAttribute.cs" Link="Shared\RequiresOnnxRuntimeFactAttribute.cs" />
   </ItemGroup>
 
   <ItemGroup>

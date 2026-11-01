@@ -9,7 +9,9 @@ namespace XlightsAI.Studio.Tests.Shared;
 [AttributeUsage(AttributeTargets.Method)]
 public sealed class RequiresAudioDeviceFactAttribute : FactAttribute
 {
-    private static readonly bool DeviceAvailable = AudioOutputProbe.IsOutputDeviceAvailable();
+    // Hosted macOS runners expose a virtual OpenAL device that cannot actually play, so treat them as headless.
+    private static readonly bool DeviceAvailable = AudioOutputProbe.IsOutputDeviceAvailable()
+        && !(OperatingSystem.IsMacOS() && Environment.GetEnvironmentVariable("GITHUB_ACTIONS") == "true");
 
     public RequiresAudioDeviceFactAttribute()
     {

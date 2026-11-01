@@ -23,6 +23,11 @@
     <Border Classes="card">
       <StackPanel Spacing="8">
         <TextBlock Classes="field" Text="XLIGHTS SHOW FOLDER" />
+        <ComboBox IsVisible="{Binding ShowImport.HasRecentShowDirectories}"
+                  ItemsSource="{Binding ShowImport.RecentShowDirectories}"
+                  PlaceholderText="Open a recent show…"
+                  HorizontalAlignment="Stretch"
+                  SelectionChanged="OnRecentShowDirectorySelected" />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
           <TextBox Grid.Column="0" Text="{Binding ShowImport.ShowDirectory}" Watermark="C:\path\to\xlights-show" />
           <Button Grid.Column="1" Content="Browse…" Click="OnBrowseShowFolder" />

@@ -22,6 +22,7 @@ public sealed class ShowImportViewModel : ObservableObject
     private ShowDirectoryDiscovery? _discovery;
     private DisplayGraph? _layout;
     private string _showDirectory = string.Empty;
+    private IReadOnlyList<string> _recentShowDirectories = [];
     private bool _isBusy;
 
     // PHASE-02 Step 012: "Create effect plan containing three hardcoded simple effects on selected
@@ -89,6 +90,31 @@ public sealed class ShowImportViewModel : ObservableObject
         get => _showDirectory;
         set => SetField(ref _showDirectory, value);
     }
+
+    /// <summary>
+    /// User feedback (2026-11-01): every show directory ever successfully discovered, most-recent first
+    /// -- backs this screen's dropdown so re-opening an already-known show is a pick, not a retyped path.
+    /// Populated by <see cref="ShellViewModel"/> from <see cref="AppSettings.RecentShowDirectoriesOrEmpty"/>
+    /// on navigate/startup; this view model owns no persistence of its own (same division of
+    /// responsibility as every other restored/persisted value on this screen).
+    /// </summary>
+    public IReadOnlyList<string> RecentShowDirectories
+    {
+        get => _recentShowDirectories;
+        private set
+        {
+            if (SetField(ref _recentShowDirectories, value))
+            {
+                OnPropertyChanged(nameof(HasRecentShowDirectories));
+            }
+        }
+    }
+
+    public bool HasRecentShowDirectories => RecentShowDirectories.Count > 0;
+
+    /// <summary>Sets <see cref="RecentShowDirectories"/> -- a plain setter method (not a public property setter) so <see cref="ShellViewModel"/> cannot be mistaken for the owner of this list's persistence, the same convention <see cref="RestoreLastDirectory"/> already follows for <see cref="ShowDirectory"/>.</summary>
+    public void SetRecentShowDirectories(IReadOnlyList<string> recentShowDirectories) =>
+        RecentShowDirectories = recentShowDirectories ?? throw new ArgumentNullException(nameof(recentShowDirectories));
 
     public ScreenLoadState LoadState
     {

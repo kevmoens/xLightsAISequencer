@@ -37,6 +37,14 @@ namespace XlightsAI.Studio.Shell;
 /// — the next time that screen is shown. A settings.json predating this field has no such JSON
 /// property, which deserializes as <see langword="null"/> — "corpus mining has never been
 /// configured yet," correct for an upgrading installation.
+///
+/// <paramref name="RecentShowDirectories"/> is additive, user feedback (2026-11-01: "when opening an
+/// existing show, can that be a drop down and select existing and it sets the directory too"). Every
+/// show directory a successful <c>RunDiscoverShowDirectoryAsync</c> call has ever used, most-recent
+/// first, capped at <see cref="MaxRecentShowDirectories"/> entries -- unlike the single
+/// <see cref="LastShowDirectory"/> value, this is the full pick-list the Show Import screen's dropdown
+/// offers. A settings.json predating this field has no such JSON property, which deserializes as an
+/// empty list -- "no show directories remembered yet," correct for an upgrading installation.
 /// </summary>
 public sealed record AppSettings(
     int SchemaVersion,
@@ -45,11 +53,18 @@ public sealed record AppSettings(
     string? WorkspaceDirectory = null,
     bool HasCompletedFirstRun = false,
     string? LastProjectRootDirectory = null,
-    string? CorpusRootDirectory = null)
+    string? CorpusRootDirectory = null,
+    IReadOnlyList<string>? RecentShowDirectories = null)
 {
     public const int CurrentSchemaVersion = 1;
 
+    /// <summary>Oldest entries beyond this are dropped when a new directory is recorded -- a pick-list, not an unbounded history.</summary>
+    public const int MaxRecentShowDirectories = 8;
+
+    public IReadOnlyList<string> RecentShowDirectoriesOrEmpty => RecentShowDirectories ?? [];
+
     public static AppSettings Default => new(
         CurrentSchemaVersion, ShellScreen.Welcome, LastShowDirectory: null, WorkspaceDirectory: null,
-        HasCompletedFirstRun: false, LastProjectRootDirectory: null, CorpusRootDirectory: null);
+        HasCompletedFirstRun: false, LastProjectRootDirectory: null, CorpusRootDirectory: null,
+        RecentShowDirectories: null);
 }

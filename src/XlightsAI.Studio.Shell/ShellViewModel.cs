@@ -409,7 +409,7 @@ public sealed class ShellViewModel : ObservableObject
             () => RunCloseCurrentProject(),
             () => _navigator.State == StartupState.Ready && HasCurrentProject);
         ProbeAudioFileCommand = new DelegateCommand(
-            () => LastProbeAudioFileCommandTask = Audio.ProbeAudioFileAsync(_audioDecoder, _songAssetStore),
+            () => LastProbeAudioFileCommandTask = RunProbeAudioFileAsync(),
             () => _navigator.State == StartupState.Ready && !Audio.IsBusy);
         DownloadFfmpegCommand = new DelegateCommand(
             () => LastDownloadFfmpegCommandTask = Audio.DownloadFfmpegAsync(_ffmpegInstaller),
@@ -879,6 +879,9 @@ public sealed class ShellViewModel : ObservableObject
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="ProbeAudioFileCommand"/>.</summary>
     public Task? LastProbeAudioFileCommandTask { get; private set; }
 
+    /// <summary>The fire-and-forget startup auto-discovery task <see cref="RunStartup"/> kicks off when a previously-used show directory still exists on disk, so a test can deterministically await it -- same reason every other <c>LastXxxCommandTask</c> property exists.</summary>
+    public Task? LastStartupDiscoverShowDirectoryTask { get; private set; }
+
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="DownloadFfmpegCommand"/>.</summary>
     public Task? LastDownloadFfmpegCommandTask { get; private set; }
 
@@ -1014,6 +1017,22 @@ public sealed class ShellViewModel : ObservableObject
             {
                 _isRestoringLastScreen = false;
             }
+
+            // User feedback (2026-11-01): "on startup preload Show layout if a folder is there" -- a
+            // previously-discovered show folder used to only prefill the text box (RestoreLastDirectory),
+            // requiring an explicit "Read show folder" click every single session before anything else
+            // could be done. If that folder still exists on disk, actually re-run discovery now, not just
+            // show its path. Fire-and-forget (RunStartup itself stays synchronous, same as every other
+            // startup step) -- the task is kept on LastStartupDiscoverShowDirectoryTask so a test can
+            // deterministically await it, same convention as every LastXxxCommandTask property. A missing/
+            // renamed/deleted folder is silently skipped here (not an error) -- the user still sees the
+            // ordinary empty Show Import screen and can browse to wherever it went.
+            ShowImport.SetRecentShowDirectories(settings.RecentShowDirectoriesOrEmpty);
+            if (!string.IsNullOrWhiteSpace(settings.LastShowDirectory) && Directory.Exists(settings.LastShowDirectory))
+            {
+                ShowImport.RestoreLastDirectory(settings.LastShowDirectory);
+                LastStartupDiscoverShowDirectoryTask = RunDiscoverShowDirectoryAsync();
+            }
         }
         catch (Exception ex)
         {
@@ -1051,7 +1070,12 @@ public sealed class ShellViewModel : ObservableObject
                     }
                     break;
                 case ShellScreen.ShowImport:
-                    ShowImport.RestoreLastDirectory(_settingsStore.Load().LastShowDirectory);
+                    {
+                        var showImportSettings = _settingsStore.Load();
+                        ShowImport.RestoreLastDirectory(showImportSettings.LastShowDirectory);
+                        ShowImport.SetRecentShowDirectories(showImportSettings.RecentShowDirectoriesOrEmpty);
+                    }
+
                     break;
                 case ShellScreen.CustomPrompt:
                     // Build-plan Phase 14 §2a.2: reload the persisted prompt (round-trips across
@@ -1229,13 +1253,47 @@ public sealed class ShellViewModel : ObservableObject
     /// discovery (missing folder/required file, cancellation, invalid input) never updates the
     /// persisted value, so a prior good selection survives a later failed attempt.
     /// </summary>
+    /// <summary>
+    /// User feedback (2026-11-01): "when you load the song automatically rebuild waveform" -- probing a
+    /// song used to leave the waveform cache stale/absent until a separate manual "Build waveform" click.
+    /// On a successful probe, immediately builds the waveform cache for the newly-probed asset too, so
+    /// the Timeline screen's waveform is ready without a second action. A failed/cancelled probe never
+    /// attempts a build (nothing valid to build from); a failed build surfaces via
+    /// <see cref="AudioImportViewModel"/>'s own existing error state exactly as the manual button already
+    /// does -- this only changes when that call happens, not its own error handling.
+    /// </summary>
+    private async Task<bool> RunProbeAudioFileAsync()
+    {
+        var probed = await Audio.ProbeAudioFileAsync(_audioDecoder, _songAssetStore).ConfigureAwait(true);
+        if (probed)
+        {
+            await Audio.BuildWaveformCacheAsync(_waveformBuilder, _waveformPyramidStore).ConfigureAwait(true);
+        }
+
+        return probed;
+    }
+
     private async Task RunDiscoverShowDirectoryAsync()
     {
         var succeeded = await ShowImport.DiscoverAsync(_showDirectoryDiscoveryService, _showLayoutImporter).ConfigureAwait(true);
         if (succeeded)
         {
             var existing = _settingsStore.Load();
-            _settingsStore.Save(existing with { SchemaVersion = AppSettings.CurrentSchemaVersion, LastShowDirectory = ShowImport.ShowDirectory });
+            // User feedback (2026-11-01): push this directory to the front of the recent list (dedup,
+            // case-insensitive -- Windows paths), capped at MaxRecentShowDirectories, so the dropdown
+            // never grows without bound and a re-opened show jumps back to the top rather than appearing
+            // twice.
+            var recent = new List<string> { ShowImport.ShowDirectory };
+            recent.AddRange(existing.RecentShowDirectoriesOrEmpty.Where(d => !string.Equals(d, ShowImport.ShowDirectory, StringComparison.OrdinalIgnoreCase)));
+            var trimmedRecent = recent.Take(AppSettings.MaxRecentShowDirectories).ToList();
+
+            _settingsStore.Save(existing with
+            {
+                SchemaVersion = AppSettings.CurrentSchemaVersion,
+                LastShowDirectory = ShowImport.ShowDirectory,
+                RecentShowDirectories = trimmedRecent,
+            });
+            ShowImport.SetRecentShowDirectories(trimmedRecent);
         }
     }
 

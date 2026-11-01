@@ -24,6 +24,69 @@ public sealed class Step024ShellWiringTests : IDisposable
     }
 
     [Fact]
+    public async Task ProbeAudioFileCommand_OnSuccess_AutomaticallyBuildsWaveformCache()
+    {
+        // User feedback (2026-11-01): "when you load the song automatically rebuild waveform" -- probing
+        // used to leave the waveform cache stale/absent until a separate manual "Build waveform" click.
+        Directory.CreateDirectory(_root);
+        var audioPath = Path.Combine(_root, "click-track.wav");
+        var samples = Reference.Fixtures.DeterministicSyntheticAudioGenerator.BuildClickTrack(
+            bpm: 120, clickCount: 8, clickDurationSeconds: 0.02, toneHz: 1000.0, sampleRate: 8000);
+        await File.WriteAllBytesAsync(audioPath, Reference.Fixtures.DeterministicSyntheticAudioGenerator.EncodeWav(samples, 8000));
+
+        var decoder = new WavAudioDecoder();
+        var songAssetStore = new JsonSongAssetStore(Path.Combine(_root, "audio-assets"));
+        var waveformPyramidStore = new XlightsAI.Studio.Audio.JsonWaveformPyramidStore(Path.Combine(_root, "waveform-cache"));
+        var waveformBuilder = new XlightsAI.Studio.Audio.WaveformPyramidBuilder(decoder, waveformPyramidStore);
+
+        var navigator = new ShellNavigator();
+        var shell = new ShellViewModel(
+            navigator,
+            () => Array.Empty<string>(),
+            audioDecoder: decoder,
+            songAssetStore: songAssetStore,
+            waveformPyramidStore: waveformPyramidStore,
+            waveformBuilder: waveformBuilder);
+        shell.RunStartup();
+        shell.NavigateToAudioCommand.Execute(null);
+
+        shell.Audio.AudioFilePath = audioPath;
+        shell.ProbeAudioFileCommand.Execute(null);
+        await shell.LastProbeAudioFileCommandTask!;
+
+        Assert.True(shell.Audio.HasProbedAsset);
+        // No separate BuildWaveformCacheCommand click here -- probing alone must have built it.
+        Assert.True(shell.Audio.HasWaveformCache);
+        Assert.Null(shell.Audio.WaveformErrorMessage);
+        Assert.True(File.Exists(shell.Audio.WaveformCachePath));
+    }
+
+    [Fact]
+    public async Task ProbeAudioFileCommand_MissingMedia_NeverAttemptsWaveformBuild_NegativePath()
+    {
+        var waveformPyramidStore = new XlightsAI.Studio.Audio.JsonWaveformPyramidStore(Path.Combine(_root, "waveform-cache"));
+        var waveformBuilder = new XlightsAI.Studio.Audio.WaveformPyramidBuilder(new WavAudioDecoder(), waveformPyramidStore);
+
+        var shell = new ShellViewModel(
+            new ShellNavigator(),
+            () => Array.Empty<string>(),
+            audioDecoder: new WavAudioDecoder(),
+            songAssetStore: new JsonSongAssetStore(Path.Combine(_root, "audio-assets")),
+            waveformPyramidStore: waveformPyramidStore,
+            waveformBuilder: waveformBuilder);
+        shell.RunStartup();
+        shell.NavigateToAudioCommand.Execute(null);
+
+        shell.Audio.AudioFilePath = Path.Combine(_root, "does-not-exist.wav");
+        shell.ProbeAudioFileCommand.Execute(null);
+        await shell.LastProbeAudioFileCommandTask!;
+
+        Assert.False(shell.Audio.HasProbedAsset);
+        Assert.False(shell.Audio.HasWaveformCache);
+        Assert.Null(shell.Audio.WaveformErrorMessage);
+    }
+
+    [Fact]
     public async Task Step024_Acceptance_Passes_ProbeAudioFilePersistsAssetRecord()
     {
         Directory.CreateDirectory(_root);

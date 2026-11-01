@@ -60,7 +60,10 @@ public sealed class AiProviderSettingsEditorViewModelTests : IDisposable
 
         vm.CurrentConfig = vm.CurrentConfig with
         {
-            Enabled = true, ProviderType = AiProviderType.Anthropic, Endpoint = "https://api.anthropic.com", ModelName = "claude-opus-5",
+            Enabled = true,
+            ProviderType = AiProviderType.Anthropic,
+            Endpoint = "https://api.anthropic.com",
+            ModelName = "claude-opus-5",
         };
         vm.CredentialInput = "sk-ant-secret";
 

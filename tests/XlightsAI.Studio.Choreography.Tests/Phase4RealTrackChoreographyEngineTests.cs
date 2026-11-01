@@ -123,17 +123,18 @@ public sealed class Phase4RealTrackChoreographyEngineTests : IDisposable
             ["warm-gold"] = PaletteBuilder.Build(["#FFC880", "#FFFFFF"]),
             ["high-energy"] = PaletteBuilder.Build(["#FF0030", "#00AEEF", "#FFFFFF", "#FFD400"]),
         };
-        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, paletteLibrary, fillerPool);
+        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, paletteLibrary);
         var lookLibrary = Phase4LookLibraryFixture.Build();
         Assert.InRange(lookLibrary.Looks.Count, 3, 5); // acceptance criterion: "a hand-authored Look library (3-5 Looks)."
 
         var lookIdBySection = analysis.Labels.Labels.ToDictionary(l => l.Id, l => Phase4LookLibraryFixture.LookIdFor(l.Kind));
 
         var songEndTicks = song.DurationTicks;
+        var fillerSchedule = SectionFillerSchedule.Flat(fillerPool, songEndTicks);
 
         var input = new ChoreographyEngine.Input(
             layout, analysis.BeatGrid, analysis.Labels, analysis.Phrases, bandEnergy, vocalActivity,
-            lookLibrary, lookIdBySection, EnergyCeilingByKind, songEndTicks, compilerSettings);
+            lookLibrary, lookIdBySection, EnergyCeilingByKind, songEndTicks, compilerSettings, fillerSchedule);
 
         // 5. Compile -- the deterministic constraint engine, no LLM involved.
         var result = ChoreographyEngine.Compile(input);

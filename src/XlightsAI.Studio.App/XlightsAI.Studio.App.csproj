@@ -12,7 +12,13 @@
     <ApplicationManifest>app.manifest</ApplicationManifest>
     <AssemblyName>XlightsAI.Studio</AssemblyName>
     <RootNamespace>XlightsAI.Studio.App</RootNamespace>
+    <!-- App icon (string lights + sparkle), shown in Explorer, the taskbar, and the Windows title bar. -->
+    <ApplicationIcon>Assets\app.ico</ApplicationIcon>
   </PropertyGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Avalonia" Version="11.3.2" />
@@ -22,6 +28,7 @@
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.2" Condition="'$(Configuration)' == 'Debug'" />
     <!-- Transitive dep of Avalonia.Desktop (Linux clipboard/D-Bus); pinned past GHSA-xrw6-gwf8-vvr9. -->
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
+    <PackageReference Include="Velopack" Version="1.2.161" />
   </ItemGroup>
 
   <ItemGroup>

@@ -101,7 +101,27 @@ public sealed class CorpusSongAnalyzer
         var parsedEffects = EffectAlignmentParser.Parse(entry.SequencePath);
         var aligned = EffectAligner.Align(parsedEffects, beatGrid, fingerprints, labels, phrases);
 
-        return new CorpusSongAnalysis(entry, beatGrid, fingerprints, labels, phrases, aligned);
+        // Build-plan Phase 16 §2c: reuses the same BandEnergyAnalyzer AudioAnalysisRunner already runs
+        // for real generation -- it operates directly on the full SongAsset (no separated stem needed),
+        // so no new fallback is required here.
+        var bandEnergy = await new BandEnergyAnalyzer(_decoder, new JsonBandEnergyEnvelopeStore(Dir("band-energy")))
+            .AnalyzeAsync(song, settings.BandEnergy, ct).ConfigureAwait(false);
+
+        // Build-plan Phase 16 §2c: VocalActivityAnalyzer needs a real StemKind.Vocals stem, which this
+        // analyzer deliberately never produces (see class doc comment -- stem separation is consent-gated
+        // and too heavy a dependency for corpus mining). Same disclosed fallback-ladder principle as the
+        // full-mix melody substitution above: wrap the same full-mix asset as a synthetic Vocals "stem"
+        // so StemActivityDetector's generic, loudness-based RMS/hysteresis activity detector (not an
+        // instrument classifier -- see its own doc comment) still runs a real signal over real audio,
+        // instead of leaving VocalActivityHint permanently null. Reduced fidelity versus an isolated
+        // vocals stem (a loud instrumental passage can register as "active" too), but a real, non-
+        // fabricated activity signal -- never a silently-empty one for a song that does have vocals.
+        var syntheticVocalsStem = fullMixStem with { Kind = StemKind.Vocals };
+        var vocalActivityManifest = new StemManifest(Guid.NewGuid(), song.Sha256, ModelId: "corpus-mining-full-mix-substitute", [syntheticVocalsStem], Warnings: ["Full mix used in place of an isolated vocals stem (CorpusSongAnalyzer never runs stem separation)."]);
+        var vocalActivity = await new VocalActivityAnalyzer(_decoder, new JsonStemActivityResultStore(Dir("vocal-activity")))
+            .AnalyzeAsync(vocalActivityManifest, ct).ConfigureAwait(false);
+
+        return new CorpusSongAnalysis(entry, beatGrid, fingerprints, labels, phrases, aligned, bandEnergy, vocalActivity);
     }
 
     private string Dir(string name) => Path.Combine(_cacheRootDirectory, name);

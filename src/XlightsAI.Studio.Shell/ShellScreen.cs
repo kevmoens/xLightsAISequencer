@@ -15,6 +15,14 @@ public enum ShellScreen
     ShowImport,
 
     /// <summary>
+    /// Build-plan Phase 14: a "last stop before you generate" tab for the user's own free-text
+    /// creative direction (colors, effects, layers, intensity, pacing, prop focus), placed
+    /// immediately before <see cref="GenerateExport"/> per that plan's §2b.1 -- not a blocking gate,
+    /// since an empty custom prompt is a fully valid, unchanged default.
+    /// </summary>
+    CustomPrompt,
+
+    /// <summary>
     /// Choreography generation + xLights delivery: the whole-song plan, the XSQ export and the
     /// "open in xLights" hand-off. Split out of <see cref="ShowImport"/> (which had grown to host
     /// five unrelated jobs on one scroll) so the import screen answers only "what props does this
@@ -46,4 +54,12 @@ public enum ShellScreen
     /// "User completes first run without command line," this step's own required acceptance text.
     /// </summary>
     FirstRun,
+
+    /// <summary>
+    /// Build-plan Phase 17 §2e: browse every mined exemplar (song, bar range, section kind, tempo,
+    /// energy percentile, real description) and enable/disable individual entries or a whole source
+    /// song's worth of material, persisted separately from <c>exemplar-index.json</c> so a re-mine never
+    /// resets a user's curation choices -- see <see cref="ExemplarLibraryViewModel"/>.
+    /// </summary>
+    ExemplarLibrary,
 }

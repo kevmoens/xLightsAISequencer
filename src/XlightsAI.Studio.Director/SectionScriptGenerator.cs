@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Director;
@@ -42,12 +43,13 @@ public sealed class SectionScriptGenerator
 
     public async Task<SectionScriptGenerationReport> GenerateAsync(
         string stablePrefix, string volatileSuffix, Guid songId, LookLibrary lookLibrary, DisplayGraph layout,
-        int maxOutputTokens, CancellationToken ct)
+        EffectVocabularyCatalog vocabulary, int maxOutputTokens, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
         ArgumentException.ThrowIfNullOrWhiteSpace(volatileSuffix);
         ArgumentNullException.ThrowIfNull(lookLibrary);
         ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(vocabulary);
 
         var usages = new List<AiUsage?>();
         IReadOnlyList<SectionScriptValidationError> violations = [];
@@ -76,7 +78,7 @@ public sealed class SectionScriptGenerator
             }
 
             usages.Add(result.Usage);
-            violations = SectionScriptValidator.Validate(result.Value, lookLibrary, layout);
+            violations = SectionScriptValidator.Validate(result.Value, lookLibrary, layout, vocabulary);
             await LogAsync(songId, result.Usage, $"attempt {attempt}/{_maxAttempts}: {(violations.Count == 0 ? "validated" : $"{violations.Count} violation(s)")}", result.Diagnostics, ct).ConfigureAwait(false);
 
             if (violations.Count == 0)

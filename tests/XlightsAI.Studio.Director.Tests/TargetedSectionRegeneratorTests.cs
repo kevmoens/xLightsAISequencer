@@ -1,5 +1,6 @@
 using System.Text.Json;
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Director.Tests;
@@ -14,6 +15,12 @@ public sealed class TargetedSectionRegeneratorTests
 {
     private static async Task<DisplayGraph> LoadLayoutAsync() =>
         await new ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+
+    private static EffectVocabularyCatalog FakeVocabulary() => new(
+        RealXLightsFixture.SixCommonEffectNames.ToDictionary(name => name, name => new EffectVocabulary(name, "E_", []), StringComparer.Ordinal),
+        buffer: new EffectVocabulary("Buffer", "B_", []),
+        blending: new EffectVocabulary("Blending", "T_", []),
+        color: new EffectVocabulary("Color", "C_", []));
 
     private static LookLibrary OneLook() => new([
         new Look("golden-hold", "Golden Hold", "Warm hold.", 0.45, "hold", "warm-gold", "group:Outline",
@@ -32,7 +39,7 @@ public sealed class TargetedSectionRegeneratorTests
 
         var result = await TargetedSectionRegenerator.RegenerateAsync(
             generator, "stable prefix", existing, directives: [], volatileSuffixBySectionId: new Dictionary<Guid, string>(),
-            Guid.NewGuid(), OneLook(), layout, maxOutputTokens: 500, CancellationToken.None);
+            Guid.NewGuid(), OneLook(), layout, FakeVocabulary(), maxOutputTokens: 500, CancellationToken.None);
 
         Assert.Equal(0, fake.CallCount);
         Assert.Same(existing, result);
@@ -52,7 +59,7 @@ public sealed class TargetedSectionRegeneratorTests
         var directedId = Guid.NewGuid();
         var untouchedScript = new SectionScript(untouchedId, "golden-hold");
         var staleScriptForDirectedSection = new SectionScript(directedId, "golden-hold");
-        var regeneratedScript = new SectionScript(directedId, "golden-hold", PropBindings: [new SectionEventBinding(1, "group:Arches")]);
+        var regeneratedScript = new SectionScript(directedId, "golden-hold", PropBindings: [new SectionEventBinding(1, "group:Arches")], FillerEffects: RealXLightsFixture.SixCommonEffectNames);
 
         var fake = new FakeChatCompletionClient([_ => new ChatCompletionResult(JsonSerializer.Serialize(regeneratedScript), new AiUsage(10, 5, null, null))]);
         var generator = new SectionScriptBatchGenerator(fake);
@@ -67,7 +74,7 @@ public sealed class TargetedSectionRegeneratorTests
         var suffixes = new Dictionary<Guid, string> { [directedId] = "## This section\nSectionId: " + directedId };
 
         var result = await TargetedSectionRegenerator.RegenerateAsync(
-            generator, "stable prefix", existing, directives, suffixes, Guid.NewGuid(), OneLook(), layout, maxOutputTokens: 500, CancellationToken.None);
+            generator, "stable prefix", existing, directives, suffixes, Guid.NewGuid(), OneLook(), layout, FakeVocabulary(), maxOutputTokens: 500, CancellationToken.None);
 
         // Exactly one call, and it must be for the directed section only -- the untouched section's id/
         // content never appears in any request the client received.
@@ -98,6 +105,6 @@ public sealed class TargetedSectionRegeneratorTests
             generator, "stable prefix", new Dictionary<Guid, SectionScript>(),
             [new RevisionDirective(sectionId, "visual", "fix it", [])],
             volatileSuffixBySectionId: new Dictionary<Guid, string>(), // no suffix for sectionId
-            Guid.NewGuid(), OneLook(), layout, maxOutputTokens: 500, CancellationToken.None));
+            Guid.NewGuid(), OneLook(), layout, FakeVocabulary(), maxOutputTokens: 500, CancellationToken.None));
     }
 }

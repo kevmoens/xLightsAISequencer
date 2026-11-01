@@ -10,6 +10,14 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Pipeline\XlightsAI.Studio.Pipeline.csproj" />
+    <!-- Build-plan Phase 16 §2b: real exemplar-description generation needs the Director role's own
+         configured client/credential resolution, which only Director/AiEdits own. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Director\XlightsAI.Studio.Director.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.AiEdits\XlightsAI.Studio.AiEdits.csproj" />
+    <!-- Build-plan Phase 17 §2a: cross-references this app's own recorded project directories so the
+         real mining run excludes this app's own prior generated output, same as the Shell UI's own
+         "Run corpus mining" action. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Projects\XlightsAI.Studio.Projects.csproj" />
   </ItemGroup>
 
 </Project>

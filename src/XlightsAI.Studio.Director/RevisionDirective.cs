@@ -1,3 +1,4 @@
+using XlightsAI.Studio.Choreography;
 using XlightsAI.Studio.Refinement.Harness;
 
 namespace XlightsAI.Studio.Director;
@@ -85,5 +86,48 @@ public static class RevisionDirectiveDeriver
         }
 
         return directives;
+    }
+
+    /// <summary>
+    /// User feedback (2026-10-31): a prop (e.g. an Arch) silently ending up with zero effects for an
+    /// entire show was previously only a soft prompt instruction the Director could ignore with nothing
+    /// checking compliance. <see cref="ChoreographyLegalityValidator.ValidateShow"/>'s
+    /// <see cref="ChoreographyLegalityValidator.RuleModelCoverage"/> rule now detects it after compile;
+    /// this turns each such finding into a real, self-healing targeted regeneration directive rather than
+    /// a violation nobody acts on. Every uncovered model is directed at the single longest section (by
+    /// window duration) -- the section with the most real screen-time to plausibly fit one more prop's
+    /// moment into, and a single, deterministic, defensible choice rather than round-robining across every
+    /// section (which would regenerate far more than the "only affected SectionScripts re-run" principle
+    /// calls for) or guessing a section from the violation text. A show with no sections at all (so no
+    /// window to target) produces no directive here -- nothing this deriver can act on.
+    /// </summary>
+    public static IReadOnlyList<RevisionDirective> FromModelCoverageViolations(
+        IReadOnlyList<LegalityViolation> violations, IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById)
+    {
+        ArgumentNullException.ThrowIfNull(violations);
+        ArgumentNullException.ThrowIfNull(sectionWindowsById);
+
+        var uncoveredModelIds = violations
+            .Where(v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage && v.AffectedModelId is not null)
+            .Select(v => v.AffectedModelId!)
+            .ToList();
+
+        if (uncoveredModelIds.Count == 0 || sectionWindowsById.Count == 0)
+        {
+            return [];
+        }
+
+        var longestSectionId = sectionWindowsById
+            .OrderByDescending(kv => kv.Value.End - kv.Value.Start)
+            .First().Key;
+
+        return uncoveredModelIds
+            .Select(modelId => new RevisionDirective(
+                longestSectionId, "model-coverage",
+                $"Model '{modelId}' has received zero effects anywhere in this show so far. Give it a real, " +
+                "deliberate moment somewhere in THIS section specifically -- bind at least one Look layer to it " +
+                "(directly, or via a group that includes it).",
+                [$"model-coverage:{modelId}"]))
+            .ToList();
     }
 }

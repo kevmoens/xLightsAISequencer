@@ -1,11 +1,18 @@
 using System.Text.Json;
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Knowledge;
 
 namespace XlightsAI.Studio.Director.Tests;
 
 /// <summary>Build-plan Phase 6 task 1: the same "validate, retry with correction, exhaust after N attempts" discipline as <see cref="ShowBibleGeneratorTests"/>, scoped to one <see cref="SectionScript"/> call.</summary>
 public sealed class SectionScriptGeneratorTests
 {
+    private static EffectVocabularyCatalog FakeVocabulary() => new(
+        RealXLightsFixture.SixCommonEffectNames.ToDictionary(name => name, name => new EffectVocabulary(name, "E_", []), StringComparer.Ordinal),
+        buffer: new EffectVocabulary("Buffer", "B_", []),
+        blending: new EffectVocabulary("Blending", "T_", []),
+        color: new EffectVocabulary("Color", "C_", []));
+
     private static async Task<(XlightsAI.Studio.Xlights.DisplayGraph Layout, LookLibrary Looks)> LoadFixturesAsync()
     {
         var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
@@ -37,12 +44,12 @@ public sealed class SectionScriptGeneratorTests
 
         var (layout, looks) = await LoadFixturesAsync();
         var sectionId = Guid.NewGuid();
-        var validScript = new SectionScript(sectionId, "golden-hold");
+        var validScript = new SectionScript(sectionId, "golden-hold", FillerEffects: RealXLightsFixture.SixCommonEffectNames);
 
         var client = new FakeChatCompletionClient([_ => new ChatCompletionResult(ToModelResponseText(validScript), new AiUsage(500, 100, 0, 0))]);
         var generator = new SectionScriptGenerator(client);
 
-        var report = await generator.GenerateAsync("STABLE", "VOLATILE", sectionId, looks, layout, 1000, CancellationToken.None);
+        var report = await generator.GenerateAsync("STABLE", "VOLATILE", sectionId, looks, layout, FakeVocabulary(), 1000, CancellationToken.None);
 
         Assert.NotNull(report.Script);
         Assert.Equal("golden-hold", report.Script!.LookId);
@@ -62,7 +69,7 @@ public sealed class SectionScriptGeneratorTests
         var (layout, looks) = await LoadFixturesAsync();
         var sectionId = Guid.NewGuid();
         var invalidScript = new SectionScript(sectionId, "no-such-look");
-        var validScript = new SectionScript(sectionId, "golden-hold");
+        var validScript = new SectionScript(sectionId, "golden-hold", FillerEffects: RealXLightsFixture.SixCommonEffectNames);
 
         var client = new FakeChatCompletionClient([
             _ => new ChatCompletionResult(ToModelResponseText(invalidScript), new AiUsage(500, 100, 0, 0)),
@@ -70,7 +77,7 @@ public sealed class SectionScriptGeneratorTests
         ]);
         var generator = new SectionScriptGenerator(client);
 
-        var report = await generator.GenerateAsync("STABLE", "VOLATILE", sectionId, looks, layout, 1000, CancellationToken.None);
+        var report = await generator.GenerateAsync("STABLE", "VOLATILE", sectionId, looks, layout, FakeVocabulary(), 1000, CancellationToken.None);
 
         Assert.NotNull(report.Script);
         Assert.Equal(2, report.AttemptCount);
@@ -96,7 +103,7 @@ public sealed class SectionScriptGeneratorTests
             _ => new ChatCompletionResult(ToModelResponseText(invalidScript), new AiUsage(500, 100, 0, 0)), 3));
         var generator = new SectionScriptGenerator(client, maxAttempts: 3);
 
-        var report = await generator.GenerateAsync("STABLE", "VOLATILE", sectionId, looks, layout, 1000, CancellationToken.None);
+        var report = await generator.GenerateAsync("STABLE", "VOLATILE", sectionId, looks, layout, FakeVocabulary(), 1000, CancellationToken.None);
 
         Assert.Null(report.Script);
         Assert.Equal(3, report.AttemptCount);
@@ -114,7 +121,7 @@ public sealed class SectionScriptGeneratorTests
         var (layout, looks) = await LoadFixturesAsync();
         var sectionId = Guid.NewGuid();
         var songId = Guid.NewGuid();
-        var validScript = new SectionScript(sectionId, "golden-hold");
+        var validScript = new SectionScript(sectionId, "golden-hold", FillerEffects: RealXLightsFixture.SixCommonEffectNames);
         var root = Path.Combine(Path.GetTempPath(), "xlai-phase6-calllog-" + Guid.NewGuid().ToString("N"));
         try
         {
@@ -122,7 +129,7 @@ public sealed class SectionScriptGeneratorTests
             var callLog = new JsonAiCallLogStore(root);
             var generator = new SectionScriptGenerator(client, callLog: callLog, modelName: "claude-sonnet-5");
 
-            await generator.GenerateAsync("STABLE", "VOLATILE", songId, looks, layout, 1000, CancellationToken.None);
+            await generator.GenerateAsync("STABLE", "VOLATILE", songId, looks, layout, FakeVocabulary(), 1000, CancellationToken.None);
 
             var entries = await callLog.ListForSongAsync(songId, CancellationToken.None);
             Assert.Single(entries);

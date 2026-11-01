@@ -47,6 +47,53 @@ public sealed class CorpusManifestBuilderTests
         Assert.Throws<DirectoryNotFoundException>(() => CorpusManifestBuilder.Build(Path.Combine(Path.GetTempPath(), $"does-not-exist-{Guid.NewGuid():N}")));
     }
 
+    [Fact]
+    public void Build_ExcludesAnyExportsFolderGenerically_NotJustTheOneHardCodedProjectName()
+    {
+        // Build-plan Phase 17 §2a: the exports/ rule must not be special-cased to one project name --
+        // any project's own exports/ folder is excluded.
+        var root = Path.Combine(Path.GetTempPath(), $"corpus-manifest-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            WriteFile(Path.Combine(root, "Some Other Project", "exports", "sequence.xsq"));
+
+            var manifest = CorpusManifestBuilder.Build(root);
+
+            Assert.Empty(manifest.Entries);
+            Assert.Contains(manifest.ExcludedPaths, kv => kv.Key.Contains("Some Other Project") && kv.Value.Contains("exports"));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void Build_ExcludesFilesUnderARecordedProjectRootDirectory_EvenOutsideItsExportsFolder()
+    {
+        // Build-plan Phase 17 §2a: a generated .xsq later copied/moved outside its project's own
+        // exports/ folder must still be excluded via the project-root cross-reference.
+        var root = Path.Combine(Path.GetTempPath(), $"corpus-manifest-test-{Guid.NewGuid():N}");
+        Directory.CreateDirectory(root);
+        try
+        {
+            var projectRoot = Path.Combine(root, "MyProject");
+            WriteFile(Path.Combine(projectRoot, "moved-sequence.xsq"));
+            WriteFile(Path.Combine(root, "unrelated-sequence.xsq"));
+
+            var manifest = CorpusManifestBuilder.Build(root, excludedProjectRootDirectories: [projectRoot]);
+
+            Assert.Empty(manifest.Entries);
+            Assert.Contains(manifest.ExcludedPaths, kv => kv.Key.Contains("moved-sequence") && kv.Value.Contains("this app's own recorded project directory"));
+            Assert.Contains(manifest.ExcludedPaths, kv => kv.Key.Contains("unrelated-sequence") && kv.Value.Contains("not part of the known-resolution set"));
+        }
+        finally
+        {
+            Directory.Delete(root, recursive: true);
+        }
+    }
+
     private static void WriteFile(string path)
     {
         Directory.CreateDirectory(Path.GetDirectoryName(path)!);

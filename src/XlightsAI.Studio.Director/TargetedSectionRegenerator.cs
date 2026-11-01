@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Director;
@@ -25,6 +26,7 @@ public static class TargetedSectionRegenerator
         Guid songId,
         LookLibrary lookLibrary,
         DisplayGraph layout,
+        EffectVocabularyCatalog vocabulary,
         int maxOutputTokens,
         CancellationToken ct)
     {
@@ -35,6 +37,7 @@ public static class TargetedSectionRegenerator
         ArgumentNullException.ThrowIfNull(volatileSuffixBySectionId);
         ArgumentNullException.ThrowIfNull(lookLibrary);
         ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(vocabulary);
 
         // One directive per targeted section, merging every directive's instruction text for sections
         // with more than one (a numeric finding and a visual loss can target the same section) -- never
@@ -61,7 +64,7 @@ public static class TargetedSectionRegenerator
             items.Add(new SectionScriptBatchItem(sectionId, directedSuffix));
         }
 
-        var regenerated = await batchGenerator.GenerateAllAsync(stablePrefix, items, songId, lookLibrary, layout, maxOutputTokens, ct).ConfigureAwait(false);
+        var regenerated = await batchGenerator.GenerateAllAsync(stablePrefix, items, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct).ConfigureAwait(false);
 
         // Start from the untouched existing dictionary (same instances, never re-created) and overwrite
         // only the sections that actually regenerated successfully -- a section whose regeneration never

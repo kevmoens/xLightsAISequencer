@@ -173,8 +173,30 @@ public static class TimingTrackEmitter
     /// <paramref name="minimumDurationTicks"/> -- never splits a mark, only ever grows one by absorbing
     /// its immediate successors. A final too-short remainder is absorbed into the last emitted mark
     /// rather than dropped, so total coverage of <paramref name="marks"/>' own span is preserved exactly.
+    ///
+    /// Bug fixed here (found against a real song export -- "Timing track 'Percussion' mark
+    /// (2309921088-2309921315 ticks) rounds to a non-positive duration"): the loop below used to fall
+    /// through and emit the final run as its own brand-new <see cref="TimingMark"/> even when that run
+    /// was still shorter than <paramref name="minimumDurationTicks"/> -- a 227-tick (0.0227ms) remainder
+    /// at the very end of the track, nowhere near the 25ms xLights frame grid, exactly contradicting
+    /// this method's own doc comment above ("absorbed into the last emitted mark rather than dropped").
+    /// Now a too-short final run is genuinely absorbed: its span extends whichever mark <see cref="result"/>
+    /// already holds last, rather than becoming a new, separately-emitted short mark -- and if that
+    /// trailing run itself carries a real (non-empty) label that the already-emitted mark lacks, the
+    /// merged mark keeps that real label rather than silently discarding it (same "a real detected
+    /// label must never be masked" precedence the ordinary per-run label selection below already uses).
+    /// Only when <paramref name="marks"/> has exactly one entry (nothing yet in <c>result</c> to extend)
+    /// does the short run still get emitted as-is -- there is no other mark to absorb it into.
     /// </summary>
-    private static List<TimingMark> EnforceMinimumMarkDuration(List<TimingMark> marks, long minimumDurationTicks)
+    /// <summary>
+    /// Reused by <see cref="LyricTimingTrackBuilder"/>'s own <c>Phonemes</c>/<c>Words</c> tracks (same
+    /// real-song export failure, different track: "Timing track 'Lyrics_Phonemes' mark
+    /// (489986395-490000000 ticks) rounds to a non-positive duration" -- a single viseme window can be
+    /// well under the 25ms xLights frame grid, exactly like a single band-energy hop here). Internal
+    /// rather than private so that one real fix lives in one place instead of being re-derived per
+    /// track type.
+    /// </summary>
+    internal static List<TimingMark> EnforceMinimumMarkDuration(List<TimingMark> marks, long minimumDurationTicks)
     {
         if (marks.Count == 0)
         {
@@ -207,6 +229,18 @@ public static class TimingTrackEmitter
                 }
             }
 
+            if (runEnd - runStart < minimumDurationTicks && result.Count > 0)
+            {
+                // Final run is still too short: genuinely absorb it into the already-emitted previous
+                // mark (extend its end) instead of emitting a new, separately too-short mark. Keep the
+                // previous mark's own label if it already had a real one; otherwise promote this run's
+                // own real label (if any) onto the merged mark.
+                var previous = result[^1];
+                var mergedLabel = string.IsNullOrEmpty(previous.Label) ? label : previous.Label;
+                result[^1] = previous with { Label = mergedLabel, EndTicks = runEnd };
+                break;
+            }
+
             result.Add(new TimingMark(label, runStart, runEnd));
             runStartIndex = i + 1;
         }
@@ -214,7 +248,8 @@ public static class TimingTrackEmitter
         return result;
     }
 
-    private static List<TimingMark> CoalesceAdjacentSameLabel(List<TimingMark> marks)
+    /// <summary>Internal rather than private -- reused by <see cref="LyricTimingTrackBuilder"/>, same reason as <see cref="EnforceMinimumMarkDuration"/> above.</summary>
+    internal static List<TimingMark> CoalesceAdjacentSameLabel(List<TimingMark> marks)
     {
         if (marks.Count == 0)
         {

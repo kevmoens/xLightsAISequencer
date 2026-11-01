@@ -71,16 +71,47 @@ public sealed record SectionPhraseVariation(
 /// section, or <see langword="null"/>/empty to fall back to today's one-Look-for-the-whole-section
 /// behavior -- additive, never required. See <see cref="SectionPhraseVariation"/>.
 /// </param>
+/// <param name="FillerEffects">
+/// Build-plan Phase 15 §2c/§2d: this section's own flat, section-wide rotating filler pool (real xLights
+/// effect names, e.g. <c>"On"</c>/<c>"Bars"</c>) for the always-moving rule's negative-space gaps on any
+/// prop this section does not otherwise animate -- required in practice: <see cref="SectionScriptValidator"/>
+/// treats a null/empty value, or fewer than <see cref="FillerPool.MinimumDistinctStates"/> distinct names,
+/// as a retry-worthy violation, the same discipline an invalid <see cref="LookId"/> already goes through.
+/// Kept nullable here only so <c>System.Text.Json</c> deserialization of a model response missing the
+/// field never throws before that validation ever runs. Replaces the old whole-song, pre-AI hardcoded
+/// rotation (<c>AiChoreographyWholeSongGenerator.BuildFillerPool</c>, now deleted) -- a real bug fixed by
+/// this phase: that rotation had no visibility into the user's own custom prompt, so "do not use the
+/// butterfly effect" was honored by the Director's own Show Bible but not by filler.
+/// </param>
+/// <param name="FillerEffectsByRole">
+/// Build-plan Phase 15 §2c: an optional, additive narrowing of <see cref="FillerEffects"/> per
+/// <c>XlightsAI.Studio.Director.BandEnergyGroupRoleMapper.BandRole</c> -- keyed by the plain strings
+/// <c>"Foundation"</c>/<c>"Subject"</c>/<c>"Accent"</c> (kept as strings, not that enum, because this
+/// project's compiler -- <see cref="SectionScriptCompiler"/> -- lives in <c>Choreography</c>, which must
+/// never depend on <c>Director</c>; role-name-to-enum resolution happens only at the
+/// <c>Director</c>-layer integration point). When a filler target classifies into a role with an entry
+/// here, that list is used for it in this section instead of the flat <see cref="FillerEffects"/>. Every
+/// present role's own list is held to the same ≥<see cref="FillerPool.MinimumDistinctStates"/>-distinct
+/// rule as the flat list -- a narrower list is still a real rotating pool, never a relaxed one.
+/// </param>
 public sealed record SectionScript(
     Guid SectionId,
     string LookId,
     string? Variation = null,
     IReadOnlyList<SectionEventBinding>? PropBindings = null,
-    IReadOnlyList<SectionPhraseVariation>? PhraseVariations = null)
+    IReadOnlyList<SectionPhraseVariation>? PhraseVariations = null,
+    IReadOnlyList<string>? FillerEffects = null,
+    IReadOnlyDictionary<string, IReadOnlyList<string>>? FillerEffectsByRole = null)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyList<SectionEventBinding> PropBindingsOrEmpty => PropBindings ?? [];
 
     [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyList<SectionPhraseVariation> PhraseVariationsOrEmpty => PhraseVariations ?? [];
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<string> FillerEffectsOrEmpty => FillerEffects ?? [];
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyDictionary<string, IReadOnlyList<string>> FillerEffectsByRoleOrEmpty => FillerEffectsByRole ?? new Dictionary<string, IReadOnlyList<string>>();
 }

@@ -103,7 +103,6 @@ public sealed class Phase6EndToEndRealTrackTests : IDisposable
         var layoutSummary = LayoutSummary.Build(layout);
         var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
         var registry = new EffectRecipeRegistry(recipes);
-        var fillerPool = BuildFillerPool(recipes);
 
         var knowledge = new DirectorKnowledgeContext(
             vocabulary,
@@ -124,7 +123,7 @@ public sealed class Phase6EndToEndRealTrackTests : IDisposable
             choreographerClient, OllamaModel,
             maxOutputTokens: 600);
 
-        var settings = new ChoreographyGenerationSettings(layout, vocabulary, recipes, registry, fillerPool, EnergyCeilingByKind, _root);
+        var settings = new ChoreographyGenerationSettings(layout, vocabulary, recipes, registry, EnergyCeilingByKind, _root);
         var callLog = new JsonAiCallLogStore(Path.Combine(_root, "llm"));
 
         var rows = new List<string>();
@@ -229,19 +228,6 @@ public sealed class Phase6EndToEndRealTrackTests : IDisposable
         }
 
         return power;
-    }
-
-    /// <summary>Same ids this project's own <see cref="LookCompilerSettings"/> fixtures already use elsewhere -- never fabricated, always a real recipe present in a real vocabulary.</summary>
-    private static FillerPool BuildFillerPool(EffectRecipeCatalog recipes)
-    {
-        string[] names = ["On", "Bars", "SingleStrand", "Color Wash", "Twinkle", "Butterfly"];
-        var ids = names
-            .Select(name =>
-                recipes.Recipes.FirstOrDefault(r => r.RecipeId.StartsWith("effect.generated.", StringComparison.Ordinal) && r.XlightsEffectName == name)
-                ?? recipes.Recipes.First(r => string.Equals(r.XlightsEffectName, name, StringComparison.Ordinal)))
-            .Select(r => r.RecipeId)
-            .ToList();
-        return new FillerPool(ids);
     }
 
     /// <summary>A real-group, schema-valid 10-Look/3-palette Show Bible -- same construction as <see cref="ShowBibleContentFixture.BuildValid"/>, duplicated locally rather than shared because that fixture's own Looks intentionally use a trivial single-layer "On" effect per Look (enough to validate schema shape, not enough to exercise <see cref="SectionScriptCompiler"/>'s own per-layer prop rebinding meaningfully) -- this one gives every Look 2 layers across 2 different real groups so a SectionScript's own PropBindings have something real to rebind.</summary>

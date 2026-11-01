@@ -1,4 +1,6 @@
 using XlightsAI.Studio.Knowledge;
+using XlightsAI.Studio.Rhythm;
+using XlightsAI.Studio.Stems;
 using XlightsAI.Studio.Structure;
 
 namespace XlightsAI.Studio.Pipeline;
@@ -59,8 +61,8 @@ public static class ExemplarIndexBuilder
                     TempoBpm: tempoBpm,
                     EnergyPercentile: percentile,
                     SectionKind: sectionKind,
-                    BandBalance: null,
-                    VocalActivityHint: null);
+                    BandBalance: MeanBandBalance(song.BandEnergy, phrase.StartBarIndex, phrase.EndBarIndexExclusive, bars),
+                    VocalActivityHint: VocalActivityWithinWindow(song.VocalActivity, phrase.StartBarIndex, phrase.EndBarIndexExclusive, bars));
 
                 var effects = song.AlignedEffects
                     .Where(a => a.StartBarIndex >= phrase.StartBarIndex && a.StartBarIndex < phrase.EndBarIndexExclusive)
@@ -72,6 +74,54 @@ public static class ExemplarIndexBuilder
         }
 
         return new ExemplarIndex(DateTimeOffset.UtcNow, entries);
+    }
+
+    /// <summary>
+    /// Build-plan Phase 16 §2c: this phrase window's mean normalized [bass, mid, high] energy share,
+    /// averaged over its own real bar-tick range via <see cref="BandEnergyEnvelope.AverageInWindow"/>, or
+    /// <see langword="null"/> when no band-energy analysis is available (an entry mined before this phase
+    /// shipped) or the window has no bars to derive a tick range from.
+    /// </summary>
+    private static IReadOnlyList<double>? MeanBandBalance(BandEnergyEnvelope? bandEnergy, int startBarIndex, int endBarIndexExclusive, IReadOnlyList<BarFingerprint> bars)
+    {
+        if (bandEnergy is null || !TryGetWindowTicks(bars, startBarIndex, endBarIndexExclusive, out var startTicks, out var endTicks))
+        {
+            return null;
+        }
+
+        var (bass, mid, high) = bandEnergy.AverageInWindow(startTicks, endTicks);
+        return [bass, mid, high];
+    }
+
+    /// <summary>
+    /// Build-plan Phase 16 §2c: whether this phrase window's own real bar-tick range overlaps any
+    /// detected vocal-active region, or <see langword="null"/> when no vocal-activity analysis is
+    /// available (an entry mined before this phase shipped) or the window has no bars to derive a tick
+    /// range from.
+    /// </summary>
+    private static bool? VocalActivityWithinWindow(VocalActivityEnvelope? vocalActivity, int startBarIndex, int endBarIndexExclusive, IReadOnlyList<BarFingerprint> bars)
+    {
+        if (vocalActivity is null || !TryGetWindowTicks(bars, startBarIndex, endBarIndexExclusive, out var startTicks, out var endTicks))
+        {
+            return null;
+        }
+
+        return vocalActivity.ActiveRegions.Any(r => r.StartTicks < endTicks && r.EndTicks > startTicks);
+    }
+
+    private static bool TryGetWindowTicks(IReadOnlyList<BarFingerprint> bars, int startBarIndex, int endBarIndexExclusive, out long startTicks, out long endTicks)
+    {
+        var windowBars = bars.Where(b => b.BarIndex >= startBarIndex && b.BarIndex < endBarIndexExclusive).ToList();
+        if (windowBars.Count == 0)
+        {
+            startTicks = 0;
+            endTicks = 0;
+            return false;
+        }
+
+        startTicks = windowBars.Min(b => b.Window.StartTicks);
+        endTicks = windowBars.Max(b => b.Window.EndTicks);
+        return true;
     }
 
     private static double PercentileRank(IReadOnlyList<double> population, double value)

@@ -21,10 +21,15 @@ public sealed class RealCorpusManifestTests
 
         var manifest = CorpusManifestBuilder.Build(RealCorpusRoot);
 
-        Assert.Equal(20, manifest.Entries.Count);
+        // Build-plan Phase 17 §1b/§2b: 7 of the user's 12 selected historical recoveries parse cleanly
+        // and were registered as real UserAuthored KnownResolutions entries (2026-10-31) -- 5 UserAuthored
+        // from before this phase plus 7 newly recovered = 12; LikelyVendorOrCommunityDownload/
+        // ExternalReference counts are unchanged (Phase 16 §1c's 5 broken-copy swaps were swaps within
+        // that same category, not additions).
+        Assert.Equal(27, manifest.Entries.Count);
         Assert.Equal(14, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.LikelyVendorOrCommunityDownload));
         Assert.Equal(1, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.ExternalReference));
-        Assert.Equal(5, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.UserAuthored));
+        Assert.Equal(12, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.UserAuthored));
 
         foreach (var entry in manifest.Entries)
         {

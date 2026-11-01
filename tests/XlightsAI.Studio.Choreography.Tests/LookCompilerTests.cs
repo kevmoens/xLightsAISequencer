@@ -57,7 +57,7 @@ public sealed class LookCompilerTests
         var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
         var registry = new EffectRecipeRegistry(recipes);
         var palettes = new Dictionary<string, ColorPaletteDefinition> { ["warm-gold"] = PaletteBuilder.Build(["#FFC880"]) };
-        return new LookCompilerSettings(vocabulary, recipes, registry, palettes, RealXLightsFixture.BuildFillerPool(recipes));
+        return new LookCompilerSettings(vocabulary, recipes, registry, palettes);
     }
 
     [Fact]

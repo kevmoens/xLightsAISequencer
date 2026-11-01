@@ -14,4 +14,7 @@ public static class RealXLightsFixture
 
     public static (EffectVocabularyCatalog Vocabulary, EffectRecipeCatalog Recipes) BuildCatalogs() =>
         EffectCatalogFactory.BuildFromMetadataDirectory(EffectMetadataRoot);
+
+    /// <summary>Same always-present-in-a-real-vocabulary 6-name set <c>XlightsAI.Studio.Choreography.Tests.RealXLightsFixture</c> uses -- a real, valid <c>SectionScript.FillerEffects</c> value for tests in this project that construct a script by hand (build-plan Phase 15: FillerEffects is now required).</summary>
+    public static readonly string[] SixCommonEffectNames = ["On", "Bars", "SingleStrand", "Color Wash", "Twinkle", "Butterfly"];
 }

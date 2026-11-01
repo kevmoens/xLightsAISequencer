@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Pipeline;
@@ -16,5 +17,12 @@ public interface IWholeSongGenerator
     /// see <see cref="WholeSongGenerationResult"/>'s own doc comment for why both are returned rather
     /// than just the document.
     /// </summary>
-    Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default);
+    /// <param name="customPrompt">
+    /// Build-plan Phase 14 §2c: the user's own free-text creative direction for this run, or
+    /// <see langword="null"/>/empty for the pre-existing default behavior every call site before this
+    /// phase keeps getting unchanged. Only <c>AiChoreographyWholeSongGenerator</c> actually acts on
+    /// this; every other implementation (<c>WholeSongGenerator</c>, <c>NullWholeSongGenerator</c>)
+    /// accepts and ignores it.
+    /// </param>
+    Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null);
 }

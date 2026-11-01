@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.WholeSong;
 using XlightsAI.Studio.Xlights;
 
@@ -41,7 +42,8 @@ public sealed class WholeSongGenerator : IWholeSongGenerator
         _composition = composition ?? new ChoreographyCompositionRunner();
     }
 
-    public async Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default)
+    /// <param name="customPrompt">Build-plan Phase 14: unused by this superseded generator -- see <see cref="IWholeSongGenerator.GenerateAsync"/>.</param>
+    public async Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null)
     {
         ArgumentNullException.ThrowIfNull(song);
         ArgumentNullException.ThrowIfNull(layout);

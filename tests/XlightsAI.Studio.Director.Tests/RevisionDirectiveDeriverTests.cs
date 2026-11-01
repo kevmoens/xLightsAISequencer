@@ -1,9 +1,76 @@
+using XlightsAI.Studio.Choreography;
 using XlightsAI.Studio.Refinement.Harness;
 
 namespace XlightsAI.Studio.Director.Tests;
 
 public sealed class RevisionDirectiveDeriverTests
 {
+    [Fact]
+    public void FromModelCoverageViolations_TargetsTheLongestSection()
+    {
+        // User feedback (2026-10-31): an uncovered model (e.g. an Arch) should be directed at the section
+        // with the most real screen-time to plausibly fit it into.
+        var shortSection = Guid.NewGuid();
+        var longSection = Guid.NewGuid();
+        var windows = new Dictionary<Guid, (long Start, long End)>
+        {
+            [shortSection] = (0, 1_000),
+            [longSection] = (0, 50_000),
+        };
+        var violations = new[]
+        {
+            new LegalityViolation(ChoreographyLegalityValidator.RuleModelCoverage, "Model 'Arch 1' never received any effect.", AffectedModelId: "Arch 1"),
+        };
+
+        var directives = RevisionDirectiveDeriver.FromModelCoverageViolations(violations, windows);
+
+        var directive = Assert.Single(directives);
+        Assert.Equal(longSection, directive.SectionId);
+        Assert.Equal("model-coverage", directive.Kind);
+        Assert.Contains("Arch 1", directive.Instruction);
+    }
+
+    [Fact]
+    public void FromModelCoverageViolations_MultipleUncoveredModels_OneDirectiveEachOnTheSameLongestSection()
+    {
+        var onlySection = Guid.NewGuid();
+        var windows = new Dictionary<Guid, (long Start, long End)> { [onlySection] = (0, 10_000) };
+        var violations = new[]
+        {
+            new LegalityViolation(ChoreographyLegalityValidator.RuleModelCoverage, "Model 'Arch 1' never received any effect.", AffectedModelId: "Arch 1"),
+            new LegalityViolation(ChoreographyLegalityValidator.RuleModelCoverage, "Model 'Arch 2' never received any effect.", AffectedModelId: "Arch 2"),
+        };
+
+        var directives = RevisionDirectiveDeriver.FromModelCoverageViolations(violations, windows);
+
+        Assert.Equal(2, directives.Count);
+        Assert.All(directives, d => Assert.Equal(onlySection, d.SectionId));
+    }
+
+    [Fact]
+    public void FromModelCoverageViolations_IgnoresOtherRules_AndMissingAffectedModelId()
+    {
+        var windows = new Dictionary<Guid, (long Start, long End)> { [Guid.NewGuid()] = (0, 10_000) };
+        var violations = new[]
+        {
+            new LegalityViolation("some-other-rule", "Unrelated finding.", AffectedModelId: "Arch 1"),
+            new LegalityViolation(ChoreographyLegalityValidator.RuleModelCoverage, "No AffectedModelId set."),
+        };
+
+        Assert.Empty(RevisionDirectiveDeriver.FromModelCoverageViolations(violations, windows));
+    }
+
+    [Fact]
+    public void FromModelCoverageViolations_NoSectionWindows_ProducesNoDirective()
+    {
+        var violations = new[]
+        {
+            new LegalityViolation(ChoreographyLegalityValidator.RuleModelCoverage, "Model 'Arch 1' never received any effect.", AffectedModelId: "Arch 1"),
+        };
+
+        Assert.Empty(RevisionDirectiveDeriver.FromModelCoverageViolations(violations, new Dictionary<Guid, (long Start, long End)>()));
+    }
+
     [Fact]
     public void FromNumericFindings_MappedMetric_ProducesOneDirectivePerSection()
     {

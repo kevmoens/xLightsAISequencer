@@ -9,6 +9,18 @@ namespace XlightsAI.Studio.Choreography;
 public sealed record SectionPhraseLookAssignment(BarIndex StartBar, BarIndex EndBarExclusive, string LookId);
 
 /// <summary>
+/// Build-plan Phase 15 §3: one section's own name-based filler plan (real xLights effect names, e.g.
+/// <c>"On"</c>, not recipe ids) -- <see cref="SectionScriptCompiler"/>'s own copy of
+/// <see cref="SectionScript.FillerEffects"/>/<see cref="SectionScript.FillerEffectsByRole"/>, kept
+/// name-based (not resolved to recipe ids, and not typed against the Director-only <c>BandRole</c> enum)
+/// so this compiler stays a pure, I/O-free, Director-independent transformation -- the Director-layer
+/// caller (<c>ChoreographyGenerationPipeline</c>) is the one place with both a real <c>EffectRecipeCatalog</c>
+/// to resolve names against and the real <c>BandEnergyGroupRoleMapper</c> classification to key role-specific
+/// lists by.
+/// </summary>
+public sealed record SectionFillerPlan(IReadOnlyList<string> FlatEffectNames, IReadOnlyDictionary<string, IReadOnlyList<string>>? ByRole);
+
+/// <summary>
 /// Build-plan Phase 6 task 3: "Wire Phase 4's Look -&gt; ChoreographyIR compiler to consume SectionScript +
 /// Look instead of a hand-authored Look directly." Rather than widening <see cref="ChoreographyEngine.Input"/>'s
 /// own contract to understand <see cref="SectionScript"/> (which would make every existing Phase 4 caller --
@@ -27,11 +39,11 @@ public static class SectionScriptCompiler
         $"{script.LookId}::section::{script.SectionId:N}";
 
     /// <exception cref="ChoreographyCompilationException">A script references a Look not present in <paramref name="baseLibrary"/>, or rebinds a layer z that Look does not have -- the same failures <see cref="SectionScriptValidator"/> should already have caught before this ever runs; re-checked here because this compiler must never silently fabricate a Look.</exception>
-    public static (LookLibrary EffectiveLibrary, IReadOnlyDictionary<Guid, string> LookIdBySectionId) Compile(
+    public static (LookLibrary EffectiveLibrary, IReadOnlyDictionary<Guid, string> LookIdBySectionId, IReadOnlyDictionary<Guid, SectionFillerPlan> FillerPlanBySectionId) Compile(
         LookLibrary baseLibrary, IReadOnlyDictionary<Guid, SectionScript> scriptsBySectionId)
     {
-        var (effectiveLibrary, lookIdBySectionId, _) = Compile(baseLibrary, scriptsBySectionId, phrasesBySectionId: null);
-        return (effectiveLibrary, lookIdBySectionId);
+        var (effectiveLibrary, lookIdBySectionId, _, fillerPlanBySectionId) = Compile(baseLibrary, scriptsBySectionId, phrasesBySectionId: null);
+        return (effectiveLibrary, lookIdBySectionId, fillerPlanBySectionId);
     }
 
     /// <summary>
@@ -45,7 +57,7 @@ public static class SectionScriptCompiler
     /// </summary>
     /// <param name="phrasesBySectionId">This song's own real phrases (<see cref="PhraseCandidate"/>), grouped by their own <see cref="PhraseCandidate.SectionLabelId"/> -- or <see langword="null"/> to skip phrase-scoped expansion entirely (every script's <see cref="SectionScript.PhraseVariations"/>, if any, is then ignored, same as the two-argument overload).</param>
     /// <exception cref="ChoreographyCompilationException">A script declares phrase variations but no phrase data is supplied for its section, declares a PhraseIndex beyond that section's own real phrase count, or a phrase-level layer/prop-binding reference does not resolve -- the same "never silently fabricate" discipline as every other check in this compiler.</exception>
-    public static (LookLibrary EffectiveLibrary, IReadOnlyDictionary<Guid, string> LookIdBySectionId, IReadOnlyDictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>> PhraseLookAssignmentsBySectionId) Compile(
+    public static (LookLibrary EffectiveLibrary, IReadOnlyDictionary<Guid, string> LookIdBySectionId, IReadOnlyDictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>> PhraseLookAssignmentsBySectionId, IReadOnlyDictionary<Guid, SectionFillerPlan> FillerPlanBySectionId) Compile(
         LookLibrary baseLibrary, IReadOnlyDictionary<Guid, SectionScript> scriptsBySectionId, IReadOnlyDictionary<Guid, IReadOnlyList<PhraseCandidate>>? phrasesBySectionId)
     {
         ArgumentNullException.ThrowIfNull(baseLibrary);
@@ -54,9 +66,14 @@ public static class SectionScriptCompiler
         var effectiveLooks = new List<Look>(baseLibrary.Looks);
         var lookIdBySectionId = new Dictionary<Guid, string>();
         var phraseAssignmentsBySectionId = new Dictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>>();
+        var fillerPlanBySectionId = new Dictionary<Guid, SectionFillerPlan>();
 
         foreach (var (sectionId, script) in scriptsBySectionId)
         {
+            fillerPlanBySectionId[sectionId] = new SectionFillerPlan(
+                script.FillerEffectsOrEmpty,
+                script.FillerEffectsByRoleOrEmpty.Count == 0 ? null : script.FillerEffectsByRoleOrEmpty);
+
             var baseLook = baseLibrary.Find(script.LookId)
                 ?? throw new ChoreographyCompilationException($"SectionScript for section '{sectionId}' references Look '{script.LookId}', which is not in the supplied Look library.");
 
@@ -127,12 +144,34 @@ public static class SectionScriptCompiler
             phraseAssignmentsBySectionId[sectionId] = assignments;
         }
 
-        return (new LookLibrary(effectiveLooks), lookIdBySectionId, phraseAssignmentsBySectionId);
+        return (new LookLibrary(effectiveLooks), lookIdBySectionId, phraseAssignmentsBySectionId, fillerPlanBySectionId);
+    }
+
+    /// <summary>
+    /// Real-run finding (2026-10-31): a plain <c>Layers.ToDictionary(l =&gt; l.Z)</c> throws a raw,
+    /// unhelpful framework <see cref="ArgumentException"/> ("An item with the same key has already been
+    /// added. Key: 0") when a Look has two layers at the same Z -- <see cref="ShowBibleValidator"/> now
+    /// rejects that upstream (forcing a real retry instead), but this compiler's own doc comment already
+    /// promises it "must never silently fabricate a Look," so this is re-checked here too, as a real
+    /// <see cref="ChoreographyCompilationException"/> rather than trusting the upstream check alone.
+    /// </summary>
+    private static Dictionary<int, LookLayer> BuildLayersByZ(IReadOnlyList<LookLayer> layers, string context)
+    {
+        var layersByZ = new Dictionary<int, LookLayer>();
+        foreach (var layer in layers)
+        {
+            if (!layersByZ.TryAdd(layer.Z, layer))
+            {
+                throw new ChoreographyCompilationException($"{context} has more than one layer at z={layer.Z} -- every layer must have a distinct Z.");
+            }
+        }
+
+        return layersByZ;
     }
 
     private static Look ApplyPropBindings(Look baseLook, string effectiveId, IReadOnlyList<SectionEventBinding> bindings, Guid sectionId)
     {
-        var layersByZ = baseLook.Layers.ToDictionary(l => l.Z);
+        var layersByZ = BuildLayersByZ(baseLook.Layers, $"Look '{baseLook.Id}'");
         foreach (var binding in bindings)
         {
             if (!layersByZ.TryGetValue(binding.LayerZ, out var layer))
@@ -153,7 +192,7 @@ public static class SectionScriptCompiler
     /// <summary>Applies one phrase's own layer-subset/prop-binding overrides on top of <paramref name="sectionLook"/> (the section's own already-resolved effective Look, section-wide prop bindings already applied) -- never the raw base Look, so a phrase with no declared <see cref="SectionPhraseVariation.PropBindings"/> for a layer still carries that layer's own section-wide rebinding, if any.</summary>
     private static Look ApplyPhraseVariation(Look sectionLook, string phraseLookId, SectionPhraseVariation variation, Guid sectionId, int phraseIndex)
     {
-        var layersByZ = sectionLook.Layers.ToDictionary(l => l.Z);
+        var layersByZ = BuildLayersByZ(sectionLook.Layers, $"Look '{sectionLook.Id}'");
         foreach (var binding in variation.PropBindingsOrEmpty)
         {
             if (!layersByZ.TryGetValue(binding.LayerZ, out var layer))

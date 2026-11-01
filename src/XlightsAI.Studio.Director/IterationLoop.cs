@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Refinement;
 using XlightsAI.Studio.Refinement.Harness;
 using XlightsAI.Studio.Rendering;
@@ -52,6 +53,7 @@ public sealed class IterationLoop
     private readonly IReadOnlyDictionary<Guid, string> _sectionIntentById;
     private readonly LookLibrary _bibleLooks;
     private readonly DisplayGraph _layout;
+    private readonly EffectVocabularyCatalog _vocabulary;
     private readonly Func<IReadOnlyDictionary<Guid, SectionScript>, Task<(ChoreographyEngine.Result Compiled, ExportResult Export)>> _compileAndExportAsync;
     private readonly Func<ExportResult, CancellationToken, Task<IReadOnlyList<PreviewFrame>>> _renderAsync;
     private readonly VisualCritic? _visualCritic;
@@ -66,6 +68,7 @@ public sealed class IterationLoop
         IReadOnlyDictionary<Guid, string> sectionIntentById,
         LookLibrary bibleLooks,
         DisplayGraph layout,
+        EffectVocabularyCatalog vocabulary,
         Func<IReadOnlyDictionary<Guid, SectionScript>, Task<(ChoreographyEngine.Result Compiled, ExportResult Export)>> compileAndExportAsync,
         Func<ExportResult, CancellationToken, Task<IReadOnlyList<PreviewFrame>>> renderAsync,
         IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById,
@@ -80,6 +83,7 @@ public sealed class IterationLoop
         _sectionIntentById = sectionIntentById ?? throw new ArgumentNullException(nameof(sectionIntentById));
         _bibleLooks = bibleLooks ?? throw new ArgumentNullException(nameof(bibleLooks));
         _layout = layout ?? throw new ArgumentNullException(nameof(layout));
+        _vocabulary = vocabulary ?? throw new ArgumentNullException(nameof(vocabulary));
         _compileAndExportAsync = compileAndExportAsync ?? throw new ArgumentNullException(nameof(compileAndExportAsync));
         _renderAsync = renderAsync ?? throw new ArgumentNullException(nameof(renderAsync));
         _sectionWindowsById = sectionWindowsById ?? throw new ArgumentNullException(nameof(sectionWindowsById));
@@ -149,7 +153,7 @@ public sealed class IterationLoop
 
         var scripts = await TargetedSectionRegenerator.RegenerateAsync(
             _batchGenerator, _stablePrefix, previous.Scripts, directives, _volatileSuffixBySectionId,
-            songId, _bibleLooks, _layout, _maxOutputTokens, ct).ConfigureAwait(false);
+            songId, _bibleLooks, _layout, _vocabulary, _maxOutputTokens, ct).ConfigureAwait(false);
 
         var (compiled, export) = await _compileAndExportAsync(scripts).ConfigureAwait(false);
         var (report, numericFindings, visualCritiques, frames) = await MeasureAndCritiqueAsync(export, previous.Frames, ct).ConfigureAwait(false);
@@ -165,6 +169,7 @@ public sealed class IterationLoop
         var numericSectionMap = BuildNumericFindingSectionMap(previous.NumericFindings);
         return RevisionDirectiveDeriver.FromNumericFindings(previous.NumericFindings, numericSectionMap)
             .Concat(RevisionDirectiveDeriver.FromVisualCritiques(previous.VisualCritiques, _sectionIntentById))
+            .Concat(RevisionDirectiveDeriver.FromModelCoverageViolations(previous.CompiledResult.Violations, _sectionWindowsById))
             .ToList();
     }
 

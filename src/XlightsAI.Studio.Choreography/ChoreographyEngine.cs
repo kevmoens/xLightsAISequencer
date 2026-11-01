@@ -26,7 +26,16 @@ public static class ChoreographyEngine
     /// <param name="LookIdBySectionId">Which Look (by id) each section (by its own <see cref="SectionLabelCandidate.Id"/>) is assigned to. A section with no entry is left uncompiled -- never silently assigned an invented default.</param>
     /// <param name="EnergyCeilingByKind">Per-<see cref="SectionKind"/> energy ceiling (architecture §10's structural arc) -- a kind with no entry defaults to <c>1.0</c> (no additional ceiling beyond the Look's own).</param>
     /// <param name="SongEndTicks">The song's own total duration, in ticks.</param>
-    /// <param name="CompilerSettings">Vocabulary/recipe/palette/filler-pool configuration shared across every section's compile.</param>
+    /// <param name="CompilerSettings">Vocabulary/recipe/palette configuration shared across every section's compile.</param>
+    /// <param name="FillerSchedule">
+    /// Build-plan Phase 15 §3: resolves, for any tick position and target, which section's own declared
+    /// filler plan applies -- replaces the old single whole-song <c>FillerPool</c> that used to live on
+    /// <see cref="LookCompilerSettings"/> (never actually consumed by <see cref="LookCompiler"/> itself;
+    /// confirmed zero references) now that filler is a per-section (and optionally per-role) Choreographer
+    /// declaration. Required: the always-moving rule must always have a real pool to draw from. Use
+    /// <see cref="SectionFillerSchedule.Flat"/> for a single whole-song pool (e.g. a hand-authored-Look
+    /// test with no real <see cref="SectionScript"/> to derive a per-section plan from).
+    /// </param>
     /// <param name="CoverageLadderRungCount">How many rungs <see cref="PixelCoverageLadder.Build"/> produces.</param>
     /// <param name="VisemeMarks">Build-plan Phase 8 task 3's heuristic viseme/phoneme approximation (<see cref="XlightsAI.Studio.Stems.VisemeApproximator"/>), used only to populate the <see cref="LyricTimingTrackBuilder"/> lyric tracks -- <see langword="null"/>/empty means no <c>Lyrics_Phonemes</c>/<c>Lyrics_Words</c> content (still produces <c>Lyrics_Phrases</c> whenever <paramref name="VocalActivity"/> has real activity).</param>
     /// <param name="PhraseLookAssignmentsBySectionId">
@@ -49,6 +58,7 @@ public static class ChoreographyEngine
         IReadOnlyDictionary<SectionKind, double> EnergyCeilingByKind,
         long SongEndTicks,
         LookCompilerSettings CompilerSettings,
+        SectionFillerSchedule FillerSchedule,
         int CoverageLadderRungCount = 7,
         IReadOnlyList<VisemeMark>? VisemeMarks = null,
         IReadOnlyDictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>>? PhraseLookAssignmentsBySectionId = null);
@@ -153,7 +163,7 @@ public static class ChoreographyEngine
                 : sectionAssignments.Average(s => Math.Min(s.Look.EnergyCeiling, input.EnergyCeilingByKind.GetValueOrDefault(SectionKindOf(input.Sections, s.SectionId), 1.0)));
 
             gapFilledEffects.AddRange(AlwaysMovingGapSplitter.FillGaps(
-                target, existing, songWindow, barGrid, input.CompilerSettings.FillerPool, averageCeiling, input.CompilerSettings.RecipeRegistry));
+                target, existing, songWindow, barGrid, tick => input.FillerSchedule.Resolve(tick, target), averageCeiling, input.CompilerSettings.RecipeRegistry));
         }
 
         mergedIR = mergedIR with { Effects = gapFilledEffects };

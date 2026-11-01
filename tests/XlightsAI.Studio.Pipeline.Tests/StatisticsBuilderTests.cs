@@ -65,9 +65,10 @@ public sealed class StatisticsBuilderTests
         }
 
         var query = index.Entries[0].Fingerprint;
-        var results = index.FindSimilar(query, 1);
-        Assert.Single(results);
-        Assert.Equal(query, results[0].Fingerprint);
+        var retrieval = index.FindSimilar(query, 1);
+        Assert.Single(retrieval.Entries);
+        Assert.False(retrieval.IsFallback);
+        Assert.Equal(query, retrieval.Entries[0].Fingerprint);
     }
 
     [Fact]

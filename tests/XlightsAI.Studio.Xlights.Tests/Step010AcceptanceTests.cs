@@ -49,6 +49,27 @@ public sealed class Step010AcceptanceTests
         Assert.Equal(0, megaTreePoint.Y);
     }
 
+    /// <summary>
+    /// Real-run finding (2026-11-01): a real "Arches" model (confirmed against a real show's own
+    /// SourceVersion "2026.17" export) carries NumArches/NodesPerArch instead of NumStrings/NodesPerString
+    /// or the legacy parm1/parm2 -- without a fallback to those names, this model silently computed to 0
+    /// nodes, which every downstream consumer correctly treats as "no real pixels," so the model never
+    /// reached a compiled show at all (confirmed against two real exported .xsq files: zero "Arch"-named
+    /// entries anywhere in DisplayElements, not merely zero effects on an entry that existed).
+    /// </summary>
+    [Fact]
+    public async Task ArchesModelWithModernNumArchesNodesPerArchAttributes_ComputesRealNonzeroNodeCount()
+    {
+        var importer = new ShowLayoutImporter();
+        var directory = FixtureDirectory("sample-show-arches-modern-attributes");
+
+        var graph = await importer.ImportReadOnlyAsync(directory, CancellationToken.None);
+
+        var arch = Assert.Single(graph.Models);
+        Assert.Equal("Arches-1 Outside", arch.XlightsName);
+        Assert.Equal(200, arch.NodeCount); // NumArches=2 * NodesPerArch=100, same formula as parm1*parm2.
+    }
+
     /// <summary>Re-running the import against unchanged bytes yields the identical source layout hash (deterministic, read-only).</summary>
     [Fact]
     public async Task Import_IsDeterministic_SameBytesSameHash()

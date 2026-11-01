@@ -61,7 +61,7 @@ public sealed class SectionPhraseVariationChoreographyEngineTests
         var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
         var registry = new EffectRecipeRegistry(recipes);
         var palettes = new Dictionary<string, ColorPaletteDefinition> { ["warm-gold"] = PaletteBuilder.Build(["#FFC880"]) };
-        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, palettes, RealXLightsFixture.BuildFillerPool(recipes));
+        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, palettes);
 
         var layout = BuildLayout();
         var beatGrid = BuildBeatGrid();
@@ -85,11 +85,13 @@ public sealed class SectionPhraseVariationChoreographyEngineTests
             new(new BarIndex(2), new BarIndex(4), "subject-only"),
         };
 
+        var fillerSchedule = SectionFillerSchedule.Flat(RealXLightsFixture.BuildFillerPool(recipes), SongEndTicks);
+
         var input = new ChoreographyEngine.Input(
             layout, beatGrid, sections, phrases, BandEnergy: null, VocalActivity: null,
             new LookLibrary([fullLook, subjectOnlyLook]), LookIdBySectionId: new Dictionary<Guid, string>(),
             EnergyCeilingByKind: new Dictionary<SectionKind, double> { [SectionKind.Verse] = 1.0 },
-            SongEndTicks, compilerSettings,
+            SongEndTicks, compilerSettings, fillerSchedule,
             PhraseLookAssignmentsBySectionId: new Dictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>> { [sectionId] = phraseAssignments });
 
         var result = ChoreographyEngine.Compile(input);

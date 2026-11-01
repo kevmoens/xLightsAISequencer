@@ -1,0 +1,27 @@
+[GenerateOnce] AppData directory: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio
+[GenerateOnce] Custom prompt: Do not use the butterfly effect.
+[GenerateOnce] Director provider config: Enabled=True, Provider=OpenAiCompatible, Endpoint=https://kmoen-m7an0vew-eastus2.openai.azure.com/openai/responses?api-version=2025-04-01-preview, Model=gpt-6-luna
+[GenerateOnce] Choreographer provider config: Enabled=True, Provider=OpenAiCompatible, Endpoint=https://kmoen-m7an0vew-eastus2.openai.azure.com/openai/responses?api-version=2025-04-01-preview, Model=gpt-6-luna
+[GenerateOnce] Importing show layout from 'C:\xLights'...
+[GenerateOnce] Layout imported: 23 models.
+[GenerateOnce] Probing song 'C:\xLights\Bad Feeling-Jagwar Twin (Clean_Lyrics).mp3'...
+[GenerateOnce] Song probed: Id=SongId { Value = 0e887df8-0e89-4152-9904-3a9c97e04699 }, Duration=00:02:13.0735828, SampleRate=44100.
+[GenerateOnce] Starting AiChoreographyWholeSongGenerator.GenerateAsync (calls the configured AI provider many times; may take a while)...
+[GenerateOnce] Generation completed in 00:07:19.2084837.
+
+==================== GenerateOnce report ====================
+Final .xsq path: C:\xLights\generated\Bad Feeling - Jagwar Twin.xsq
+(Pre-existing file backed up to: C:\xLights\generated\Bad Feeling - Jagwar Twin.xsq (21).bak)
+Total EffectInstances generated: 1223
+Distinct effect names (9): Bars, Color Wash, Fireworks, Pinwheel, Ripple, Shockwave, SingleStrand, Strobe, Twinkle
+Most-used effect: 'Twinkle' at 21.7 % of all 1223 name-resolved effects (2026-10-30 baseline: top 2 effects combined ~37%, 9 distinct names total).
+Max concurrent EffectLayers on any one prop: 3 (on 'Matrix') -- 2026-10-30 baseline: 3 on the richest prop, 0-2 on typical secondary props.
+<mediaFile> in exported .xsq: C:\xLights\Bad Feeling-Jagwar Twin (Clean_Lyrics).mp3
+<mediaFile> matches real song path: True
+Wall-clock generation time: 00:07:19.2084837
+Persisted custom-prompt record: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\ai-choreography\generate-once\llm\custom-prompt-used-6d4e124e4a2845cd8fb80a91f82d1227.json -> {"Text":"Do not use the butterfly effect.","IsEmpty":false}
+
+Change-density spread (starts/10s across 14 bucket(s)): min=17, max=114, spread=6.71x.
+  (2026-10-30 baseline: reference 4.7x, pre-Phase-12 AI-generated 1.2x -- this run's spread should measurably exceed 1.2x.)
+Longest single compiled effect: 00:00:26.5838322 (26.6s) -- pre-Phase-12 baseline measured under 7s anywhere in the song.
+===============================================================

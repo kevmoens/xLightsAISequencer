@@ -115,9 +115,18 @@ public static class SectionScriptPromptBuilder
     /// <param name="melodicBrief">Build-plan Phase 10 §3b: this section's own real melodic contour digest (<see cref="MelodicContourBriefBuilder.ComputeSectionBriefs"/>), or <see langword="null"/> when no real <see cref="MusicModel.Melody"/> was available for this song -- rendered as nothing rather than an invented/placeholder line.</param>
     /// <param name="motifLink">Build-plan Phase 10 §3c: the one specific earlier section this section's own real motif-clustering data ties it to (<see cref="MotifLinkedPredecessorBuilder.ComputeSectionLinks"/>), or <see langword="null"/> when this section has no motif-linked predecessor -- rendered as nothing rather than an invented/placeholder line.</param>
     /// <param name="phrases">Build-plan Phase 10 §3e: this section's own real phrases (<c>PhraseSegmentationAnalysis.Phrases</c> filtered to this section, ordered by <c>PhraseCandidate.StartBarIndex</c>), or <see langword="null"/>/empty when no real phrase segmentation is available for this section -- rendered as nothing (and the phraseVariations JSON field goes unmentioned) rather than an invented phrase list.</param>
+    /// <param name="customPrompt">
+    /// Build-plan Phase 14 §2c: the user's own free-text creative direction for this run (plain
+    /// string, not the <c>CustomGenerationPrompt</c> record -- Director already has the full record
+    /// by the time it calls <see cref="ChoreographyGenerationPipeline"/>, which unwraps it once
+    /// rather than handing every one of the ~30 per-section calls the whole record), or
+    /// <see langword="null"/>/empty for the pre-existing default. Appended into this volatile suffix
+    /// only, never <see cref="BuildStablePrefix"/> -- same reasoning as <see cref="DirectorPromptBuilder"/>.
+    /// </param>
     public static string BuildVolatileSuffix(
         SectionLabelCandidate section, SectionMusicContext context, LayoutSummary layout, int occurrenceIndex = 1, int totalOccurrences = 1,
-        SectionMelodicBrief? melodicBrief = null, SectionMotifLink? motifLink = null, IReadOnlyList<PhraseCandidate>? phrases = null)
+        SectionMelodicBrief? melodicBrief = null, SectionMotifLink? motifLink = null, IReadOnlyList<PhraseCandidate>? phrases = null,
+        string? customPrompt = null)
     {
         ArgumentNullException.ThrowIfNull(section);
         ArgumentNullException.ThrowIfNull(context);
@@ -149,12 +158,28 @@ public static class SectionScriptPromptBuilder
         AppendPhraseListLines(sb, phrases);
         sb.AppendLine();
         sb.AppendLine(layout.ToPromptText());
+
+        // Build-plan Phase 14 §2d.2: the required JSON response contract below is kept stated AFTER
+        // this block, not before -- so the required output shape is never something a user's own
+        // creative-direction text could plausibly be read as overriding.
+        CustomPromptBlockFormatter.AppendBlock(sb, customPrompt);
+
         sb.AppendLine();
-        sb.AppendLine("Respond with a single JSON object: {\"sectionId\":\"...\",\"lookId\":\"...\",\"variation\":null,\"propBindings\":[{\"layerZ\":1,\"props\":\"...\"}],\"phraseVariations\":null}.");
+        sb.AppendLine("## Filler effects (build-plan Phase 15 -- REQUIRED every section)");
+        sb.AppendLine("Any prop/group this section does not otherwise animate still needs SOMETHING playing in its negative space (the \"always-moving\" rule -- no model holds frozen longer than one bar). You MUST declare \"fillerEffects\": a JSON array of at least 6 DISTINCT real effect names from this song's own vocabulary (the same effect names used as \"effect=\" values in the Look library above, e.g. \"On\", \"Bars\", \"SingleStrand\", \"Color Wash\", \"Twinkle\") -- never an invented name, and never fewer than 6 distinct ones (a name may repeat in the array to make it rotate less often, but the DISTINCT count must still be at least 6).");
+        sb.AppendLine("You MAY also declare \"fillerEffectsByRole\": an object keyed by \"Foundation\"/\"Subject\"/\"Accent\" (the same foundation/subject/accent prop classification used elsewhere in this system), each value its own array of at least 6 distinct real effect names -- use this only when you want a DIFFERENT filler rotation for a specific role than the flat fillerEffects list (e.g. calmer filler on Foundation props, busier filler on Accent props); omit it (or leave it null/empty) to use the flat fillerEffects list for every prop.");
+        if (customPrompt is { Length: > 0 })
+        {
+            sb.AppendLine("Respect this section's own custom creative direction above when choosing filler effects too -- an excluded effect must never appear in fillerEffects or fillerEffectsByRole either, the same as it must never appear in your lookId/propBindings choices.");
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("Respond with a single JSON object: {\"sectionId\":\"...\",\"lookId\":\"...\",\"variation\":null,\"propBindings\":[{\"layerZ\":1,\"props\":\"...\"}],\"phraseVariations\":null,\"fillerEffects\":[\"On\",\"Bars\",\"SingleStrand\",\"Color Wash\",\"Twinkle\",\"Shockwave\"],\"fillerEffectsByRole\":null}.");
         sb.AppendLine("Only choose a lookId whose declared section kinds include this section's Kind (or declares none, meaning unrestricted).");
         sb.AppendLine("Omit propBindings (or leave it an empty array) if the Look's own default props are fine for this section.");
         sb.AppendLine("If you do rebind a layer, \"props\" accepts a real group reference (e.g. \"group:Matrixes\") exactly like the Look's own default -- prefer it over an individual prop name whenever the whole group should carry the same effect, same as the Look library's own convention above.");
         sb.AppendLine("Omit phraseVariations (or leave it null/an empty array) unless this section's own phrase list above makes staging worth it (see \"Phrase-scoped sub-section staging\" above) -- when you do declare it, each entry is {\"phraseIndex\":2,\"activeLayerZs\":[1,2],\"propBindings\":[{\"layerZ\":2,\"props\":\"...\"}]}, at most 3 entries, phraseIndex 1-based and matching the numbered phrase list above.");
+        sb.AppendLine("fillerEffects is REQUIRED (not optional like propBindings/phraseVariations/fillerEffectsByRole) -- a response missing it, or declaring fewer than 6 distinct names, will be rejected and you will be asked to correct it.");
 
         return sb.ToString();
     }

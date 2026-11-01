@@ -1,5 +1,6 @@
 using System.Diagnostics;
 using System.Text;
+using XlightsAI.Studio.Contracts;
 
 namespace XlightsAI.Studio.Rendering;
 
@@ -61,6 +62,8 @@ public sealed class XlightsRenderCapabilityProbe : IRenderCapabilityProbe
             throw new RenderCapabilityProbeInvalidException("An installed xLights executable path must be supplied.");
         }
 
+        executablePath = XlightsExecutable.Resolve(executablePath)!;
+
         if (!File.Exists(executablePath))
         {
             throw new RenderCapabilityProbeInvalidException(
@@ -70,16 +73,7 @@ public sealed class XlightsRenderCapabilityProbe : IRenderCapabilityProbe
 
         ct.ThrowIfCancellationRequested();
 
-        var version = "unknown";
-        try
-        {
-            version = FileVersionInfo.GetVersionInfo(executablePath).FileVersion ?? "unknown";
-        }
-        catch (Exception)
-        {
-            // Best-effort only, same convention as XlightsLauncher: an unreadable version resource must
-            // never block the probe itself.
-        }
+        var version = XlightsExecutable.TryReadVersion(executablePath) ?? "unknown";
 
         var probeRoot = Path.Combine(Path.GetTempPath(), "xlai-render-probe-" + Guid.NewGuid().ToString("N"));
         var showDirectory = Path.Combine(probeRoot, "show");

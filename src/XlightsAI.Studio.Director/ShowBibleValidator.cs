@@ -135,8 +135,21 @@ public static class ShowBibleValidator
                 continue;
             }
 
+            var seenZ = new HashSet<int>();
             foreach (var layer in look.Layers)
             {
+                if (!seenZ.Add(layer.Z))
+                {
+                    // Real-run finding (2026-10-31): nothing previously checked this, so a Look with two
+                    // layers both left at the same Z (most commonly the default Z=0) passed validation
+                    // cleanly and then crashed deep in SectionScriptCompiler's own Layers.ToDictionary(l
+                    // => l.Z) with a raw, unhelpful framework ArgumentException instead of a real,
+                    // retryable validation error. A Look's layers are Z-ordered/addressed by Z elsewhere
+                    // in this codebase (PropBindings rebind "layer z=N"), so distinct Z values per Look
+                    // is a real, load-bearing invariant, not a cosmetic one.
+                    errors.Add(new ShowBibleValidationError("layer-duplicate-z", $"Look '{look.Id}' has more than one layer at z={layer.Z} -- every layer in a Look must have a distinct Z."));
+                }
+
                 ValidateReference(layer.Props, layout, "layer-props", $"Look '{look.Id}' layer z={layer.Z} props", errors);
 
                 if (!ValidLookRoles.Contains(layer.Role))

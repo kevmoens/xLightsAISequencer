@@ -1,5 +1,5 @@
-using System.Diagnostics;
 using System.Runtime.InteropServices;
+using XlightsAI.Studio.Contracts;
 
 namespace XlightsAI.Studio.Distribution;
 
@@ -44,28 +44,16 @@ public sealed class RuntimeCapabilityDetector : IRuntimeCapabilityDetector
 
     private (bool Detected, string? Version) ProbeXlights()
     {
-        foreach (var candidate in CandidatePaths())
+        foreach (var candidate in CandidatePaths().Select(XlightsExecutable.Resolve))
         {
             if (string.IsNullOrWhiteSpace(candidate) || !File.Exists(candidate))
             {
                 continue;
             }
 
-            string? version;
-            try
-            {
-                version = FileVersionInfo.GetVersionInfo(candidate).FileVersion;
-            }
-            catch (Exception)
-            {
-                // Best-effort version read only: a PE-only API reading a non-Windows executable (macOS/Linux
-                // candidates, Step 097) can throw types beyond the Windows-specific Win32Exception; the
-                // executable was still genuinely found, so detection must not be downgraded to a crash over an
-                // unreadable version string.
-                version = null;
-            }
-
-            return (true, version);
+            // Best-effort version read only: detection must never be downgraded to a crash over an
+            // unreadable version string.
+            return (true, XlightsExecutable.TryReadVersion(candidate));
         }
 
         return (false, null);
@@ -78,7 +66,11 @@ public sealed class RuntimeCapabilityDetector : IRuntimeCapabilityDetector
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFiles), "xLights", "xLights.exe");
         yield return Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ProgramFilesX86), "xLights", "xLights.exe");
-        yield return "/Applications/xLights.app/Contents/MacOS/xLights";
+        foreach (var bundle in XlightsExecutable.MacOsBundleCandidates())
+        {
+            yield return bundle;
+        }
+
         yield return "/usr/local/bin/xlights";
         yield return "/usr/bin/xlights";
     }

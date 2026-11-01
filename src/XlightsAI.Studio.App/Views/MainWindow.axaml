@@ -7,6 +7,7 @@
         x:Class="XlightsAI.Studio.App.Views.MainWindow"
         x:DataType="vm:ShellViewModel"
         Title="xLights AI Choreography Studio"
+        Icon="/Assets/app.ico"
         Width="1180" Height="760"
         MinWidth="860" MinHeight="560">
 
@@ -83,6 +84,7 @@
           <screens:ProjectsView IsVisible="{Binding IsShowingProjects}" />
           <screens:ShowImportView IsVisible="{Binding IsShowingShowImport}" />
           <screens:AudioView IsVisible="{Binding IsShowingAudio}" />
+          <screens:CustomPromptView IsVisible="{Binding IsShowingCustomPrompt}" />
           <screens:GenerateExportView IsVisible="{Binding IsShowingGenerateExport}" />
           <screens:TimelineView IsVisible="{Binding IsShowingTimeline}" />
           <screens:SettingsView IsVisible="{Binding IsShowingSettings}" />
@@ -91,6 +93,7 @@
           <screens:PianoRollView IsVisible="{Binding IsShowingPianoRoll}" />
           <screens:StructureInspectorView IsVisible="{Binding IsShowingStructureInspector}" />
           <screens:DisplayPathEditorView IsVisible="{Binding IsShowingDisplayPathEditor}" />
+          <screens:ExemplarLibraryView IsVisible="{Binding IsShowingExemplarLibrary}" />
         </Panel>
       </ScrollViewer>
     </Grid>

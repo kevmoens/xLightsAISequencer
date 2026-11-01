@@ -1,3 +1,4 @@
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Choreography;
@@ -11,13 +12,21 @@ namespace XlightsAI.Studio.Choreography;
 /// </summary>
 public static class SectionScriptValidator
 {
-    public static IReadOnlyList<SectionScriptValidationError> Validate(SectionScript script, LookLibrary lookLibrary, DisplayGraph layout)
+    /// <param name="vocabulary">
+    /// Build-plan Phase 15 §2e: the same generated effect vocabulary the Choreographer prompt itself is
+    /// built from -- every name in <see cref="SectionScript.FillerEffects"/>/<see cref="SectionScript.FillerEffectsByRole"/>
+    /// must be a real, registered effect in it, never an invented one.
+    /// </param>
+    public static IReadOnlyList<SectionScriptValidationError> Validate(SectionScript script, LookLibrary lookLibrary, DisplayGraph layout, EffectVocabularyCatalog vocabulary)
     {
         ArgumentNullException.ThrowIfNull(script);
         ArgumentNullException.ThrowIfNull(lookLibrary);
         ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(vocabulary);
 
         var errors = new List<SectionScriptValidationError>();
+
+        ValidateFillerEffects(script, vocabulary, errors);
 
         var look = lookLibrary.Find(script.LookId);
         if (look is null)
@@ -59,6 +68,59 @@ public static class SectionScriptValidator
         ValidatePhraseVariations(script, look, layerZSet, layout, errors);
 
         return errors;
+    }
+
+    private static readonly string[] KnownRoleKeys = ["Foundation", "Subject", "Accent"];
+
+    /// <summary>
+    /// Build-plan Phase 15 §2d/§2e: the flat <see cref="SectionScript.FillerEffects"/> list is required
+    /// (missing/empty is retry-worthy, same discipline an invalid <see cref="SectionScript.LookId"/>
+    /// already goes through), must have at least <see cref="FillerPool.MinimumDistinctStates"/> distinct
+    /// names, and every name must be a real effect in <paramref name="vocabulary"/> -- never invented.
+    /// Every present <see cref="SectionScript.FillerEffectsByRole"/> entry is held to the identical
+    /// distinct-count/known-effect rules, plus its own key must be one of the real <c>BandRole</c> names.
+    /// Checked independently of (and before) the Look-reference check above, since a missing filler plan
+    /// is its own retry-worthy defect regardless of whether the declared Look is valid.
+    /// </summary>
+    private static void ValidateFillerEffects(SectionScript script, EffectVocabularyCatalog vocabulary, List<SectionScriptValidationError> errors)
+    {
+        if (script.FillerEffectsOrEmpty.Count == 0)
+        {
+            errors.Add(new SectionScriptValidationError("filler-effects-missing", $"SectionScript for section '{script.SectionId}' does not declare FillerEffects -- every section must declare a flat rotating filler pool of at least {FillerPool.MinimumDistinctStates} distinct real effect names."));
+        }
+        else
+        {
+            ValidateFillerEffectList(script.SectionId, "FillerEffects", script.FillerEffectsOrEmpty, vocabulary, "filler-effects-distinct-count", "filler-effects-unknown-effect", errors);
+        }
+
+        foreach (var (roleKey, names) in script.FillerEffectsByRoleOrEmpty)
+        {
+            if (!KnownRoleKeys.Contains(roleKey, StringComparer.Ordinal))
+            {
+                errors.Add(new SectionScriptValidationError("filler-effects-by-role-unknown-role", $"SectionScript for section '{script.SectionId}' declares FillerEffectsByRole key '{roleKey}', which is not one of the real band roles ({string.Join("/", KnownRoleKeys)})."));
+            }
+
+            ValidateFillerEffectList(script.SectionId, $"FillerEffectsByRole['{roleKey}']", names, vocabulary, "filler-effects-by-role-distinct-count", "filler-effects-by-role-unknown-effect", errors);
+        }
+    }
+
+    private static void ValidateFillerEffectList(
+        Guid sectionId, string fieldLabel, IReadOnlyList<string> names, EffectVocabularyCatalog vocabulary,
+        string distinctCountRule, string unknownEffectRule, List<SectionScriptValidationError> errors)
+    {
+        var distinctCount = names.Distinct(StringComparer.Ordinal).Count();
+        if (distinctCount < FillerPool.MinimumDistinctStates)
+        {
+            errors.Add(new SectionScriptValidationError(distinctCountRule, $"SectionScript for section '{sectionId}' declares {fieldLabel} with only {distinctCount} distinct name(s); at least {FillerPool.MinimumDistinctStates} are required."));
+        }
+
+        foreach (var name in names.Distinct(StringComparer.Ordinal))
+        {
+            if (!vocabulary.Effects.ContainsKey(name))
+            {
+                errors.Add(new SectionScriptValidationError(unknownEffectRule, $"SectionScript for section '{sectionId}' declares {fieldLabel} name '{name}', which is not a real effect in the supplied vocabulary."));
+            }
+        }
     }
 
     /// <summary>Build-plan Phase 10 §3e: structural checks on <see cref="SectionScript.PhraseVariations"/> this validator CAN make without knowing the real phrase count for this section (that cross-check -- a declared PhraseIndex beyond how many phrases this section actually has -- belongs to <see cref="SectionScriptCompiler"/>, the one place that is ever handed the real <c>PhraseSegmentationAnalysis</c>, same "re-checked here because this compiler must never silently fabricate a Look" discipline its own doc comment already states for layer/prop-binding references).</summary>

@@ -1,4 +1,5 @@
 using System.Text;
+using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Pipeline;
 using XlightsAI.Studio.Structure;
@@ -23,7 +24,15 @@ public sealed record DirectorKnowledgeContext(
     private static readonly MultiLayerTemplateCatalog EmptyCatalog = new(0, DateTimeOffset.MinValue, []);
 }
 
-/// <summary>The two halves of one assembled Director call. <see cref="StablePrefix"/> must be byte-for-byte identical across every call sharing the same <see cref="DirectorKnowledgeContext"/>/style, or a provider's own prompt cache silently invalidates (architecture §14).</summary>
+/// <summary>
+/// The two halves of one assembled Director call. <see cref="StablePrefix"/> must be byte-for-byte
+/// identical across every call sharing the same <see cref="DirectorKnowledgeContext"/>/style, or a
+/// provider's own prompt cache silently invalidates (architecture §14) -- with one deliberate exception:
+/// <see cref="CustomGenerationPrompt.StayCloseToExemplars"/> set to <see langword="false"/> intentionally
+/// makes the "## Retrieved exemplars" section of the prefix vary call to call (see
+/// <see cref="ExemplarIndex.FindVaried"/>), trading that provider cache hit for actual effect-choice
+/// variety on a user-requested "regenerate" -- an explicit, disclosed opt-out, not an oversight.
+/// </summary>
 public sealed record DirectorPrompt(string StablePrefix, string VolatileSuffix);
 
 /// <summary>
@@ -36,19 +45,48 @@ public sealed record DirectorPrompt(string StablePrefix, string VolatileSuffix);
 /// </summary>
 public static class DirectorPromptBuilder
 {
-    private const int ExemplarsPerSectionKind = 2;
+    /// <summary>
+    /// Build-plan Phase 16 §2d: replaces the old flat <c>ExemplarsPerSectionKind = 2</c> constant with a
+    /// count that scales with how much real material exists for <paramref name="kind"/> -- one more
+    /// requested exemplar per 20 real same-kind entries in the index, floored at 1 (so even a zero-entry
+    /// kind still asks for one, surfacing <see cref="ExemplarIndex.FindSimilar"/>'s disclosed nearest-kind
+    /// fallback rather than silently asking for nothing) and capped at 5 so the stable prefix does not
+    /// grow unboundedly as later corpus-expansion phases add more songs. The exact curve/cap is not a
+    /// confirmed design decision (build plan §2d) -- a simple, defensible default disclosed here, not a
+    /// re-opened question.
+    /// </summary>
+    public static int ExemplarCountForKind(ExemplarIndex index, SectionKind kind)
+    {
+        var available = index.Entries.Count(e => e.Fingerprint.SectionKind == kind);
+        return Math.Clamp(available / 20, 1, 5);
+    }
 
-    public static DirectorPrompt Build(DirectorKnowledgeContext knowledge, string style, MusicModel music, LayoutSummary layout)
+    /// <param name="customPrompt">
+    /// Build-plan Phase 14 §2c: the user's own free-text creative direction for this run, or
+    /// <see langword="null"/>/empty for the pre-existing default behavior (every caller before this
+    /// phase, and every caller that simply has none). Folded into <see cref="BuildVolatileSuffix"/>
+    /// only, never <see cref="BuildStablePrefix"/> -- a per-run, user-authored value is exactly the
+    /// kind of input §1b says must never be baked into the cacheable prefix.
+    /// </param>
+    public static DirectorPrompt Build(DirectorKnowledgeContext knowledge, string style, MusicModel music, LayoutSummary layout, CustomGenerationPrompt? customPrompt = null)
     {
         ArgumentNullException.ThrowIfNull(knowledge);
         ArgumentException.ThrowIfNullOrWhiteSpace(style);
         ArgumentNullException.ThrowIfNull(music);
         ArgumentNullException.ThrowIfNull(layout);
 
-        return new DirectorPrompt(BuildStablePrefix(knowledge, style, music), BuildVolatileSuffix(music, layout));
+        // User feedback (2026-10-31): unchecking "stay close to exemplars" deliberately makes this run's
+        // own exemplar retrieval non-reproducible (see CustomGenerationPrompt.StayCloseToExemplars and
+        // ExemplarIndex.FindVaried) -- a fresh, unseeded Random here means two Build calls for the same
+        // song in "varied" mode draw different exemplars, which is the entire point of the toggle; it
+        // would defeat that purpose to make this Random deterministic/seeded from the song itself.
+        var stayCloseToExemplars = customPrompt?.StayCloseToExemplars ?? true;
+        return new DirectorPrompt(
+            BuildStablePrefix(knowledge, style, music, stayCloseToExemplars, stayCloseToExemplars ? null : new Random()),
+            BuildVolatileSuffix(music, layout, customPrompt));
     }
 
-    private static string BuildStablePrefix(DirectorKnowledgeContext knowledge, string style, MusicModel music)
+    private static string BuildStablePrefix(DirectorKnowledgeContext knowledge, string style, MusicModel music, bool stayCloseToExemplars, Random? variationRandom)
     {
         var preset = StylePresetCatalog.Resolve(style);
 
@@ -124,16 +162,35 @@ public static class DirectorPromptBuilder
                 TempoBpm: AverageBpm(music), EnergyPercentile: 0.5, SectionKind: kind,
                 BandBalance: null, VocalActivityHint: null);
 
-            foreach (var exemplar in knowledge.Exemplars.FindSimilar(query, ExemplarsPerSectionKind))
+            var count = ExemplarCountForKind(knowledge.Exemplars, kind);
+            var retrieval = stayCloseToExemplars
+                ? knowledge.Exemplars.FindSimilar(query, count)
+                : knowledge.Exemplars.FindVaried(query, count, variationRandom!);
+            if (retrieval.Entries.Count == 0)
             {
-                sb.AppendLine($"- [{kind}] \"{exemplar.Fingerprint.SongTitle}\" bars {exemplar.Fingerprint.StartBarIndex}-{exemplar.Fingerprint.EndBarIndexExclusive}, {exemplar.Fingerprint.TempoBpm:0} BPM: {exemplar.Effects.Count} effects placed.");
+                continue;
+            }
+
+            sb.AppendLine($"Requesting {count} {kind} example(s):");
+            foreach (var exemplar in retrieval.Entries)
+            {
+                // Build-plan Phase 16 §2a: label with the retrieved entry's OWN real kind, never the
+                // query's kind unconditionally -- a prior version of this line always printed `kind`
+                // here, which silently mislabeled a cross-kind fallback result (e.g. a Chorus snippet
+                // printed as "[Solo]") as if it were a real example of the queried kind.
+                var actualKind = exemplar.Fingerprint.SectionKind;
+                var label = retrieval.IsFallback
+                    ? $"{kind} -- no real {kind} example exists, nearest available: {actualKind}"
+                    : actualKind.ToString();
+                var description = string.IsNullOrWhiteSpace(exemplar.Description) ? string.Empty : $" {exemplar.Description}";
+                sb.AppendLine($"- [{label}] \"{exemplar.Fingerprint.SongTitle}\" bars {exemplar.Fingerprint.StartBarIndex}-{exemplar.Fingerprint.EndBarIndexExclusive}, {exemplar.Fingerprint.TempoBpm:0} BPM: {exemplar.Effects.Count} effects placed.{description}");
             }
         }
 
         return sb.ToString();
     }
 
-    private static string BuildVolatileSuffix(MusicModel music, LayoutSummary layout)
+    private static string BuildVolatileSuffix(MusicModel music, LayoutSummary layout, CustomGenerationPrompt? customPrompt)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## This song");
@@ -167,6 +224,8 @@ public static class DirectorPromptBuilder
         sb.AppendLine(layout.ToPromptText());
 
         AppendBandEnergyGroupRoleMapping(sb, music, layout, bandProfiles);
+
+        CustomPromptBlockFormatter.AppendBlock(sb, customPrompt);
 
         return sb.ToString();
     }

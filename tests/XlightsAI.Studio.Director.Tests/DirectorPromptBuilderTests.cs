@@ -116,6 +116,101 @@ public sealed class DirectorPromptBuilderTests
         Assert.Contains("long-duration base layer spanning most of that section's own window", prompt.StablePrefix);
     }
 
+    private static ExemplarIndex BuildManySameKindExemplars(SectionKind kind, int count) =>
+        new(DateTimeOffset.UtcNow, Enumerable.Range(0, count)
+            .Select(i => new ExemplarEntry(
+                new ExemplarFingerprint($"Song {i}", CorpusProvenanceTag.UserAuthored, 0, 8, 120, i / (double)count, kind, null, null),
+                []))
+            .ToList());
+
+    [Fact]
+    public void Build_StayCloseToExemplars_True_IsDeterministicAcrossRepeatedCalls()
+    {
+        // User feedback (2026-10-31): the default ("stay close") behavior must remain exactly what it
+        // was before -- the identical nearest-match exemplars every time, so the stable prefix (and the
+        // provider's own prompt cache) stays stable across a plain regeneration.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var knowledge = new DirectorKnowledgeContext(
+            vocabulary, new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []),
+            BuildManySameKindExemplars(SectionKind.Chorus, 10));
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var promptA = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout, new CustomGenerationPrompt("", StayCloseToExemplars: true));
+        var promptB = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout, new CustomGenerationPrompt("", StayCloseToExemplars: true));
+
+        Assert.Equal(promptA.StablePrefix, promptB.StablePrefix);
+    }
+
+    [Fact]
+    public void Build_StayCloseToExemplars_False_VariesTheRetrievedExemplarsAcrossCalls()
+    {
+        // User feedback (2026-10-31): unchecking "stay close" must actually change which exemplars get
+        // quoted across repeated regenerations of the same song -- not just vary color downstream.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var knowledge = new DirectorKnowledgeContext(
+            vocabulary, new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []),
+            BuildManySameKindExemplars(SectionKind.Chorus, 10));
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prefixes = Enumerable.Range(0, 20)
+            .Select(_ => DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout, new CustomGenerationPrompt("", StayCloseToExemplars: false)).StablePrefix)
+            .Distinct()
+            .Count();
+
+        // With 10 same-kind candidates and real randomness, 20 independent draws landing on the exact
+        // same result every time is vanishingly unlikely -- this is a real behavior check, not a coin flip.
+        Assert.True(prefixes > 1, "Expected at least one different retrieval across 20 'varied' Build calls.");
+    }
+
+    [Fact]
+    public void Build_WithCustomPrompt_AppearsVerbatimInVolatileSuffixOnly_StablePrefixUnchanged()
+    {
+        // Build-plan Phase 14 §4 acceptance criteria: the custom-direction block must appear verbatim
+        // (subject to the length cap) in the volatile suffix only, and the stable prefix must stay
+        // byte-for-byte identical whether or not a custom prompt is supplied (prompt-cache safety).
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+        const string customText = "Use a red and gold palette throughout; avoid blue.";
+
+        var withoutCustomPrompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+        var withCustomPrompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout, new CustomGenerationPrompt(customText));
+        var withEmptyCustomPrompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout, CustomGenerationPrompt.Empty);
+
+        Assert.Equal(withoutCustomPrompt.StablePrefix, withCustomPrompt.StablePrefix);
+        Assert.Equal(withoutCustomPrompt.StablePrefix, withEmptyCustomPrompt.StablePrefix);
+
+        Assert.DoesNotContain(customText, withoutCustomPrompt.VolatileSuffix);
+        Assert.DoesNotContain(customText, withoutCustomPrompt.StablePrefix);
+        Assert.Contains(customText, withCustomPrompt.VolatileSuffix);
+        Assert.DoesNotContain(customText, withCustomPrompt.StablePrefix);
+
+        // §2d: labelled as creative guidance, not a system instruction.
+        Assert.Contains("User creative direction", withCustomPrompt.VolatileSuffix);
+        Assert.Contains("not a system instruction", withCustomPrompt.VolatileSuffix);
+
+        // A blank/empty custom prompt is the pre-existing default -- no block at all, not an empty one.
+        Assert.DoesNotContain("User creative direction", withEmptyCustomPrompt.VolatileSuffix);
+        Assert.Equal(withoutCustomPrompt.VolatileSuffix, withEmptyCustomPrompt.VolatileSuffix);
+    }
+
     [Fact]
     public void Build_StablePrefix_NamesAConcreteMinimumLayerCountPerEnergyTier()
     {

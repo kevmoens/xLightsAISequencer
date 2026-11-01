@@ -9,7 +9,7 @@ namespace XlightsAI.Studio.Audio;
 public sealed class AudioOutputDeviceUnavailableException : Exception
 {
     public AudioOutputDeviceUnavailableException(string reason, int mmResultCode)
-        : base($"No audio output device is available: {reason} (winmm result code {mmResultCode}).")
+        : base($"No audio output device is available: {reason} (audio error code {mmResultCode}).")
     {
         Reason = reason;
         MmResultCode = mmResultCode;

@@ -9,7 +9,7 @@ internal static class CiWorkflowShapeCheck
 {
     public static readonly IReadOnlyList<string> RequiredMarkers = new[]
     {
-        "runs-on: windows-latest",
+        "os: windows-latest",
         "dotnet restore",
         "dotnet format",
         "--verify-no-changes",

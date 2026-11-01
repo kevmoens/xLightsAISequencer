@@ -1,5 +1,6 @@
 using XlightsAI.Studio.Audio;
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Pipeline;
 using XlightsAI.Studio.Structure;
@@ -93,7 +94,13 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         _maxOutputTokens = maxOutputTokens;
     }
 
-    public async Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default)
+    /// <param name="customPrompt">
+    /// Build-plan Phase 14 §2c: the user's own free-text creative direction for this specific run
+    /// (per-call, not per-instance -- unlike <see cref="_style"/>, a fresh value can legitimately
+    /// differ on every generation), or <see langword="null"/>/empty for the pre-existing default
+    /// behavior every caller before this phase (and every caller with none) gets.
+    /// </param>
+    public async Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null)
     {
         ArgumentNullException.ThrowIfNull(song);
         ArgumentNullException.ThrowIfNull(layout);
@@ -134,16 +141,16 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
             MultiLayerTemplateCatalogLoader.Load());
 
         var registry = new EffectRecipeRegistry(catalogs.Recipes);
-        var fillerPool = BuildFillerPool(catalogs.Recipes);
 
         var settings = new ChoreographyGenerationSettings(
-            layout, catalogs.Vocabulary, catalogs.Recipes, registry, fillerPool, _energyCeilingByKind, _projectDirectory);
+            layout, catalogs.Vocabulary, catalogs.Recipes, registry, _energyCeilingByKind, _projectDirectory);
 
         var pipeline = new ChoreographyGenerationPipeline(
             knowledge, _style,
             directorClient, directorModel,
             choreographerClient, choreographerModel,
-            _maxOutputTokens);
+            _maxOutputTokens,
+            customPrompt);
 
         var songId = Guid.NewGuid();
         var report = await pipeline.GenerateAsync(music, layoutSummary, settings, songId, existingBible: null, ct).ConfigureAwait(false);
@@ -189,6 +196,13 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         try
         {
             exemplarIndex = await new JsonExemplarIndexStore(knowledgeDirectory).LoadAsync(ct).ConfigureAwait(false);
+
+            // Build-plan Phase 17 §2e: a user-disabled exemplar (or whole source song) must never reach
+            // a generation's Director prompt, even though it stays in exemplar-index.json itself (that
+            // file is the automatic mining result; exemplar-overrides.json is the separate, re-mine-
+            // surviving curation layer -- see ExemplarOverrides/JsonExemplarOverrideStore).
+            var disabledByKey = await new JsonExemplarOverrideStore(knowledgeDirectory).LoadAsync(ct).ConfigureAwait(false);
+            exemplarIndex = ExemplarOverrides.ApplyOverrides(exemplarIndex, disabledByKey);
         }
         catch (FileNotFoundException)
         {
@@ -196,32 +210,6 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         }
 
         return (craftRules, exemplarIndex);
-    }
-
-    /// <summary>
-    /// Same rotating ≥6-state filler pool construction as <c>RealXLightsFixture.BuildFillerPool</c>
-    /// (preferring the generated recipe over a same-named legacy hand-written one) -- not duplicated
-    /// test-only logic, this is the production equivalent the test fixtures mirror. Butterfly is a real,
-    /// user-disliked-in-practice "busy"/high-duty-cycle effect (user feedback: "use it sparingly") --
-    /// <see cref="FillerPool.RecipeIdAt"/> is a strict, equal-weight round-robin with no native weighting
-    /// concept, so the other five names are each repeated twice (11 total slots, 6 still-distinct recipe
-    /// ids, satisfying <see cref="FillerPool.MinimumDistinctStates"/>) to dilute Butterfly's own filler
-    /// share to roughly 1-in-11 rather than the even 1-in-6 every other filler state gets.
-    /// </summary>
-    private static FillerPool BuildFillerPool(EffectRecipeCatalog recipes)
-    {
-        string[] fiveFrequentEffectNames = ["On", "Bars", "SingleStrand", "Color Wash", "Twinkle"];
-        const string rareEffectName = "Butterfly";
-
-        string ResolveId(string name) =>
-            (recipes.Recipes.FirstOrDefault(r => r.RecipeId.StartsWith("effect.generated.", StringComparison.Ordinal) && r.XlightsEffectName == name)
-                ?? recipes.Recipes.First(r => string.Equals(r.XlightsEffectName, name, StringComparison.Ordinal))).RecipeId;
-
-        var ids = fiveFrequentEffectNames.Select(ResolveId)
-            .Concat(fiveFrequentEffectNames.Select(ResolveId))
-            .Append(ResolveId(rareEffectName))
-            .ToList();
-        return new FillerPool(ids);
     }
 
     /// <summary>

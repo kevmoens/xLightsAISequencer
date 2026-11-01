@@ -15,10 +15,14 @@ namespace XlightsAI.Studio.Knowledge;
 /// <param name="Provenance">Where this sequence likely came from — see <see cref="CorpusProvenanceTag"/>.</param>
 /// <param name="DuplicatePaths">Other on-disk copies of this same sequence found during corpus enumeration (same song, same underlying download), not used for mining but recorded so a later audit can find them.</param>
 /// <param name="Notes">Free-text provenance notes — e.g. which <c>orig_zip/</c> entry this was matched against, or why a subfolder's own audio could not be used and a root-level file was substituted instead.</param>
+/// <param name="SourceCommit">Build-plan Phase 17 §2c: the short git commit hash this entry was extracted from, when it was mined from a historical season's git-archived tree rather than the live working directory (see §2b's seasonal extraction). <c>null</c> for every entry resolved directly against a live working tree -- including every entry known before this field was added -- so no existing caller or persisted manifest breaks.</param>
+/// <param name="IsFavorite">Build-plan Phase 17 §2f: the user has explicitly named this song a favorite (currently just "Existence (VIP) - Shortened.xsq"), so <see cref="XlightsAI.Studio.Pipeline.CraftRuleInducer"/> counts it extra toward its own confidence/song-count statistics -- see that type's own doc comment for the exact mechanism and its disclosed overfitting risk. Defaults to <see langword="false"/> so every pre-existing entry/caller is unaffected.</param>
 public sealed record CorpusEntry(
     string SequencePath,
     string AudioPath,
     string SongTitle,
     CorpusProvenanceTag Provenance,
     IReadOnlyList<string> DuplicatePaths,
-    string Notes);
+    string Notes,
+    string? SourceCommit = null,
+    bool IsFavorite = false);

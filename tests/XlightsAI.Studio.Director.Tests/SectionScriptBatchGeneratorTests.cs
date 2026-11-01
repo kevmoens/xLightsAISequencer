@@ -1,5 +1,6 @@
 using System.Text.Json;
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Knowledge;
 
 namespace XlightsAI.Studio.Director.Tests;
 
@@ -22,6 +23,12 @@ public sealed class SectionScriptBatchGeneratorTests
 
     private static string ToResponseText(SectionScript script) => JsonSerializer.Serialize(script);
 
+    private static EffectVocabularyCatalog FakeVocabulary() => new(
+        RealXLightsFixture.SixCommonEffectNames.ToDictionary(name => name, name => new EffectVocabulary(name, "E_", []), StringComparer.Ordinal),
+        buffer: new EffectVocabulary("Buffer", "B_", []),
+        blending: new EffectVocabulary("Blending", "T_", []),
+        color: new EffectVocabulary("Color", "C_", []));
+
     [Fact]
     public async Task GenerateAllAsync_BatchCapableClient_AllFirstAttemptsValid_OneSharedBatchCall_NoIndividualFallback()
     {
@@ -35,12 +42,12 @@ public sealed class SectionScriptBatchGeneratorTests
 
         var client = new FakeBatchChatCompletionClient(requests =>
             requests.Select((r, i) => BatchItemResult.Success(new ChatCompletionResult(
-                ToResponseText(new SectionScript(items[i].SectionId, "golden-hold")), new AiUsage(500, 100, 400, 0)))).ToList());
+                ToResponseText(new SectionScript(items[i].SectionId, "golden-hold", FillerEffects: RealXLightsFixture.SixCommonEffectNames)), new AiUsage(500, 100, 400, 0)))).ToList());
 
         var generator = new SectionScriptBatchGenerator(client);
         var songId = Guid.NewGuid();
 
-        var reports = await generator.GenerateAllAsync("STABLE", items, songId, looks, layout, 1000, CancellationToken.None);
+        var reports = await generator.GenerateAllAsync("STABLE", items, songId, looks, layout, FakeVocabulary(), 1000, CancellationToken.None);
 
         Assert.Equal(5, reports.Count);
         Assert.All(reports.Values, r => Assert.True(r.ValidatedOnFirstAttempt));
@@ -64,13 +71,13 @@ public sealed class SectionScriptBatchGeneratorTests
         var client = new RetryCapableBatchClient(
             firstBatchResponse: requests =>
             [
-                BatchItemResult.Success(new ChatCompletionResult(ToResponseText(new SectionScript(goodSection, "golden-hold")), new AiUsage(500, 100, 0, 0))),
+                BatchItemResult.Success(new ChatCompletionResult(ToResponseText(new SectionScript(goodSection, "golden-hold", FillerEffects: RealXLightsFixture.SixCommonEffectNames)), new AiUsage(500, 100, 0, 0))),
                 BatchItemResult.Success(new ChatCompletionResult(ToResponseText(new SectionScript(badSection, "no-such-look")), new AiUsage(500, 100, 0, 0))),
             ],
-            individualResponse: _ => new ChatCompletionResult(ToResponseText(new SectionScript(badSection, "golden-hold")), new AiUsage(500, 100, 0, 0)));
+            individualResponse: _ => new ChatCompletionResult(ToResponseText(new SectionScript(badSection, "golden-hold", FillerEffects: RealXLightsFixture.SixCommonEffectNames)), new AiUsage(500, 100, 0, 0)));
 
         var generator = new SectionScriptBatchGenerator(client);
-        var reports = await generator.GenerateAllAsync("STABLE", items, Guid.NewGuid(), looks, layout, 1000, CancellationToken.None);
+        var reports = await generator.GenerateAllAsync("STABLE", items, Guid.NewGuid(), looks, layout, FakeVocabulary(), 1000, CancellationToken.None);
 
         Assert.Equal(2, reports.Count);
         Assert.True(reports[goodSection].ValidatedOnFirstAttempt);
@@ -92,10 +99,10 @@ public sealed class SectionScriptBatchGeneratorTests
 
         var client = new FakeChatCompletionClient(
             items.Select(item => (Func<ChatCompletionRequest, ChatCompletionResult>)(_ =>
-                new ChatCompletionResult(ToResponseText(new SectionScript(item.SectionId, "golden-hold")), new AiUsage(500, 100, 0, 0)))));
+                new ChatCompletionResult(ToResponseText(new SectionScript(item.SectionId, "golden-hold", FillerEffects: RealXLightsFixture.SixCommonEffectNames)), new AiUsage(500, 100, 0, 0)))));
 
         var generator = new SectionScriptBatchGenerator(client);
-        var reports = await generator.GenerateAllAsync("STABLE", items, Guid.NewGuid(), looks, layout, 1000, CancellationToken.None);
+        var reports = await generator.GenerateAllAsync("STABLE", items, Guid.NewGuid(), looks, layout, FakeVocabulary(), 1000, CancellationToken.None);
 
         Assert.Equal(3, reports.Count);
         Assert.Equal(3, client.CallCount);

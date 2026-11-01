@@ -88,13 +88,26 @@ public static class LyricTimingTrackBuilder
             marks.Add(new TimingMark("word", finalStart, runEnd));
         }
 
-        return new TimingTrack(WordsTrackName, marks);
+        return new TimingTrack(WordsTrackName, EnforceExportableMarkDurations(marks));
     }
 
     /// <summary>The raw <see cref="VisemeApproximator"/> output, one mark per window, labelled with its own viseme code.</summary>
     public static TimingTrack Phonemes(IReadOnlyList<VisemeMark> visemeMarks)
     {
         ArgumentNullException.ThrowIfNull(visemeMarks);
-        return new TimingTrack(PhonemesTrackName, visemeMarks.OrderBy(m => m.StartTicks).Select(m => new TimingMark(m.Code, m.StartTicks, m.EndTicks)).ToList());
+        var marks = visemeMarks.OrderBy(m => m.StartTicks).Select(m => new TimingMark(m.Code, m.StartTicks, m.EndTicks)).ToList();
+        return new TimingTrack(PhonemesTrackName, EnforceExportableMarkDurations(marks));
     }
+
+    /// <summary>
+    /// Real-song export failure fixed here: "Timing track 'Lyrics_Phonemes' mark
+    /// (489986395-490000000 ticks) rounds to a non-positive duration at the 25ms xLights frame grid."
+    /// A single <see cref="VisemeMark"/> window (or, for <see cref="Words"/>, a short word run) can
+    /// legitimately be well under the 25ms xLights frame grid -- real speech regularly has phonemes
+    /// shorter than that. Reuses <see cref="TimingTrackEmitter"/>'s own <c>Percussion</c>-track fix for
+    /// exactly this failure mode (a too-short trailing mark, absorbed into its predecessor rather than
+    /// emitted as its own unexportable mark) instead of re-deriving the same safety net here.
+    /// </summary>
+    private static List<TimingMark> EnforceExportableMarkDurations(List<TimingMark> marks) =>
+        TimingTrackEmitter.CoalesceAdjacentSameLabel(TimingTrackEmitter.EnforceMinimumMarkDuration(marks, FrameClock.FrameIntervalTicks));
 }

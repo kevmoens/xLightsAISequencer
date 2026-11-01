@@ -31,6 +31,14 @@ public static class ChoreographyLegalityValidator
     private const string RuleSectionDensityContrast = "declared-vs-measured-change-density";
     private const string RuleEffectConcentration = "whole-song-effect-concentration";
 
+    /// <summary>
+    /// Public (unlike every other rule id here) because <see cref="XlightsAI.Studio.Director.RevisionDirectiveDeriver"/>
+    /// filters <see cref="ValidateShow"/>'s output by this id to derive a self-healing targeted
+    /// regeneration directive for each uncovered model (see <see cref="LegalityViolation.AffectedModelId"/>)
+    /// -- user feedback 2026-10-31 that Arch-category props were silently ending up with zero effects.
+    /// </summary>
+    public const string RuleModelCoverage = "every-model-used-at-least-once";
+
     /// <summary>100ns ticks/second -- same unit as every other tick field in this codebase; used only by <see cref="RuleSectionDensityContrast"/> to turn a section's own compiled effect count into a real starts-per-second rate.</summary>
     private const long TicksPerSecond = 10_000_000L;
 
@@ -272,7 +280,49 @@ public static class ChoreographyLegalityValidator
             }
         }
 
+        // Every real model used at least once across the whole show (K). User feedback (2026-10-31): the
+        // Director prompt only ever asked in plain text for small/outline props (e.g. an Arch) to get
+        // "their own moment" -- nothing checked whether it actually complied, and real generated shows
+        // left Arch models with zero effects for the entire song. Soft/advisory, same framing as every
+        // other ValidateShow rule: this never blocks a compile, it surfaces an uncovered model so a
+        // caller (e.g. IterationLoop, via a derived RevisionDirective naming the model) can self-heal with
+        // a targeted regeneration instead of the gap going unnoticed. Only models with real pixels
+        // (NodeCount > 0) are checked -- a 0-pixel/bookkeeping-only model has nothing to ever light.
+        var coveredModelIds = new HashSet<ModelId>(sections
+            .SelectMany(s => s.CompiledIR.Effects)
+            .SelectMany(e => ResolveRealModelIds(e.Target.Value, layout)));
+        foreach (var model in layout.Models.Where(m => m.NodeCount > 0 && !coveredModelIds.Contains(m.Id)))
+        {
+            violations.Add(new LegalityViolation(RuleModelCoverage,
+                $"Model '{model.Id.Value}' never received any effect anywhere in the whole show -- every real model should appear in at least one Look across the song.",
+                AffectedModelId: model.Id.Value));
+        }
+
         return violations;
+    }
+
+    /// <summary>
+    /// Every concrete <see cref="ModelId"/> a <paramref name="targetName"/> resolves to -- itself directly,
+    /// when it names an individual model, or every real, distinct, recursively-expanded member when it
+    /// names a group (reuses <see cref="PropGroupResolver"/>'s own already-verified expansion, same as
+    /// <see cref="ResolveRealPixelWeight"/>). Empty for a name that resolves to neither, never guessed.
+    /// </summary>
+    private static IReadOnlyList<ModelId> ResolveRealModelIds(string targetName, DisplayGraph layout)
+    {
+        var directId = new ModelId(targetName);
+        if (layout.Models.Any(m => m.Id == directId))
+        {
+            return [directId];
+        }
+
+        try
+        {
+            return PropGroupResolver.Resolve(targetName, layout);
+        }
+        catch (ArgumentException)
+        {
+            return [];
+        }
     }
 
     /// <summary>This section's own compiled effect-start rate (count of effects in its own compiled IR, divided by its own window duration in seconds) -- a coarse, per-section approximation (the always-moving gap-filler's own additions, applied globally after every section compiles, are not reflected here), sufficient only for <see cref="RuleSectionDensityContrast"/>'s own quietest-vs-loudest comparison.</summary>

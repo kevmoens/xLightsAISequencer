@@ -33,6 +33,13 @@ public static class KnownPlatforms
         ApphostFileName: "XlightsAI.Studio",
         RequiredNativeAssetFileNames: ["XlightsAI.Studio", "libSkiaSharp.dylib", "libAvaloniaNative.dylib"]);
 
+    public static readonly SupportedPlatform MacOsArm64 = new(
+        RuntimeIdentifier: "osx-arm64",
+        OperatingSystemSubstring: "Darwin",
+        Architecture: "Arm64",
+        ApphostFileName: "XlightsAI.Studio",
+        RequiredNativeAssetFileNames: ["XlightsAI.Studio", "libSkiaSharp.dylib", "libAvaloniaNative.dylib"]);
+
     public static readonly SupportedPlatform LinuxX64 = new(
         RuntimeIdentifier: "linux-x64",
         OperatingSystemSubstring: "Linux",
@@ -40,5 +47,5 @@ public static class KnownPlatforms
         ApphostFileName: "XlightsAI.Studio",
         RequiredNativeAssetFileNames: ["XlightsAI.Studio", "libSkiaSharp.so"]);
 
-    public static readonly IReadOnlyList<SupportedPlatform> All = [WindowsX64, MacOsX64, LinuxX64];
+    public static readonly IReadOnlyList<SupportedPlatform> All = [WindowsX64, MacOsX64, MacOsArm64, LinuxX64];
 }

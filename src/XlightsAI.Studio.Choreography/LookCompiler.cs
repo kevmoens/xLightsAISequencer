@@ -171,8 +171,13 @@ public static class LookCompiler
     /// vocabulary property) alongside a generated <c>effect.generated.on.v1</c> once
     /// <c>GeneratedEffectRecipeFactory.RegisterAll</c> has run; picking the legacy one would fail real
     /// vocabulary validation the moment a caller actually supplies one.
+    ///
+    /// Build-plan Phase 15 §3: public (not private) so <c>XlightsAI.Studio.Director.ChoreographyGenerationPipeline</c>
+    /// can reuse this exact resolution rule for name-based filler-effect-to-recipe-id resolution, instead
+    /// of re-deriving the same LINQ a fourth time (it was previously duplicated across
+    /// <c>AiChoreographyWholeSongGenerator.BuildFillerPool</c> and three test fixtures).
     /// </summary>
-    private static string RecipeIdFor(string xlightsEffectName, EffectRecipeCatalog catalog)
+    public static string RecipeIdFor(string xlightsEffectName, EffectRecipeCatalog catalog)
     {
         var generated = catalog.Recipes.FirstOrDefault(r =>
             r.RecipeId.StartsWith("effect.generated.", StringComparison.Ordinal) &&

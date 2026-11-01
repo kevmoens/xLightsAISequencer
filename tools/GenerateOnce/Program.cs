@@ -1,6 +1,7 @@
 using System.Xml.Linq;
 using XlightsAI.Studio.AiEdits;
 using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Director;
 using XlightsAI.Studio.Distribution;
 using XlightsAI.Studio.Melody;
@@ -29,13 +30,21 @@ public static class Program
     private const string ShowDirectory = @"C:\xLights";
     private const string EffectMetadataDirectory = @"C:\Program Files\xLights\effectmetadata";
 
-    public static async Task<int> Main()
+    public static async Task<int> Main(string[] args)
     {
         var appDataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "XlightsAI.Studio");
 
         Console.WriteLine($"[GenerateOnce] AppData directory: {appDataDirectory}");
+
+        // Build-plan Phase 14 §4 acceptance criteria: an optional custom creative-direction prompt,
+        // e.g. `dotnet run -- "Use a red and gold palette throughout."`. No argument (the pre-existing
+        // default for every call before this phase) means no custom prompt at all -- the existing
+        // non-regression behavior.
+        var customPromptText = args.Length > 0 ? string.Join(" ", args) : null;
+        var customPrompt = string.IsNullOrWhiteSpace(customPromptText) ? null : new CustomGenerationPrompt(customPromptText);
+        Console.WriteLine($"[GenerateOnce] Custom prompt: {(customPrompt is { IsEmpty: false } ? customPrompt.Text : "(none)")}");
 
         // ---- Step 1: use whatever Director/Choreographer provider config is already saved in the REAL
         // Settings-screen-backed location (the user now configures this directly in the app's Settings
@@ -97,7 +106,7 @@ public static class Program
             new JsonPhraseBoundaryOverrideStore(Path.Combine(appDataDirectory, "analysis-cache", "phrase-overrides")),
             new JsonMotifClusteringStore(Path.Combine(appDataDirectory, "analysis-cache", "motifs")));
 
-        var credentialStore = new DpapiCredentialStore(Path.Combine(appDataDirectory, "credentials"));
+        var credentialStore = CredentialStoreFactory.Create(Path.Combine(appDataDirectory, "credentials"));
 
         // BUG FOUND DURING THIS REAL RUN: XlightsAI.Studio.App.Program.Main wires AiRoleClientResolver
         // with a plain `new HttpClient()`, whose default Timeout is 100 seconds. That HttpClient-level
@@ -151,7 +160,7 @@ public static class Program
         WholeSongGenerationResult result;
         try
         {
-            result = await generator.GenerateAsync(song, layout, cts.Token);
+            result = await generator.GenerateAsync(song, layout, cts.Token, customPrompt);
         }
         catch (Exception ex)
         {
@@ -229,6 +238,21 @@ public static class Program
         Console.WriteLine($"<mediaFile> in exported .xsq: {(string.IsNullOrEmpty(mediaFileValue) ? "(EMPTY/MISSING)" : mediaFileValue)}");
         Console.WriteLine($"<mediaFile> matches real song path: {string.Equals(mediaFileValue, SongPath, StringComparison.OrdinalIgnoreCase)}");
         Console.WriteLine($"Wall-clock generation time: {elapsed}");
+
+        // Build-plan Phase 14 §4 acceptance criteria: the exact custom-prompt text used for this run
+        // must be retrievable afterward from this run's own persisted project artifacts. The internal
+        // songId ChoreographyGenerationPipeline keys this file by is not itself returned to this tool,
+        // so report whichever "custom-prompt-used-*.json" file under llm/ was written most recently.
+        if (customPrompt is { IsEmpty: false })
+        {
+            var llmDir = Path.Combine(projectDirectory, "llm");
+            var persistedPromptFile = Directory.Exists(llmDir)
+                ? Directory.GetFiles(llmDir, "custom-prompt-used-*.json").OrderByDescending(File.GetLastWriteTimeUtc).FirstOrDefault()
+                : null;
+            Console.WriteLine(persistedPromptFile is not null
+                ? $"Persisted custom-prompt record: {persistedPromptFile} -> {await File.ReadAllTextAsync(persistedPromptFile)}"
+                : "WARNING: expected a persisted custom-prompt-used-*.json under llm/ but found none.");
+        }
 
         // Build-plan Phase 12 §5 acceptance criteria: the same bucketed-start-time method
         // docs/AI-CHOREOGRAPHY-REAL-RUN-COMPARISON-2026-10-30.md used to measure the pre-Phase-12 ~1.2x

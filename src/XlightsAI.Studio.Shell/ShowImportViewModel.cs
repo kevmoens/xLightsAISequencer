@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Director;
 using XlightsAI.Studio.Pipeline;
 using XlightsAI.Studio.Stems;
@@ -404,7 +405,18 @@ public sealed class ShowImportViewModel : ObservableObject
     /// reentrant call while already busy, or any exception from the runner -- never an unhandled
     /// exception out of a UI command.
     /// </summary>
-    public async Task<bool> RunCorpusMiningAsync(string knowledgeDirectory, CancellationToken ct = default)
+    /// <param name="aiRoleClientResolver">
+    /// Build-plan Phase 16 §2b: when supplied and the Director role is configured, real exemplar
+    /// descriptions are generated for this run via <see cref="ChatCompletionExemplarDescriptionClient"/>.
+    /// Defaults to <see langword="null"/> (no description generation -- the pre-existing behavior) so
+    /// every existing call site keeps compiling; an unconfigured Director role (<see cref="AiProviderNotConfiguredException"/>)
+    /// is treated the same way, logged to <see cref="CorpusMiningStatusMessage"/> and otherwise non-fatal
+    /// -- a missing/unconfigured AI role must never block the rest of corpus mining from succeeding.
+    /// </param>
+    /// <param name="excludedProjectRootDirectories">Build-plan Phase 17 §2a: forwarded as-is to <see cref="CorpusMiningRunner.RunAsync(string,string,TimeSpan,Action{string}?,CancellationToken,IExemplarDescriptionClient?,int,IReadOnlyList{string}?,int)"/>'s own parameter of the same name. Defaults to <see langword="null"/> so every pre-existing caller keeps compiling.</param>
+    public async Task<bool> RunCorpusMiningAsync(
+        string knowledgeDirectory, AiRoleClientResolver? aiRoleClientResolver = null,
+        IReadOnlyList<string>? excludedProjectRootDirectories = null, CancellationToken ct = default)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(knowledgeDirectory);
 
@@ -424,10 +436,25 @@ public sealed class ShowImportViewModel : ObservableObject
         CorpusMiningStatusMessage = "Starting corpus mining...";
         try
         {
+            IExemplarDescriptionClient? descriptionClient = null;
+            if (aiRoleClientResolver is not null)
+            {
+                try
+                {
+                    var (directorClient, directorModel) = await aiRoleClientResolver.ResolveRequiredAsync(AiRole.Director, ct).ConfigureAwait(true);
+                    descriptionClient = new ChatCompletionExemplarDescriptionClient(directorClient, directorModel, new JsonAiCallLogStore(Path.Combine(knowledgeDirectory, "llm")));
+                }
+                catch (AiProviderNotConfiguredException)
+                {
+                    CorpusMiningStatusMessage = "Director role not configured -- exemplar descriptions will be skipped for this run.";
+                }
+            }
+
             var result = await CorpusMiningRunner
                 .RunAsync(
                     CorpusRootDirectory, knowledgeDirectory, CorpusMiningRunner.DefaultPerSongTimeout,
-                    message => CorpusMiningStatusMessage = message, ct)
+                    message => CorpusMiningStatusMessage = message, ct, descriptionClient,
+                    excludedProjectRootDirectories: excludedProjectRootDirectories)
                 .ConfigureAwait(true);
             LastCorpusMiningResult = result;
             CorpusMiningStatusMessage =
@@ -603,8 +630,10 @@ public sealed class ShowImportViewModel : ObservableObject
     /// not-yet-installed stem-separation model surfaces as <see cref="RequiresStemModelDownload"/> instead
     /// of a dead-end error, mirroring the Audio screen's own ffmpeg-download affordance.
     /// </summary>
+    /// <param name="customPrompt">Build-plan Phase 14 §2c: the user's own free-text creative direction for this run, or <see langword="null"/>/empty for the pre-existing default behavior.</param>
     public async Task<bool> GenerateWholeSongPlanAsync(
-        IWholeSongGenerator generator, SongAsset? probedSong, ISequenceDocumentStore planStore, CancellationToken ct = default)
+        IWholeSongGenerator generator, SongAsset? probedSong, ISequenceDocumentStore planStore, CancellationToken ct = default,
+        CustomGenerationPrompt? customPrompt = null)
     {
         ArgumentNullException.ThrowIfNull(generator);
         ArgumentNullException.ThrowIfNull(planStore);
@@ -631,7 +660,7 @@ public sealed class ShowImportViewModel : ObservableObject
                 return false;
             }
 
-            var generation = await generator.GenerateAsync(probedSong, Layout, ct).ConfigureAwait(true);
+            var generation = await generator.GenerateAsync(probedSong, Layout, ct, customPrompt).ConfigureAwait(true);
             var savedPath = await planStore.SaveAsync(generation.Document, ct).ConfigureAwait(true);
 
             Plan = generation.Document;

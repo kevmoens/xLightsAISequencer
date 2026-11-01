@@ -95,6 +95,17 @@ public partial class App : Application
     /// </summary>
     public static string? CorpusKnowledgeDirectory { get; set; }
 
+    /// <summary>Set by <see cref="Program.Main"/>; build-plan Phase 14 §2a.2 -- backs the "Creative direction" screen's persisted custom prompt. Falls back to <see cref="XlightsAI.Studio.Shell.NullCustomPromptStore"/> if unset.</summary>
+    public static XlightsAI.Studio.Director.ICustomPromptStore? CustomPromptStore { get; set; }
+
+    /// <summary>
+    /// Set by <see cref="Program.Main"/>; build-plan Phase 16 §2b -- the same role-client resolver
+    /// <c>AiChoreographyWholeSongGenerator</c> uses, reused here so "Run corpus mining" can also generate
+    /// real exemplar descriptions via the Director role. Falls back to <see langword="null"/> if unset,
+    /// in which case corpus mining still runs, just without description enrichment.
+    /// </summary>
+    public static XlightsAI.Studio.Director.AiRoleClientResolver? AiRoleClientResolver { get; set; }
+
     public override void Initialize()
     {
         AvaloniaXamlLoader.Load(this);
@@ -124,6 +135,8 @@ public partial class App : Application
             var displayLayoutEditor = DisplayLayoutEditor ?? XlightsAI.Studio.Display.NullDisplayLayoutEditor.Instance;
             var displayGraphBuilder = new XlightsAI.Studio.Display.DisplayGraphBuilder();
             var xsqExporter = XsqExporter;
+            var customPromptStore = CustomPromptStore ?? XlightsAI.Studio.Shell.NullCustomPromptStore.Instance;
+            var aiRoleClientResolver = AiRoleClientResolver;
             var navigator = new ShellNavigator();
 
             // ProjectsViewModel.Load still takes a synchronous Func<IReadOnlyList<string>> (its
@@ -159,7 +172,9 @@ public partial class App : Application
                 displayLayoutEditor: displayLayoutEditor,
                 displayGraphBuilder: displayGraphBuilder,
                 xsqExporter: xsqExporter,
-                corpusKnowledgeDirectory: CorpusKnowledgeDirectory);
+                corpusKnowledgeDirectory: CorpusKnowledgeDirectory,
+                customPromptStore: customPromptStore,
+                aiRoleClientResolver: aiRoleClientResolver);
             shellViewModel.RunStartup();
 
             desktop.MainWindow = new MainWindow(shellViewModel);
@@ -168,21 +183,7 @@ public partial class App : Application
         base.OnFrameworkInitializationCompleted();
     }
 
-    /// <summary>
-    /// Mac/Linux stub coverage (see <c>docs/ARCHITECTURE-AND-GUARDRAILS.md</c>'s "Platform coverage"
-    /// rule): the real <see cref="WaveOutAudioTransport"/> backend only exists for Windows; every
-    /// other platform gets <see cref="UnsupportedPlatformAudioTransport"/>, which throws one clear,
-    /// typed message on first playback action instead of a raw native-interop failure. The explicit
-    /// <c>if</c> guard (not a ternary) is what lets the CA1416 analyzer recognize this call site
-    /// needs no suppression.
-    /// </summary>
-    private static IAudioTransport CreateDefaultAudioTransport(IAudioDecoder audioDecoder)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return new WaveOutAudioTransport(audioDecoder);
-        }
-
-        return new UnsupportedPlatformAudioTransport();
-    }
+    /// <summary>Windows uses winmm and macOS uses OpenAL; any other platform gets the typed "unsupported" stub (see <see cref="AudioTransportFactory"/>).</summary>
+    private static IAudioTransport CreateDefaultAudioTransport(IAudioDecoder audioDecoder) =>
+        AudioTransportFactory.Create(audioDecoder);
 }

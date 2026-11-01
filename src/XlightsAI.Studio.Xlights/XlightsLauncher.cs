@@ -1,4 +1,5 @@
 using System.Diagnostics;
+using XlightsAI.Studio.Contracts;
 
 namespace XlightsAI.Studio.Xlights;
 
@@ -20,6 +21,8 @@ public sealed class XlightsLauncher : IXlightsLauncher
         {
             throw new XlightsLaunchInvalidException("An installed xLights executable path must be supplied.");
         }
+
+        xlightsExecutablePath = XlightsExecutable.Resolve(xlightsExecutablePath)!;
 
         if (!File.Exists(xlightsExecutablePath))
         {
@@ -44,15 +47,7 @@ public sealed class XlightsLauncher : IXlightsLauncher
         // always before any process is actually started.
         ct.ThrowIfCancellationRequested();
 
-        string? version = null;
-        try
-        {
-            version = FileVersionInfo.GetVersionInfo(xlightsExecutablePath).FileVersion;
-        }
-        catch (Exception)
-        {
-            // Best-effort only: an unreadable version resource must never block the launch itself.
-        }
+        string? version = XlightsExecutable.TryReadVersion(xlightsExecutablePath);
 
         var startInfo = new ProcessStartInfo(xlightsExecutablePath)
         {

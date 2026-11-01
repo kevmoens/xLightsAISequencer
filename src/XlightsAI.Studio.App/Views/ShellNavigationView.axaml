@@ -82,6 +82,15 @@
 
         <TextBlock Classes="nav-group" Text="BUILD" />
 
+        <!-- Build-plan Phase 14: a "last stop before you generate" tab, placed immediately before
+             Generate & export per that plan's section 2b.1. Not numbered as its own required step,
+             since an empty custom prompt is a fully valid, unchanged default. -->
+        <Button Classes="nav" Classes.active="{Binding IsShowingCustomPrompt}"
+                Command="{Binding NavigateToCustomPromptCommand}"
+                ToolTip.Tip="Optionally add your own creative direction before generating (colors, effects, layers, intensity, pacing).">
+          <TextBlock Text="Creative direction" VerticalAlignment="Center" />
+        </Button>
+
         <Button Classes="nav" Classes.active="{Binding IsShowingGenerateExport}"
                 Command="{Binding NavigateToGenerateExportCommand}"
                 ToolTip.Tip="Generate the choreography, then write and open the xLights sequence.">
@@ -122,6 +131,12 @@
                 Command="{Binding NavigateToDisplayPathEditorCommand}"
                 ToolTip.Tip="Correct where props sit on the spatial map gestures travel across.">
           <TextBlock Text="Display paths" VerticalAlignment="Center" />
+        </Button>
+
+        <Button Classes="nav" Classes.active="{Binding IsShowingExemplarLibrary}"
+                Command="{Binding NavigateToExemplarLibraryCommand}"
+                ToolTip.Tip="Browse mined exemplars and enable/disable which ones the Director can draw from.">
+          <TextBlock Text="Exemplar library" VerticalAlignment="Center" />
         </Button>
 
         <Separator Classes="rule" Margin="12,14,12,6" />

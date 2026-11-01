@@ -18,10 +18,30 @@ public sealed class SectionScriptCompilerTests
         var sectionId = Guid.NewGuid();
         var scripts = new Dictionary<Guid, SectionScript> { [sectionId] = new(sectionId, "golden-hold") };
 
-        var (effectiveLibrary, lookIdBySectionId) = SectionScriptCompiler.Compile(library, scripts);
+        var (effectiveLibrary, lookIdBySectionId, _) = SectionScriptCompiler.Compile(library, scripts);
 
         Assert.Equal("golden-hold", lookIdBySectionId[sectionId]);
         Assert.Single(effectiveLibrary.Looks); // No synthetic clone was minted.
+    }
+
+    [Fact]
+    public void Compile_BaseLookHasTwoLayersAtTheSameZ_ThrowsChoreographyCompilationException_NotRawArgumentException()
+    {
+        // Real-run finding (2026-10-31): ShowBibleValidator now rejects this upstream, but this compiler
+        // re-checks it too (per its own doc comment's "must never silently fabricate a Look" discipline)
+        // rather than trusting a raw Layers.ToDictionary(l => l.Z) to throw a real, diagnosable exception.
+        var baseLook = GoldenHold();
+        var duplicateZLayer = baseLook.Layers[0];
+        var brokenLook = baseLook with { Layers = [.. baseLook.Layers, duplicateZLayer] };
+        var library = new LookLibrary([brokenLook]);
+        var sectionId = Guid.NewGuid();
+        var scripts = new Dictionary<Guid, SectionScript>
+        {
+            [sectionId] = new(sectionId, brokenLook.Id, PropBindings: [new SectionEventBinding(LayerZ: duplicateZLayer.Z, Props: "Tree")]),
+        };
+
+        var ex = Assert.Throws<ChoreographyCompilationException>(() => SectionScriptCompiler.Compile(library, scripts));
+        Assert.Contains($"z={duplicateZLayer.Z}", ex.Message);
     }
 
     [Fact]
@@ -35,7 +55,7 @@ public sealed class SectionScriptCompilerTests
             [sectionId] = new(sectionId, "golden-hold", PropBindings: [new SectionEventBinding(LayerZ: 3, Props: "Tree")]),
         };
 
-        var (effectiveLibrary, lookIdBySectionId) = SectionScriptCompiler.Compile(library, scripts);
+        var (effectiveLibrary, lookIdBySectionId, _) = SectionScriptCompiler.Compile(library, scripts);
 
         var effectiveId = lookIdBySectionId[sectionId];
         Assert.NotEqual("golden-hold", effectiveId);
@@ -64,7 +84,7 @@ public sealed class SectionScriptCompilerTests
             [sectionB] = new(sectionB, "golden-hold", PropBindings: [new SectionEventBinding(3, "group:Arches")]),
         };
 
-        var (effectiveLibrary, lookIdBySectionId) = SectionScriptCompiler.Compile(library, scripts);
+        var (effectiveLibrary, lookIdBySectionId, _) = SectionScriptCompiler.Compile(library, scripts);
 
         Assert.NotEqual(lookIdBySectionId[sectionA], lookIdBySectionId[sectionB]);
         Assert.Equal(3, effectiveLibrary.Looks.Count);
@@ -105,7 +125,7 @@ public sealed class SectionScriptCompilerTests
         var scripts = new Dictionary<Guid, SectionScript> { [sectionId] = new(sectionId, "golden-hold") };
         var phrases = new Dictionary<Guid, IReadOnlyList<PhraseCandidate>> { [sectionId] = [Phrase(sectionId, 0, 4), Phrase(sectionId, 4, 8)] };
 
-        var (_, _, phraseAssignments) = SectionScriptCompiler.Compile(library, scripts, phrases);
+        var (_, _, phraseAssignments, _) = SectionScriptCompiler.Compile(library, scripts, phrases);
 
         Assert.False(phraseAssignments.ContainsKey(sectionId));
     }
@@ -124,7 +144,7 @@ public sealed class SectionScriptCompilerTests
             [sectionId] = [Phrase(sectionId, 0, 4), Phrase(sectionId, 4, 8), Phrase(sectionId, 8, 12)],
         };
 
-        var (effectiveLibrary, lookIdBySectionId, phraseAssignmentsBySectionId) = SectionScriptCompiler.Compile(library, scripts, phrases);
+        var (effectiveLibrary, lookIdBySectionId, phraseAssignmentsBySectionId, _) = SectionScriptCompiler.Compile(library, scripts, phrases);
 
         var assignments = phraseAssignmentsBySectionId[sectionId];
         Assert.Equal(3, assignments.Count);
@@ -160,7 +180,7 @@ public sealed class SectionScriptCompilerTests
         };
         var phrases = new Dictionary<Guid, IReadOnlyList<PhraseCandidate>> { [sectionId] = [Phrase(sectionId, 0, 4)] };
 
-        var (effectiveLibrary, _, phraseAssignmentsBySectionId) = SectionScriptCompiler.Compile(library, scripts, phrases);
+        var (effectiveLibrary, _, phraseAssignmentsBySectionId, _) = SectionScriptCompiler.Compile(library, scripts, phrases);
 
         var phraseLook = effectiveLibrary.Find(phraseAssignmentsBySectionId[sectionId][0].LookId)!;
         Assert.Equal("group:Arches", phraseLook.Layers.Single(l => l.Z == 3).Props);

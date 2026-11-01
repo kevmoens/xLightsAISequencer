@@ -84,21 +84,29 @@ public sealed class XsqStructuralReader : IXsqStructuralReader
             // ref/palette dangling-reference checks below, which only make sense for model placements.
             if (type == "timing")
             {
-                var marks = elementEl.Elements("EffectLayer")
-                    .SelectMany(layerEl => layerEl.Elements("Effect"))
-                    .Select(effectEl =>
+                // Build-plan Phase 17 §1c/§2b real-corpus finding: a real, otherwise well-formed .xsq
+                // can carry a single zero-width timing mark ([X, X), start == end) -- confirmed across
+                // several independently-sequenced shows (Mashup.xsq's 'Beats' track, Nutcracker
+                // Dubstep.xsq's 'Beat Count', etc.), always as a harmless trailing artifact rather than a
+                // sign of a corrupt track otherwise. Previously this threw and rejected the whole file --
+                // every one of this reader's other consumers (not just corpus mining) hit the same
+                // failure on these real files. A zero-width mark carries no usable interval information
+                // (nothing can legitimately start and end at the same instant), so it is skipped rather
+                // than kept with a fabricated nonzero width; every other mark on the track still parses
+                // and is kept. A mark with endMs < startMs (truly inverted, never observed in the real
+                // corpus) is still treated the same way -- equally not a usable interval.
+                var marks = new List<XsqStructuralTimingMark>();
+                foreach (var effectEl in elementEl.Elements("EffectLayer").SelectMany(layerEl => layerEl.Elements("Effect")))
+                {
+                    var startMs = RequiredLongAttribute(effectEl, "startTime", path);
+                    var endMs = RequiredLongAttribute(effectEl, "endTime", path);
+                    if (endMs <= startMs)
                     {
-                        var startMs = RequiredLongAttribute(effectEl, "startTime", path);
-                        var endMs = RequiredLongAttribute(effectEl, "endTime", path);
-                        if (endMs <= startMs)
-                        {
-                            throw new XsqStructuralReadException(
-                                $"'{path}': timing track '{name}' has a mark with a non-positive interval [{startMs}, {endMs}).");
-                        }
+                        continue;
+                    }
 
-                        return new XsqStructuralTimingMark((string?)effectEl.Attribute("label") ?? string.Empty, startMs, endMs);
-                    })
-                    .ToList();
+                    marks.Add(new XsqStructuralTimingMark((string?)effectEl.Attribute("label") ?? string.Empty, startMs, endMs));
+                }
 
                 timingTracks.Add(new XsqStructuralTimingTrack(name, marks));
                 continue;

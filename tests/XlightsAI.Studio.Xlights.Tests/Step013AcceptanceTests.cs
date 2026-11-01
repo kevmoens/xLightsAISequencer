@@ -234,6 +234,44 @@ public sealed class Step013AcceptanceTests : IDisposable
         Assert.Contains("dangling", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    /// <summary>
+    /// Build-plan Phase 17 §1c/§2b real-corpus finding: a real, otherwise well-formed .xsq can carry a
+    /// single trailing zero-width timing mark ([X,X)) on a timing track -- previously this threw and
+    /// rejected the whole file. It is now skipped (not kept with a fabricated width), while every other
+    /// real mark on the same track still parses.
+    /// </summary>
+    [Fact]
+    public void StructuralReader_SkipsZeroWidthTimingMark_KeepsEveryOtherMarkOnTheSameTrack()
+    {
+        Directory.CreateDirectory(_root);
+        var path = Path.Combine(_root, "zero-width-timing-mark.xsq");
+        File.WriteAllText(path, """
+            <?xml version="1.0" encoding="UTF-8"?>
+            <xsequence BaseChannel="0" FixedPointTiming="25" ModelBlending="true">
+              <head><version>2026.03</version><sequenceType>Animation</sequenceType><sequenceTiming>25 ms</sequenceTiming><sequenceDuration>1.000</sequenceDuration></head>
+              <ColorPalettes><ColorPalette>C_BUTTON_Palette1=#FFFFFF</ColorPalette></ColorPalettes>
+              <EffectDB><Effect></Effect></EffectDB>
+              <DisplayElements><Element type="timing" name="Beats" visible="1" /></DisplayElements>
+              <ElementEffects>
+                <Element type="timing" name="Beats">
+                  <EffectLayer>
+                    <Effect label="1" startTime="0" endTime="500" />
+                    <Effect label="2" startTime="500" endTime="1000" />
+                    <Effect label="trailing" startTime="1000" endTime="1000" />
+                  </EffectLayer>
+                </Element>
+              </ElementEffects>
+            </xsequence>
+            """);
+
+        var structural = new XsqStructuralReader().Read(path);
+
+        var track = Assert.Single(structural.TimingTracks);
+        Assert.Equal("Beats", track.Name);
+        Assert.Equal(2, track.Marks.Count);
+        Assert.DoesNotContain(track.Marks, m => m.Label == "trailing");
+    }
+
     private static SequenceDocument OneEffectPlan(DisplayGraph layout)
     {
         var registry = new EffectRecipeRegistry();

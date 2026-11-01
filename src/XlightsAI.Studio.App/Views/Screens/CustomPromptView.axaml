@@ -1,0 +1,72 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             x:Class="XlightsAI.Studio.App.Views.Screens.CustomPromptView"
+             x:DataType="vm:ShellViewModel">
+
+  <!--
+    Build-plan Phase 14 ("User-Directed Custom Generation Prompt"): a "last stop before you generate"
+    tab for the user's own free-text creative direction. Deliberately not a blocking gate: an empty
+    field is a fully valid, unchanged default (section 4's own non-regression criterion), so there is
+    no "required" styling or validation error state here, only the character cap.
+
+    Binds directly against ShellViewModel.CustomPrompt (inherited DataContext, same convention as
+    GenerateExportView binding through ShellViewModel.ShowImport) rather than being a self-contained
+    view like AiProviderSettingsView: RunGenerateWholeSongPlanAsync needs to read this screen's live
+    text at generation time, so ShellViewModel must hold the real view model instance, not a view-
+    local one nothing else can see.
+  -->
+
+  <StackPanel Spacing="14" MaxWidth="760" HorizontalAlignment="Left">
+    <TextBlock Classes="page-title" Text="Creative direction" />
+    <TextBlock Classes="page-subtitle"
+               Text="Optionally tell the Director/Choreographer what you want this generation to look like -- colors, effects, layers, intensity, pacing, which prop should get the spotlight. This is best-effort creative guidance: it is followed wherever it does not conflict with a prop's real capability or the show's hard legality limits, and it never blocks generation if left blank." />
+
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="Your direction for this generation" />
+
+        <TextBox Text="{Binding CustomPrompt.PromptText}"
+                 AcceptsReturn="True" TextWrapping="Wrap"
+                 MinHeight="120" MaxHeight="280"
+                 Watermark="e.g. Use a red and gold palette throughout; keep the Mega Tree densely layered during every chorus." />
+
+        <TextBlock Classes="detail"
+                   Text="{Binding CustomPrompt.RemainingCharacters, StringFormat='{}{0} characters remaining'}" />
+
+        <CheckBox IsChecked="{Binding CustomPrompt.StayCloseToExemplars}"
+                  Content="Stay close to similar corpus exemplars"
+                  ToolTip.Tip="Checked: regenerating always retrieves the closest-matching real corpus examples (same effects/motion every time, only colors vary). Unchecked: regenerating draws from a wider, randomized spread of examples, so effect/motion choices can meaningfully differ run to run, not just color." />
+
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Content="Save" Command="{Binding CustomPrompt.SaveCommand}" />
+        </StackPanel>
+
+        <TextBlock Classes="detail" IsVisible="{Binding CustomPrompt.HasStatusMessage}" Text="{Binding CustomPrompt.StatusMessage}" />
+        <TextBlock Classes="error" IsVisible="{Binding CustomPrompt.HasErrorMessage}" Text="{Binding CustomPrompt.ErrorMessage}" />
+      </StackPanel>
+    </Border>
+
+    <Border Classes="card">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="Need an idea? Try one of these" />
+        <TextBlock Classes="hint" Text="Clicking a chip replaces whatever is currently in the field above." />
+
+        <ItemsControl ItemsSource="{Binding CustomPrompt.Examples}">
+          <ItemsControl.ItemsPanel>
+            <ItemsPanelTemplate>
+              <WrapPanel Orientation="Horizontal" />
+            </ItemsPanelTemplate>
+          </ItemsControl.ItemsPanel>
+          <ItemsControl.ItemTemplate>
+            <DataTemplate x:DataType="vm:CustomPromptExampleChip">
+              <Button Margin="0,0,8,8" Command="{Binding ApplyCommand}" ToolTip.Tip="{Binding Text}">
+                <TextBlock Text="{Binding Category}" />
+              </Button>
+            </DataTemplate>
+          </ItemsControl.ItemTemplate>
+        </ItemsControl>
+      </StackPanel>
+    </Border>
+  </StackPanel>
+</UserControl>

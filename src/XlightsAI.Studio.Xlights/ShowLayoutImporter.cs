@@ -208,8 +208,17 @@ public sealed partial class ShowLayoutImporter : IShowLayoutImporter
             // (confirmed by ModelGeometryCalculator's own cross-checked formula: parm1=string count,
             // parm2=nodes/string) -- preferred when present, falling back to parm1/parm2/parm3 for an
             // older export that still uses them.
-            var parm1 = ParseOptionalInt(modelElement, "NumStrings") ?? ParseOptionalInt(modelElement, "parm1") ?? 0;
-            var parm2 = ParseOptionalInt(modelElement, "NodesPerString") ?? ParseOptionalInt(modelElement, "parm2") ?? 0;
+            // Real-run finding (2026-11-01): the "Arches" family (ModelCategory.Arches) carries its own
+            // differently-named pair -- NumArches/NodesPerArch -- instead of NumStrings/NodesPerString
+            // (confirmed against a real show's own SourceVersion "2026.17" export: an Arches model has
+            // neither NumStrings/NodesPerString nor parm1/parm2 at all). Without this, every Arches model
+            // silently computed to 0 nodes, which this importer (and everything downstream) correctly
+            // treats as "no real pixels to address" -- so the model never reached the compiled show at
+            // all, not merely "received no effects." Checked unconditionally (not gated on category),
+            // same as NumStrings/NodesPerString above: these names are specific enough to the Arches
+            // family that they are simply absent on every other model, so this never misfires.
+            var parm1 = ParseOptionalInt(modelElement, "NumStrings") ?? ParseOptionalInt(modelElement, "NumArches") ?? ParseOptionalInt(modelElement, "parm1") ?? 0;
+            var parm2 = ParseOptionalInt(modelElement, "NodesPerString") ?? ParseOptionalInt(modelElement, "NodesPerArch") ?? ParseOptionalInt(modelElement, "parm2") ?? 0;
             var parm3 = ParseOptionalInt(modelElement, "StrandsPerString") ?? ParseOptionalInt(modelElement, "parm3") ?? 0;
             var windowRows = ParseOptionalInt(modelElement, "WindowRows");
             var windowColumns = ParseOptionalInt(modelElement, "WindowColumns");

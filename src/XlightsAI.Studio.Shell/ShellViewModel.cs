@@ -1,4 +1,6 @@
 using XlightsAI.Studio.Audio;
+using XlightsAI.Studio.Contracts;
+using XlightsAI.Studio.Director;
 using XlightsAI.Studio.Pipeline;
 using XlightsAI.Studio.Projects;
 using XlightsAI.Studio.Stems;
@@ -59,6 +61,14 @@ public sealed class ShellViewModel : ObservableObject
     private readonly IDisplayLayoutEditor _displayLayoutEditor;
     private readonly IDisplayGraphBuilder _displayGraphBuilder;
     private readonly string? _corpusKnowledgeDirectory;
+
+    /// <summary>
+    /// Build-plan Phase 16 §2b: resolves the Director role's configured client for real exemplar
+    /// descriptions during <see cref="RunCorpusMiningAsync"/>. Nullable/defaults to <see langword="null"/>
+    /// (no description generation, the pre-existing behavior) for the same "only the real composition
+    /// root knows this" reasoning as <see cref="_corpusKnowledgeDirectory"/> above.
+    /// </summary>
+    private readonly AiRoleClientResolver? _aiRoleClientResolver;
     private bool _isRestoringLastScreen;
     private ProjectManifest? _currentProject;
 
@@ -94,7 +104,9 @@ public sealed class ShellViewModel : ObservableObject
         IMotifLinkOverrideStore? motifLinkOverrideStore = null,
         IDisplayLayoutEditor? displayLayoutEditor = null,
         IDisplayGraphBuilder? displayGraphBuilder = null,
-        string? corpusKnowledgeDirectory = null)
+        string? corpusKnowledgeDirectory = null,
+        ICustomPromptStore? customPromptStore = null,
+        AiRoleClientResolver? aiRoleClientResolver = null)
     {
         _navigator = navigator ?? throw new ArgumentNullException(nameof(navigator));
         _projectNamesSource = projectNamesSource ?? throw new ArgumentNullException(nameof(projectNamesSource));
@@ -237,18 +249,25 @@ public sealed class ShellViewModel : ObservableObject
         // silent wrong-directory write, same as every other "needs a real configured directory this
         // layer does not yet own" collaborator in this constructor.
         _corpusKnowledgeDirectory = corpusKnowledgeDirectory;
+        _aiRoleClientResolver = aiRoleClientResolver;
 
         Welcome = new WelcomeViewModel();
         Projects = new ProjectsViewModel();
         Settings = new SettingsViewModel();
         Diagnostics = new DiagnosticsViewModel();
         ShowImport = new ShowImportViewModel();
+        // Build-plan Phase 14 §2b.2: same "needs a real settings directory this layer does not yet
+        // own" reasoning as _wholeSongGenerator/_noteTrackEditor above -- defaults to the throwing-
+        // on-save NullCustomPromptStore so a caller that omits it still shows an empty, usable screen
+        // (Load always succeeds with the empty default) rather than crashing at construction.
+        CustomPrompt = new CustomPromptEditorViewModel(customPromptStore ?? NullCustomPromptStore.Instance);
         Timeline = new TimelineViewModel();
         Audio = new AudioImportViewModel();
         PianoRoll = new PianoRollViewModel();
         StructureInspector = new PhraseRelationshipInspectorViewModel();
         DisplayPathEditor = new DisplayPathEditorViewModel();
         FirstRun = new FirstRunViewModel();
+        ExemplarLibrary = new ExemplarLibraryViewModel();
 
         NavigateToProjectsCommand = new DelegateCommand(
             () => _navigator.NavigateTo(ShellScreen.Projects),
@@ -262,8 +281,14 @@ public sealed class ShellViewModel : ObservableObject
         NavigateToDiagnosticsCommand = new DelegateCommand(
             () => _navigator.NavigateTo(ShellScreen.Diagnostics),
             () => _navigator.State == StartupState.Ready);
+        NavigateToExemplarLibraryCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.ExemplarLibrary),
+            () => _navigator.State == StartupState.Ready);
         NavigateToShowImportCommand = new DelegateCommand(
             () => _navigator.NavigateTo(ShellScreen.ShowImport),
+            () => _navigator.State == StartupState.Ready);
+        NavigateToCustomPromptCommand = new DelegateCommand(
+            () => _navigator.NavigateTo(ShellScreen.CustomPrompt),
             () => _navigator.State == StartupState.Ready);
         NavigateToGenerateExportCommand = new DelegateCommand(
             () => _navigator.NavigateTo(ShellScreen.GenerateExport),
@@ -612,6 +637,9 @@ public sealed class ShellViewModel : ObservableObject
 
     public ShowImportViewModel ShowImport { get; }
 
+    /// <summary>Build-plan Phase 14: the "last stop before you generate" custom-prompt tab's own view model.</summary>
+    public CustomPromptEditorViewModel CustomPrompt { get; }
+
     /// <summary>PHASE-03 Step 016: SCREEN 13 TIMELINE.</summary>
     public TimelineViewModel Timeline { get; }
 
@@ -630,6 +658,9 @@ public sealed class ShellViewModel : ObservableObject
     /// <summary>PHASE-15 Step 095: first-run onboarding wizard.</summary>
     public FirstRunViewModel FirstRun { get; }
 
+    /// <summary>Build-plan Phase 17 §2e: the exemplar curation library screen.</summary>
+    public ExemplarLibraryViewModel ExemplarLibrary { get; }
+
     public DelegateCommand NavigateToProjectsCommand { get; }
 
     public DelegateCommand NavigateToWelcomeCommand { get; }
@@ -638,7 +669,12 @@ public sealed class ShellViewModel : ObservableObject
 
     public DelegateCommand NavigateToDiagnosticsCommand { get; }
 
+    public DelegateCommand NavigateToExemplarLibraryCommand { get; }
+
     public DelegateCommand NavigateToShowImportCommand { get; }
+
+    /// <summary>Navigates to <see cref="ShellScreen.CustomPrompt"/>.</summary>
+    public DelegateCommand NavigateToCustomPromptCommand { get; }
 
     /// <summary>Navigates to <see cref="ShellScreen.GenerateExport"/> (same <see cref="ShowImport"/> view model).</summary>
     public DelegateCommand NavigateToGenerateExportCommand { get; }
@@ -915,7 +951,11 @@ public sealed class ShellViewModel : ObservableObject
 
     public bool IsShowingDiagnostics => State == StartupState.Ready && CurrentScreen == ShellScreen.Diagnostics;
 
+    public bool IsShowingExemplarLibrary => State == StartupState.Ready && CurrentScreen == ShellScreen.ExemplarLibrary;
+
     public bool IsShowingShowImport => State == StartupState.Ready && CurrentScreen == ShellScreen.ShowImport;
+
+    public bool IsShowingCustomPrompt => State == StartupState.Ready && CurrentScreen == ShellScreen.CustomPrompt;
 
     public bool IsShowingGenerateExport => State == StartupState.Ready && CurrentScreen == ShellScreen.GenerateExport;
 
@@ -1000,8 +1040,24 @@ public sealed class ShellViewModel : ObservableObject
                 case ShellScreen.Diagnostics:
                     Diagnostics.Load(() => _diagnostics.RecentEvents);
                     break;
+                case ShellScreen.ExemplarLibrary:
+                    // Build-plan Phase 17 §2e: re-load every time this screen is navigated to (unlike
+                    // the "restore, never re-run" screens above) -- a re-mine since the last visit
+                    // should be visible without a separate manual refresh action, and loading is cheap
+                    // local JSON reads, not a real corpus-mining run.
+                    if (_corpusKnowledgeDirectory is not null)
+                    {
+                        _ = ExemplarLibrary.LoadAsync(_corpusKnowledgeDirectory, CancellationToken.None);
+                    }
+                    break;
                 case ShellScreen.ShowImport:
                     ShowImport.RestoreLastDirectory(_settingsStore.Load().LastShowDirectory);
+                    break;
+                case ShellScreen.CustomPrompt:
+                    // Build-plan Phase 14 §2a.2: reload the persisted prompt (round-trips across
+                    // sessions) every time this screen is navigated to, same "restore, never re-run"
+                    // convention as ShowImport.RestoreLastDirectory above.
+                    _ = CustomPrompt.LoadAsync();
                     break;
                 case ShellScreen.GenerateExport:
                     // Same "nothing happens until an explicit user action" convention as Timeline
@@ -1057,7 +1113,9 @@ public sealed class ShellViewModel : ObservableObject
         NavigateToWelcomeCommand.RaiseCanExecuteChanged();
         NavigateToSettingsCommand.RaiseCanExecuteChanged();
         NavigateToDiagnosticsCommand.RaiseCanExecuteChanged();
+        NavigateToExemplarLibraryCommand.RaiseCanExecuteChanged();
         NavigateToShowImportCommand.RaiseCanExecuteChanged();
+        NavigateToCustomPromptCommand.RaiseCanExecuteChanged();
         NavigateToGenerateExportCommand.RaiseCanExecuteChanged();
         NavigateToTimelineCommand.RaiseCanExecuteChanged();
         NavigateToAudioCommand.RaiseCanExecuteChanged();
@@ -1105,24 +1163,9 @@ public sealed class ShellViewModel : ObservableObject
         LaunchXlightsCommand.RaiseCanExecuteChanged();
     }
 
-    /// <summary>
-    /// PHASE-04 Step 025 (updated for Mac/Linux stub coverage): the real <see cref="WaveOutAudioTransport"/>
-    /// backend only exists for Windows; every other platform gets <see cref="UnsupportedPlatformAudioTransport"/>
-    /// instead, so calling an audio playback action on an unsupported platform throws one clear,
-    /// typed, actionable message rather than a raw <c>DllNotFoundException</c> from winmm.dll. Uses
-    /// an explicit <c>if</c> guard (not a ternary) so the CA1416 platform-compatibility analyzer
-    /// recognizes the guard and the <see cref="WaveOutAudioTransport"/> construction needs no warning
-    /// suppression.
-    /// </summary>
-    private static IAudioTransport CreateDefaultAudioTransport(IAudioDecoder audioDecoder)
-    {
-        if (OperatingSystem.IsWindows())
-        {
-            return new WaveOutAudioTransport(audioDecoder);
-        }
-
-        return new UnsupportedPlatformAudioTransport();
-    }
+    /// <summary>Windows uses winmm and macOS uses OpenAL; any other platform gets the typed "unsupported" stub (see <see cref="AudioTransportFactory"/>).</summary>
+    private static IAudioTransport CreateDefaultAudioTransport(IAudioDecoder audioDecoder) =>
+        AudioTransportFactory.Create(audioDecoder);
 
     /// <summary>
     /// Creates a project from <see cref="ProjectsViewModel.WorkspaceDirectory"/>/
@@ -1212,7 +1255,22 @@ public sealed class ShellViewModel : ObservableObject
             return;
         }
 
-        var succeeded = await ShowImport.RunCorpusMiningAsync(_corpusKnowledgeDirectory).ConfigureAwait(true);
+        // Build-plan Phase 17 §2a: exclude this app's own prior project directories from corpus mining,
+        // even if a generated .xsq was later copied/moved outside its project's own exports/ folder.
+        // A failure to enumerate recent projects must never block corpus mining itself -- it only makes
+        // this one exclusion rule a no-op for this run.
+        IReadOnlyList<string> excludedProjectRootDirectories;
+        try
+        {
+            var recentProjects = await _projectService.RecentAsync(CancellationToken.None).ConfigureAwait(true);
+            excludedProjectRootDirectories = recentProjects.Select(p => p.RootDirectory).ToList();
+        }
+        catch (Exception)
+        {
+            excludedProjectRootDirectories = [];
+        }
+
+        var succeeded = await ShowImport.RunCorpusMiningAsync(_corpusKnowledgeDirectory, _aiRoleClientResolver, excludedProjectRootDirectories).ConfigureAwait(true);
         if (succeeded)
         {
             var existing = _settingsStore.Load();
@@ -1237,8 +1295,14 @@ public sealed class ShellViewModel : ObservableObject
     /// </summary>
     private async Task RunGenerateWholeSongPlanAsync()
     {
+        // Build-plan Phase 14 §2c: reads whatever is currently typed on the CustomPrompt screen --
+        // not gated on an explicit Save click, since that screen is a "last stop before you generate"
+        // waypoint, not a save-gated settings form (see CustomPromptEditorViewModel's own doc comment).
+        // An empty/blank prompt here is CustomGenerationPrompt.Empty's own IsEmpty case, which every
+        // downstream builder treats identically to the pre-existing no-custom-prompt default.
+        var customPrompt = new CustomGenerationPrompt(CustomPrompt.PromptText, CustomPrompt.StayCloseToExemplars);
         var succeeded = await ShowImport.GenerateWholeSongPlanAsync(
-            _wholeSongGenerator, Audio.ProbedAsset, _sequenceDocumentStore).ConfigureAwait(true);
+            _wholeSongGenerator, Audio.ProbedAsset, _sequenceDocumentStore, ct: default, customPrompt: customPrompt).ConfigureAwait(true);
         if (!succeeded || ShowImport.LastWholeSongGeneration is not { } generation)
         {
             return;
@@ -1485,7 +1549,9 @@ public sealed class ShellViewModel : ObservableObject
         OnPropertyChanged(nameof(IsShowingProjects));
         OnPropertyChanged(nameof(IsShowingSettings));
         OnPropertyChanged(nameof(IsShowingDiagnostics));
+        OnPropertyChanged(nameof(IsShowingExemplarLibrary));
         OnPropertyChanged(nameof(IsShowingShowImport));
+        OnPropertyChanged(nameof(IsShowingCustomPrompt));
         OnPropertyChanged(nameof(IsShowingGenerateExport));
         OnPropertyChanged(nameof(IsShowingTimeline));
         OnPropertyChanged(nameof(IsShowingAudio));

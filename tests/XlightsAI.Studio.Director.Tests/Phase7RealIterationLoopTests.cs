@@ -90,7 +90,6 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
         var layoutSummary = LayoutSummary.Build(layout);
         var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
         var registry = new EffectRecipeRegistry(recipes);
-        var fillerPool = BuildFillerPool(recipes);
         var totalDisplayPointCount = Math.Max(1, layout.Models.Sum(m => m.NodeCount));
 
         const string clipFileName = "dubstep-90s-clip.mp3";
@@ -128,7 +127,7 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
 
         var batchGenerator = new SectionScriptBatchGenerator(choreographerClient, callLog: new JsonAiCallLogStore(Path.Combine(_root, "llm")), modelName: ChoreographerModel);
         var items = music.Sections.Labels.Select(section => new SectionScriptBatchItem(section.Id, volatileSuffixBySectionId[section.Id])).ToList();
-        var initialReports = await batchGenerator.GenerateAllAsync(stablePrefix, items, Guid.NewGuid(), bible.Content.Looks, layout, maxOutputTokens: 600, ct);
+        var initialReports = await batchGenerator.GenerateAllAsync(stablePrefix, items, Guid.NewGuid(), bible.Content.Looks, layout, vocabulary, maxOutputTokens: 600, ct);
         var initialScripts = initialReports.Where(kvp => kvp.Value.Script is not null).ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Script!);
 
         if (initialScripts.Count == 0)
@@ -140,7 +139,7 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
         }
 
         var paletteLibrary = bible.Content.Palettes.ToDictionary(p => p.Id, p => PaletteBuilder.Build(p.Colors.Select(c => c.HexColor).ToList()), StringComparer.Ordinal);
-        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, paletteLibrary, fillerPool);
+        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, paletteLibrary);
 
         var exportsDir = Path.Combine(_root, "exports");
         Directory.CreateDirectory(exportsDir);
@@ -151,10 +150,11 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
 
         async Task<(ChoreographyEngine.Result Compiled, ExportResult Export)> CompileAndExportAsync(IReadOnlyDictionary<Guid, SectionScript> scripts)
         {
-            var (effectiveLibrary, lookIdBySectionId) = SectionScriptCompiler.Compile(bible.Content.Looks, scripts);
+            var (effectiveLibrary, lookIdBySectionId, _) = SectionScriptCompiler.Compile(bible.Content.Looks, scripts);
+            var fillerSchedule = ChoreographyGenerationPipeline.BuildFillerSchedule(scripts, music, layoutSummary, recipes);
             var engineInput = new ChoreographyEngine.Input(
                 layout, music.BeatGrid, music.Sections, music.Phrases, music.BandEnergy, music.VocalActivity,
-                effectiveLibrary, lookIdBySectionId, EnergyCeilingByKind, music.SongDurationTicks, compilerSettings);
+                effectiveLibrary, lookIdBySectionId, EnergyCeilingByKind, music.SongDurationTicks, compilerSettings, fillerSchedule);
             var compiled = ChoreographyEngine.Compile(engineInput);
 
             var exporter = new XsqExporter(recipes, vocabulary);
@@ -187,7 +187,7 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
         }
 
         var sectionIntentById = new Dictionary<Guid, string>();
-        var (_, lookIdBySectionIdForIntent) = SectionScriptCompiler.Compile(bible.Content.Looks, initialScripts);
+        var (_, lookIdBySectionIdForIntent, _) = SectionScriptCompiler.Compile(bible.Content.Looks, initialScripts);
         foreach (var (sectionId, lookId) in lookIdBySectionIdForIntent)
         {
             var look = bible.Content.Looks.Looks.FirstOrDefault(l => l.Id == lookId) ?? bible.Content.Looks.Looks.FirstOrDefault(l => lookId.StartsWith(l.Id, StringComparison.Ordinal));
@@ -198,7 +198,7 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
         }
 
         var loop = new IterationLoop(
-            batchGenerator, stablePrefix, volatileSuffixBySectionId, sectionIntentById, bible.Content.Looks, layout,
+            batchGenerator, stablePrefix, volatileSuffixBySectionId, sectionIntentById, bible.Content.Looks, layout, vocabulary,
             CompileAndExportAsync, RenderAsync, sectionWindowsById, totalDisplayPointCount, visualCritic, maxOutputTokens: 600);
 
         var iterations = new List<IterationResult>();
@@ -321,18 +321,6 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
         }
 
         return tracks;
-    }
-
-    private static FillerPool BuildFillerPool(EffectRecipeCatalog recipes)
-    {
-        string[] names = ["On", "Bars", "SingleStrand", "Color Wash", "Twinkle", "Butterfly"];
-        var ids = names
-            .Select(name =>
-                recipes.Recipes.FirstOrDefault(r => r.RecipeId.StartsWith("effect.generated.", StringComparison.Ordinal) && r.XlightsEffectName == name)
-                ?? recipes.Recipes.First(r => string.Equals(r.XlightsEffectName, name, StringComparison.Ordinal)))
-            .Select(r => r.RecipeId)
-            .ToList();
-        return new FillerPool(ids);
     }
 
     private static ShowBible BuildHandAuthoredShowBible()

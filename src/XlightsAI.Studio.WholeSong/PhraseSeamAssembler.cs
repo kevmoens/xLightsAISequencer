@@ -163,75 +163,75 @@ public sealed class PhraseSeamAssembler : IPhraseSeamAssembler
             {
                 case SeamStrategy.Trim:
                 case SeamStrategy.Release:
-                {
-                    var label = strategy == SeamStrategy.Trim ? "Trim" : "Release";
-                    if (!hasOverlap)
                     {
-                        warnings.Add(
-                            $"{label} requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}' " +
-                            "but no overlapping effect was found; applied as a no-op.");
+                        var label = strategy == SeamStrategy.Trim ? "Trim" : "Release";
+                        if (!hasOverlap)
+                        {
+                            warnings.Add(
+                                $"{label} requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}' " +
+                                "but no overlapping effect was found; applied as a no-op.");
+                            break;
+                        }
+
+                        ClipOverflow(prevEffects, prevOverflowIdx, nextPhrase.Window.StartTicks, clipEnd: true,
+                            label, prevPhrase.PhraseId, nextPhrase.PhraseId, warnings);
+                        ClipOverflow(nextEffects, nextUnderflowIdx, prevPhrase.Window.EndTicks, clipEnd: false,
+                            label, prevPhrase.PhraseId, nextPhrase.PhraseId, warnings);
                         break;
                     }
 
-                    ClipOverflow(prevEffects, prevOverflowIdx, nextPhrase.Window.StartTicks, clipEnd: true,
-                        label, prevPhrase.PhraseId, nextPhrase.PhraseId, warnings);
-                    ClipOverflow(nextEffects, nextUnderflowIdx, prevPhrase.Window.EndTicks, clipEnd: false,
-                        label, prevPhrase.PhraseId, nextPhrase.PhraseId, warnings);
-                    break;
-                }
-
                 case SeamStrategy.Hold:
-                {
-                    if (hasOverlap)
                     {
-                        throw new PhraseAssemblyInvalidException(
-                            $"Hold strategy requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}' " +
-                            "but an effect overlaps the phrase boundary; Hold requires a clean, non-overlapping gap.");
-                    }
-
-                    var gap = seamWindow.EndTicks - seamWindow.StartTicks;
-                    if (gap > 0)
-                    {
-                        var extended = 0;
-                        for (var e = 0; e < prevEffects.Count; e++)
+                        if (hasOverlap)
                         {
-                            if (prevEffects[e].EndTicks == prevPhrase.Window.EndTicks)
+                            throw new PhraseAssemblyInvalidException(
+                                $"Hold strategy requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}' " +
+                                "but an effect overlaps the phrase boundary; Hold requires a clean, non-overlapping gap.");
+                        }
+
+                        var gap = seamWindow.EndTicks - seamWindow.StartTicks;
+                        if (gap > 0)
+                        {
+                            var extended = 0;
+                            for (var e = 0; e < prevEffects.Count; e++)
                             {
-                                prevEffects[e] = prevEffects[e] with { EndTicks = nextPhrase.Window.StartTicks };
-                                extended++;
+                                if (prevEffects[e].EndTicks == prevPhrase.Window.EndTicks)
+                                {
+                                    prevEffects[e] = prevEffects[e] with { EndTicks = nextPhrase.Window.StartTicks };
+                                    extended++;
+                                }
+                            }
+
+                            if (extended == 0)
+                            {
+                                warnings.Add(
+                                    $"Hold requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}' but " +
+                                    $"no effect reaches the phrase boundary to extend; a gap of {gap} tick(s) remains.");
                             }
                         }
 
-                        if (extended == 0)
-                        {
-                            warnings.Add(
-                                $"Hold requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}' but " +
-                                $"no effect reaches the phrase boundary to extend; a gap of {gap} tick(s) remains.");
-                        }
+                        break;
                     }
-
-                    break;
-                }
 
                 case SeamStrategy.Bridge:
-                {
-                    if (hasOverlap)
                     {
-                        throw new PhraseAssemblyInvalidException(
-                            $"Bridge strategy requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}' " +
-                            "but an effect overlaps the phrase boundary; Bridge requires a clean, non-overlapping gap.");
-                    }
+                        if (hasOverlap)
+                        {
+                            throw new PhraseAssemblyInvalidException(
+                                $"Bridge strategy requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}' " +
+                                "but an effect overlaps the phrase boundary; Bridge requires a clean, non-overlapping gap.");
+                        }
 
-                    var gap = seamWindow.EndTicks - seamWindow.StartTicks;
-                    if (gap > 0)
-                    {
-                        warnings.Add(
-                            $"Bridge requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}'; a gap " +
-                            $"of {gap} tick(s) between phrases remains, pending a later transition-gesture step.");
-                    }
+                        var gap = seamWindow.EndTicks - seamWindow.StartTicks;
+                        if (gap > 0)
+                        {
+                            warnings.Add(
+                                $"Bridge requested at seam '{prevPhrase.PhraseId}' -> '{nextPhrase.PhraseId}'; a gap " +
+                                $"of {gap} tick(s) between phrases remains, pending a later transition-gesture step.");
+                        }
 
-                    break;
-                }
+                        break;
+                    }
 
                 default:
                     throw new PhraseAssemblyInvalidException($"Unknown seam strategy '{strategy}'.");

@@ -1,6 +1,6 @@
 # Phase 4 real-track metric comparison (declared/IR-level, not rendered)
 
-Compiled against a 90s clip of `C:\Code\xLightsAISequencer\tests\XlightsAI.Studio.Choreography.Tests\bin\Debug\net10.0\Fixtures\dubstep-90s-clip.mp3` + `C:\xLights\xlights_rgbeffects.xml`, compared to the
+Compiled against a 90s clip of `C:\code\xLightsAISequencer\tests\XlightsAI.Studio.Choreography.Tests\bin\Debug\net10.0\Fixtures\dubstep-90s-clip.mp3` + `C:\xLights\xlights_rgbeffects.xml`, compared to the
 hand-sequenced reference at `C:\xLights\Dubstep Christmas Light Show.xsq`.
 
 | Metric | Compiled (this engine) | Hand-sequenced reference | Placeholder-era (architecture §1) |

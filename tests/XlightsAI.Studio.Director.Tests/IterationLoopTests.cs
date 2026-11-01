@@ -1,5 +1,6 @@
 using XlightsAI.Studio.Choreography;
 using XlightsAI.Studio.Contracts;
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Refinement;
 using XlightsAI.Studio.Refinement.Harness;
 using XlightsAI.Studio.Rendering;
@@ -19,13 +20,21 @@ public sealed class IterationLoopTests
 
     private static ExportResult FakeExportResult(string tag) => new($"C:\\fake\\{tag}.xsq", "sha", []);
 
+    private static readonly string[] FakeEffectNames = ["On", "Bars", "SingleStrand", "Color Wash", "Twinkle", "Butterfly"];
+
+    private static EffectVocabularyCatalog FakeVocabulary() => new(
+        FakeEffectNames.ToDictionary(name => name, name => new EffectVocabulary(name, "E_", []), StringComparer.Ordinal),
+        buffer: new EffectVocabulary("Buffer", "B_", []),
+        blending: new EffectVocabulary("Blending", "T_", []),
+        color: new EffectVocabulary("Color", "C_", []));
+
     private static IterationLoop BuildLoop(
         SectionScriptBatchGenerator batchGenerator,
         Func<IReadOnlyDictionary<Guid, SectionScript>, Task<(ChoreographyEngine.Result, ExportResult)>> compileAndExport,
         Func<ExportResult, CancellationToken, Task<IReadOnlyList<PreviewFrame>>> render,
         VisualCritic? visualCritic = null) =>
         new(batchGenerator, "stable prefix", new Dictionary<Guid, string>(), new Dictionary<Guid, string>(),
-            new LookLibrary([]), new DisplayGraph("none", [], [], []), compileAndExport, render,
+            new LookLibrary([]), new DisplayGraph("none", [], [], []), FakeVocabulary(), compileAndExport, render,
             new Dictionary<Guid, (long, long)>(), totalDisplayPointCount: 10, visualCritic);
 
     [Fact]
@@ -107,7 +116,7 @@ public sealed class IterationLoopTests
         var frame = new PreviewFrame(0, [new PixelPoint(new ModelId("Matrix"), 0.5, 0.5, 100, 0, 0)], []);
         var loop = new IterationLoop(
             generator, "stable prefix", new Dictionary<Guid, string>(), new Dictionary<Guid, string> { [sectionId] = "intent" },
-            new LookLibrary([]), new DisplayGraph("none", [], [], []),
+            new LookLibrary([]), new DisplayGraph("none", [], [], []), FakeVocabulary(),
             _ => Task.FromResult((FakeCompiledResult(), FakeExportResult("v0"))),
             (_, _) => Task.FromResult<IReadOnlyList<PreviewFrame>>([frame]),
             new Dictionary<Guid, (long, long)> { [sectionId] = (0, 1000) },
@@ -146,7 +155,7 @@ public sealed class IterationLoopTests
 
         var loop = new IterationLoop(
             generator, "stable prefix", new Dictionary<Guid, string>(), new Dictionary<Guid, string> { [sectionId] = "intent" },
-            new LookLibrary([]), new DisplayGraph("none", [], [], []),
+            new LookLibrary([]), new DisplayGraph("none", [], [], []), FakeVocabulary(),
             _ => Task.FromResult((FakeCompiledResult(), FakeExportResult("v1"))),
             (_, _) => Task.FromResult<IReadOnlyList<PreviewFrame>>([forcedPassFrame]),
             new Dictionary<Guid, (long, long)> { [sectionId] = (0, 1000) },
@@ -177,8 +186,9 @@ public sealed class IterationLoopTests
                 [new LookLayer(1, "group:Outline", "On", LookLayer.RoleSubject, new Dictionary<string, string>(), "Normal", "Bars", 0.9)]),
         ]);
 
+        var (realVocabulary, _) = RealXLightsFixture.BuildCatalogs();
         var directedSectionId = Guid.NewGuid();
-        var regeneratedScript = new SectionScript(directedSectionId, "golden-hold", PropBindings: [new SectionEventBinding(1, "group:Arches")]);
+        var regeneratedScript = new SectionScript(directedSectionId, "golden-hold", PropBindings: [new SectionEventBinding(1, "group:Arches")], FillerEffects: RealXLightsFixture.SixCommonEffectNames);
         var fake = new FakeChatCompletionClient([_ => new ChatCompletionResult(System.Text.Json.JsonSerializer.Serialize(regeneratedScript), new AiUsage(10, 5, null, null))]);
         var generator = new SectionScriptBatchGenerator(fake);
 
@@ -189,7 +199,7 @@ public sealed class IterationLoopTests
             generator, "stable prefix",
             volatileSuffixBySectionId: new Dictionary<Guid, string> { [directedSectionId] = "## This section\nSectionId: " + directedSectionId },
             sectionIntentById: new Dictionary<Guid, string> { [directedSectionId] = "a bold red snap" },
-            lookLibrary, layout,
+            lookLibrary, layout, realVocabulary,
             compileAndExportAsync: _ => Task.FromResult((FakeCompiledResult(), FakeExportResult("v1"))),
             renderAsync: (_, _) => Task.FromResult<IReadOnlyList<PreviewFrame>>([nextFrame]),
             sectionWindowsById: new Dictionary<Guid, (long, long)>(),

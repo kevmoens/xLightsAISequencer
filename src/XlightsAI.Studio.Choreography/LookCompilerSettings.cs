@@ -8,10 +8,8 @@ namespace XlightsAI.Studio.Choreography;
 /// <param name="RecipeCatalog">Registered recipes (ordinarily built via <c>GeneratedEffectRecipeFactory.RegisterAll</c>) this compiler resolves a Look layer's own declared <see cref="LookLayer.Effect"/> xLights name against.</param>
 /// <param name="RecipeRegistry">Verifies and constructs each concrete <see cref="EffectInstance"/>.</param>
 /// <param name="PaletteLibrary">The Show Bible's own named palette set, keyed by <see cref="Look.PaletteRef"/>.</param>
-/// <param name="FillerPool">The always-moving rule's own rotating filler pool (architecture §7, ≥6 distinct states) -- applied by <see cref="ChoreographyEngine"/> after every section is compiled, not by this compiler directly (a single Look's own compile should never need to reach outside its own section window to find its predecessor's last effect).</param>
 public sealed record LookCompilerSettings(
     EffectVocabularyCatalog Vocabulary,
     EffectRecipeCatalog RecipeCatalog,
     IEffectRecipeRegistry RecipeRegistry,
-    IReadOnlyDictionary<string, ColorPaletteDefinition> PaletteLibrary,
-    FillerPool FillerPool);
+    IReadOnlyDictionary<string, ColorPaletteDefinition> PaletteLibrary);

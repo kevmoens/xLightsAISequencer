@@ -50,7 +50,7 @@ public sealed class AlwaysMovingGapSplitterTests
         var barGrid = BuildBarGrid(barCount: 10, barTicks);
         var coverage = new TimeWindow(0, 10 * barTicks);
 
-        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, SixStateFillerPool, sectionEnergyCeiling: 0.5, new StubRecipeRegistry());
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, sectionEnergyCeiling: 0.5, new StubRecipeRegistry());
 
         Assert.NotEmpty(result);
         Assert.Equal(0, result.Min(e => e.StartTicks));
@@ -83,7 +83,7 @@ public sealed class AlwaysMovingGapSplitterTests
             registry.CreateVerified("seed", Target, 7 * barTicks, 10 * barTicks), // bars 7-9 covered
         };
 
-        var result = AlwaysMovingGapSplitter.FillGaps(Target, existing, coverage, barGrid, SixStateFillerPool, sectionEnergyCeiling: 0.2, registry);
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, existing, coverage, barGrid, _ => SixStateFillerPool, sectionEnergyCeiling: 0.2, registry);
 
         var largestGap = AlwaysMovingGapSplitter.LargestGapTicks(Target, result, coverage);
         Assert.True(largestGap <= barTicks, $"Largest gap {largestGap} ticks exceeds one bar ({barTicks} ticks).");
@@ -101,7 +101,7 @@ public sealed class AlwaysMovingGapSplitterTests
         var barGrid = BuildBarGrid(barCount: 60, barTicks);
         var coverage = new TimeWindow(0, 60 * barTicks);
 
-        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, SixStateFillerPool, sectionEnergyCeiling: 0.9, new StubRecipeRegistry());
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, sectionEnergyCeiling: 0.9, new StubRecipeRegistry());
 
         var distinctRecipesUsed = result.Select(e => e.RecipeId).Distinct().Count();
         Assert.True(distinctRecipesUsed >= FillerPool.MinimumDistinctStates,
@@ -144,7 +144,7 @@ public sealed class AlwaysMovingGapSplitterTests
         var barGrid = BarGrid.FromBeatGrid(beatGrid, songEndTicks: preRollTicks + (10 * barTicks));
 
         var coverage = new TimeWindow(0, preRollTicks + (10 * barTicks));
-        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, SixStateFillerPool, sectionEnergyCeiling: 0.2, new StubRecipeRegistry());
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, sectionEnergyCeiling: 0.2, new StubRecipeRegistry());
 
         var largestGap = AlwaysMovingGapSplitter.LargestGapTicks(Target, result, coverage);
         Assert.True(largestGap <= barTicks, $"Largest gap {largestGap} ticks exceeds one bar ({barTicks} ticks) -- the pre-roll gap before the first detected bar was not split.");

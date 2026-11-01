@@ -1,0 +1,22 @@
+<!--
+  Real-run finding (2026-11-01): a real xLights "Arches" model (confirmed against a real show's own
+  SourceVersion "2026.17" export) carries NumArches/NodesPerArch instead of NumStrings/NodesPerString
+  or the legacy parm1/parm2. This fixture reproduces that exact real shape (no parm1/parm2/NumStrings/
+  NodesPerString attributes at all) to prove ShowLayoutImporter still computes a real, nonzero node
+  count for it, rather than silently dropping the model to 0 nodes.
+-->
+<xrgb FormatVersion="2" BaseChannel="0" ModelBlacklist="">
+  <models>
+    <model
+      name="Arches-1 Outside"
+      DisplayAs="Arches"
+      StringType="RGB Nodes"
+      Tag="synthetic-fixture"
+      NumArches="2"
+      NodesPerArch="100"
+      Antialiasing="1" />
+  </models>
+  <modelGroups>
+    <modelGroup name="Arches" models="Arches-1 Outside" />
+  </modelGroups>
+</xrgb>

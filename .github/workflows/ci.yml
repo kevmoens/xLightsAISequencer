@@ -8,8 +8,21 @@ on:
 
 jobs:
   build-test:
-    name: Build, format, test (Windows)
-    runs-on: windows-latest
+    name: Build, test (${{ matrix.name }})
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: Windows x64
+            os: windows-latest
+            rid: win-x64
+          - name: macOS Intel
+            os: macos-15-intel
+            rid: osx-x64
+          - name: macOS Apple Silicon
+            os: macos-latest
+            rid: osx-arm64
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -23,6 +36,7 @@ jobs:
         run: dotnet restore XlightsAI.Studio.slnx
 
       - name: Format check (no Python required)
+        if: matrix.rid == 'win-x64'
         run: dotnet format XlightsAI.Studio.slnx --verify-no-changes
 
       - name: Build (Release)
@@ -56,6 +70,19 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: test-reports
+          name: test-reports-${{ matrix.rid }}
           path: TestResults/**/*.trx
+          if-no-files-found: error
+
+      - name: Publish app (self-contained, ${{ matrix.rid }})
+        run: >
+          dotnet publish src/XlightsAI.Studio.App/XlightsAI.Studio.App.csproj
+          -c Release -r ${{ matrix.rid }} --self-contained true
+          -o publish/${{ matrix.rid }}
+
+      - name: Upload app
+        uses: actions/upload-artifact@v4
+        with:
+          name: XlightsAI.Studio-${{ matrix.rid }}
+          path: publish/${{ matrix.rid }}
           if-no-files-found: error

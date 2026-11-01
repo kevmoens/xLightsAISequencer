@@ -14,6 +14,25 @@ namespace XlightsAI.Studio.Pipeline;
 public static class CraftRuleInducer
 {
     /// <summary>
+    /// Build-plan Phase 17 §2f default: a favorite song (<see cref="CorpusEntry.IsFavorite"/>) counts as
+    /// if it were this many songs toward <see cref="Evaluate"/>'s own confidence/song-count statistics,
+    /// rather than literally duplicating its <see cref="CorpusSongAnalysis"/> N times before induction —
+    /// the two are statistically equivalent for this scoring (every instance from a weight-N song counts
+    /// N times toward both the numerator and denominator, and its song-count contribution is N), but a
+    /// weight avoids ever materializing N copies of the same analysis object elsewhere in the pipeline
+    /// (PatternLibrary/ExemplarIndex are unaffected -- this weight is local to rule induction only, per
+    /// the user's explicit instruction that this is a craft-rule-statistics effect, not a retrieval
+    /// boost). <b>Disclosed overfitting risk:</b> a weight of N makes one real show's own idiosyncrasies
+    /// count as N independent data points, so a rule that is true only because of how *this one show*
+    /// happens to be built can clear <paramref name="minSongCount"/>/<paramref name="minConfidence"/> on
+    /// the strength of a single favorited song alone, dressed up as broad corpus agreement. 3 was chosen
+    /// as a modest default -- enough to tip a borderline rule the favorite song agrees with, without
+    /// letting one song single-handedly satisfy a 5-song threshold on its own (a weight of 5 or more
+    /// would do exactly that, which is why it was rejected).
+    /// </summary>
+    public const int DefaultFavoriteSongWeightMultiplier = 3;
+
+    /// <summary>
     /// One candidate rule's checkable predicate: given one song's analysis, return every applicable
     /// instance's truth value (e.g. one bool per 8-bar phrase, or a single bool for the whole song) — an
     /// empty list means the rule had nothing applicable to check in this song (e.g. no 8-bar phrases, or
@@ -22,10 +41,16 @@ public static class CraftRuleInducer
     /// </summary>
     private delegate IReadOnlyList<bool> Predicate(CorpusSongAnalysis song);
 
+    /// <param name="favoriteSongWeightMultiplier">See <see cref="DefaultFavoriteSongWeightMultiplier"/>'s own doc comment for the mechanism and its disclosed overfitting risk. Must be &gt;= 1 (1 means "no favorite weighting" -- every song counts once, the pre-§2f behavior).</param>
     public static CraftRules InduceAndVerify(
-        IReadOnlyList<CorpusSongAnalysis> songs, double minConfidence = 0.70, int minSongCount = 5)
+        IReadOnlyList<CorpusSongAnalysis> songs, double minConfidence = 0.70, int minSongCount = 5,
+        int favoriteSongWeightMultiplier = DefaultFavoriteSongWeightMultiplier)
     {
         ArgumentNullException.ThrowIfNull(songs);
+        if (favoriteSongWeightMultiplier < 1)
+        {
+            throw new ArgumentOutOfRangeException(nameof(favoriteSongWeightMultiplier), favoriteSongWeightMultiplier, "Must be >= 1.");
+        }
 
         var mineable = songs.Where(s => s.Entry.Provenance != CorpusProvenanceTag.ExternalReference).ToList();
 
@@ -58,7 +83,7 @@ public static class CraftRuleInducer
         };
 
         var evaluated = candidates
-            .Select(c => Evaluate(c.Id, c.Statement, c.Predicate, mineable))
+            .Select(c => Evaluate(c.Id, c.Statement, c.Predicate, mineable, favoriteSongWeightMultiplier))
             .ToList();
 
         var promoted = evaluated.Where(r => r.Confidence >= minConfidence && r.SongCount >= minSongCount).ToList();
@@ -67,7 +92,8 @@ public static class CraftRuleInducer
         return new CraftRules(DateTimeOffset.UtcNow, minConfidence, minSongCount, promoted, rejected);
     }
 
-    private static CraftRule Evaluate(string id, string statement, Predicate predicate, IReadOnlyList<CorpusSongAnalysis> songs)
+    private static CraftRule Evaluate(
+        string id, string statement, Predicate predicate, IReadOnlyList<CorpusSongAnalysis> songs, int favoriteSongWeightMultiplier)
     {
         var applicable = 0;
         var trueCount = 0;
@@ -81,9 +107,14 @@ public static class CraftRuleInducer
                 continue;
             }
 
-            songCount++;
-            applicable += results.Count;
-            trueCount += results.Count(r => r);
+            // Build-plan Phase 17 §2f: a favorited song's instances/song-count count
+            // favoriteSongWeightMultiplier times instead of once -- see DefaultFavoriteSongWeightMultiplier's
+            // doc comment for the mechanism and its disclosed overfitting risk.
+            var weight = song.Entry.IsFavorite ? favoriteSongWeightMultiplier : 1;
+
+            songCount += weight;
+            applicable += results.Count * weight;
+            trueCount += results.Count(r => r) * weight;
         }
 
         return new CraftRule(id, statement, applicable, trueCount, songCount, HasCodePredicate: true);

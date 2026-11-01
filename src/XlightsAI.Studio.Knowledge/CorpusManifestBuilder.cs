@@ -30,7 +30,9 @@ public static class CorpusManifestBuilder
         string AudioRelativePath,
         CorpusProvenanceTag Provenance,
         string[] DuplicateRelativePaths,
-        string Notes);
+        string Notes,
+        string? SourceCommit = null,
+        bool IsFavorite = false);
 
     /// <summary>
     /// The real, hand-verified corpus resolution (see class doc comment). 20 distinct sequences total:
@@ -87,17 +89,25 @@ public static class CorpusManifestBuilder
             DuplicateRelativePaths: [],
             Notes: "orig_zip/Joe Bygraves - Stand As One HD.zip."),
         new(
-            SequenceRelativePath: @"Mashup-LoraJoslyn\2022\Mashup.xsq",
-            AudioRelativePath: @"Mashup-LoraJoslyn\2022\Music\LalalaGirl - Christmas Mashup 2016-short.mp3",
+            SequenceRelativePath: "LalalaGirl - Christmas Mashup 2016-short.xsq",
+            AudioRelativePath: "LalalaGirl - Christmas Mashup 2016-short.mp3",
             Provenance: CorpusProvenanceTag.LikelyVendorOrCommunityDownload,
-            DuplicateRelativePaths: ["LalalaGirl - Christmas Mashup 2016-short.xsq"],
-            Notes: "orig_zip/Mashup-LoraJoslyn.zip."),
+            DuplicateRelativePaths: [@"Mashup-LoraJoslyn\2022\Mashup.xsq"],
+            Notes: "orig_zip/Mashup-LoraJoslyn.zip. Build-plan Phase 16 §1c/Phase 17 §1c (real 2026-10-31 " +
+                   "corpus-mining run): the vendor subfolder's own 'Mashup.xsq' (previously canonical here) " +
+                   "fails real XsqStructuralReader parsing with a zero-width 'Beats' timing-track mark -- " +
+                   "swapped to this root-level duplicate, confirmed to parse cleanly (115 effects), as the " +
+                   "canonical copy instead; the broken vendor copy is now just a recorded duplicate."),
         new(
-            SequenceRelativePath: @"Nutcracker Dubstep\2020 Christmas Sequences\2020 Nutcracker Dubstep\Nutcracker Dubstep.xsq",
-            AudioRelativePath: @"Nutcracker Dubstep\2020 Christmas Sequences\2020 Nutcracker Dubstep\Nutcracker Dubstep.mp3",
+            SequenceRelativePath: "Nutcracker Dubstep.xsq",
+            AudioRelativePath: "Nutcracker Dubstep.mp3",
             Provenance: CorpusProvenanceTag.LikelyVendorOrCommunityDownload,
-            DuplicateRelativePaths: ["Nutcracker Dubstep.xsq"],
-            Notes: "orig_zip/Nutcracker Dubstep.zip."),
+            DuplicateRelativePaths: [@"Nutcracker Dubstep\2020 Christmas Sequences\2020 Nutcracker Dubstep\Nutcracker Dubstep.xsq"],
+            Notes: "orig_zip/Nutcracker Dubstep.zip. Build-plan Phase 16 §1c/Phase 17 §1c: the vendor " +
+                   "subfolder's own 'Nutcracker Dubstep.xsq' (previously canonical here) fails real " +
+                   "XsqStructuralReader parsing with a zero-width 'Beat Count' timing-track mark -- swapped " +
+                   "to this root-level duplicate, confirmed to parse cleanly (6103 effects), as the canonical " +
+                   "copy instead; the broken vendor copy is now just a recorded duplicate."),
         new(
             SequenceRelativePath: "Ode to Joy remix - Epic.xsq",
             AudioRelativePath: "Ode to Joy remix - Epic.mp3",
@@ -117,25 +127,36 @@ public static class CorpusManifestBuilder
             DuplicateRelativePaths: ["Sleigh Ride.xsq"],
             Notes: "orig_zip/Sleigh Ride.zip."),
         new(
-            SequenceRelativePath: @"49 The Weeknd AG - Save Your Tears\The Weeknd AG - Save Your Tears HD.xsq",
+            SequenceRelativePath: "The Weeknd & Ariana Grande - Save Your Tears Remix HD.xsq",
             AudioRelativePath: "The Weeknd & Ariana Grande - Save Your Tears Remix HD.mp3",
             Provenance: CorpusProvenanceTag.LikelyVendorOrCommunityDownload,
-            DuplicateRelativePaths: ["The Weeknd & Ariana Grande - Save Your Tears Remix HD.xsq"],
-            Notes: "orig_zip/The Weeknd AG - Save Your Tears HD.zip. No 'Music' folder exists next to this " +
-                   "vendor copy (only Images/avi/xml); resolved to the root-level same-song audio instead."),
+            DuplicateRelativePaths: [@"49 The Weeknd AG - Save Your Tears\The Weeknd AG - Save Your Tears HD.xsq"],
+            Notes: "orig_zip/The Weeknd AG - Save Your Tears HD.zip. Build-plan Phase 16 §1c/Phase 17 §1c: " +
+                   "the vendor subfolder's own 'The Weeknd AG - Save Your Tears HD.xsq' (previously canonical " +
+                   "here) fails real XsqStructuralReader parsing with a zero-width 'Abel2' timing-track mark -- " +
+                   "swapped to this root-level duplicate, confirmed to parse cleanly (712 effects), as the " +
+                   "canonical copy instead; the broken vendor copy is now just a recorded duplicate."),
         new(
-            SequenceRelativePath: @"55 The Weeknd - Blinding Lights\The Weeknd - Blinding Lights3.xsq",
+            SequenceRelativePath: "The Weeknd - Blinding Lights Lite.xsq",
             AudioRelativePath: "The Weeknd - Blinding Lights Lite.mp3",
             Provenance: CorpusProvenanceTag.LikelyVendorOrCommunityDownload,
-            DuplicateRelativePaths: ["The Weeknd - Blinding Lights Lite.xsq"],
-            Notes: "orig_zip/The Weeknd - Blinding Lights HD3.zip. No 'Music' folder exists next to this " +
-                   "vendor copy; resolved to the root-level same-song audio instead."),
+            DuplicateRelativePaths: [@"55 The Weeknd - Blinding Lights\The Weeknd - Blinding Lights3.xsq"],
+            Notes: "orig_zip/The Weeknd - Blinding Lights HD3.zip. Build-plan Phase 16 §1c/Phase 17 §1c: " +
+                   "the vendor subfolder's own 'The Weeknd - Blinding Lights3.xsq' (previously canonical " +
+                   "here) fails real XsqStructuralReader parsing with a zero-width 'Beats' timing-track mark -- " +
+                   "swapped to this root-level duplicate, confirmed to parse cleanly (1727 effects), as the " +
+                   "canonical copy instead; the broken vendor copy is now just a recorded duplicate."),
         new(
-            SequenceRelativePath: @"Christmas Eve in Sarajevo--TSO--Carolina Mountain Lights\XLights\Christmas Eve Sarajevo.xsq",
-            AudioRelativePath: @"Christmas Eve in Sarajevo--TSO--Carolina Mountain Lights\XLights\MP3 Christmas Music\Christmas Sarajevo.mp3",
+            SequenceRelativePath: "TSO - Christmas Sarajevo.xsq",
+            AudioRelativePath: "TSO - Christmas Sarajevo.mp3",
             Provenance: CorpusProvenanceTag.LikelyVendorOrCommunityDownload,
-            DuplicateRelativePaths: ["TSO - Christmas Sarajevo.xsq"],
-            Notes: "orig_zip/Christmas Eve in Sarajevo--TSO--Carolina Mountain Lights.zip."),
+            DuplicateRelativePaths: [@"Christmas Eve in Sarajevo--TSO--Carolina Mountain Lights\XLights\Christmas Eve Sarajevo.xsq"],
+            Notes: "orig_zip/Christmas Eve in Sarajevo--TSO--Carolina Mountain Lights.zip. Build-plan Phase " +
+                   "16 §1c/Phase 17 §1c: the vendor subfolder's own 'Christmas Eve Sarajevo.xsq' (previously " +
+                   "canonical here) fails real XsqStructuralReader parsing with a zero-width 'Sarajevo' " +
+                   "timing-track mark -- swapped to this root-level duplicate, confirmed to parse cleanly " +
+                   "(716 effects), as the canonical copy instead; the broken vendor copy is now just a " +
+                   "recorded duplicate."),
 
         // Explicit external reference (architecture §8b / C:\xLights\CLAUDE.md) -- never a mined
         // corpus member, excluded from every aggregate statistic.
@@ -181,6 +202,81 @@ public static class CorpusManifestBuilder
             Notes: "No orig_zip/ match; <head><author> empty. <head><mediaFile> names this same relative " +
                    "subfolder path (case differs only in casing of the folder name), just rooted at a stale " +
                    "absolute prefix -- the local resolution agrees with it."),
+
+        // Build-plan Phase 17 §1b/§2b/§2c: recovered from git history (no longer present in any earlier
+        // working-tree commit's deletion sense -- these were deleted from the tree as later seasons
+        // replaced them, then re-extracted here via `git cat-file blob` from their real source commit and
+        // copied back into the live corpus root, 2026-10-31). User-selected from the full 87-file
+        // recovered-sequences list via the picker artifact. Each Notes field records its real source
+        // commit for traceability (§2c) -- no content-hash dedup pass has been run yet against the other
+        // 19 KnownResolutions entries above (§2b's own open question), but none of these 12 titles
+        // collide with any existing entry's SongTitle.
+        new(
+            SequenceRelativePath: "Existence (VIP) - Shortened.xsq",
+            AudioRelativePath: "Existence (VIP) - Shortened.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 749d18c (\"2023 show\"); deleted from the working tree by a later season. The user's named favorite -- see Phase 17 §2f (favorite-song CraftRuleInducer weighting).",
+            SourceCommit: "749d18c",
+            IsFavorite: true),
+        new(
+            SequenceRelativePath: "Dubstep 2019.xsq",
+            AudioRelativePath: "Dubstep 2019.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 372e9b9 (\"macair\", 2022); deleted from the working tree by a later season.",
+            SourceCommit: "372e9b9"),
+        new(
+            SequenceRelativePath: "Eye of the Tiger DubStep.xsq",
+            AudioRelativePath: "Eye of the Tiger DubStep.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 749d18c (\"2023 show\"); deleted from the working tree by a later season.",
+            SourceCommit: "749d18c"),
+        new(
+            SequenceRelativePath: "AC_DC - Thunderstruck (Official Video).xsq",
+            AudioRelativePath: "AC_DC - Thunderstruck (Official Video).mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 749d18c (\"2023 show\"); deleted from the working tree by a later season.",
+            SourceCommit: "749d18c"),
+        new(
+            SequenceRelativePath: "E1 - Eye of the Tiger.xsq",
+            AudioRelativePath: "E1 - Eye of the Tiger.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 372e9b9 (\"macair\", 2022), original nested path " +
+                   "'Completed Sequences/DDL Audio Tracks - Openings and Closings/E1 - Eye of the Tiger.xsq' " +
+                   "paired with 'Music/E1 - Eye of the Tiger DubStep.mp3' (different directory in that " +
+                   "commit) -- both copied flat to the corpus root; deleted from the working tree by a later season.",
+            SourceCommit: "372e9b9"),
+        new(
+            SequenceRelativePath: "Mr Grinch2018final.xsq",
+            AudioRelativePath: "Mr Grinch2018final.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 749d18c (\"2023 show\"); its own real audio pairing " +
+                   "in that commit was \"Mr Grinch/02 You're a Mean One, Mr. Grinch (feat. Sabrina " +
+                   "Carpenter).mp3\" -- a different real recording from the 'Mr Grinch - Lindsey Stirling " +
+                   "Logan Carpenter.mp3' already mined elsewhere in the live corpus, not a duplicate of it. " +
+                   "Deleted from the working tree by a later season.",
+            SourceCommit: "749d18c"),
+        new(
+            SequenceRelativePath: "Thriller.xsq",
+            AudioRelativePath: "Thriller.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit cfc240e (\"2024 halloween show\"); deleted from the working tree by a later season.",
+            SourceCommit: "cfc240e"),
+
+        // Five of the 12 user-selected historical titles (7 song medley updated, Into the Unknown,
+        // First 7 songs Christmas, Memories - Maroon 5, Run Run Rudolph) are still NOT registered here.
+        // They originally failed real XsqStructuralReader parsing with the same zero-width-timing-mark
+        // bug class as the Phase 16 §1c findings above; XsqStructuralReader now tolerates a zero-width
+        // mark by skipping it (see that type's own doc comment), so these may now parse cleanly -- they
+        // have not been re-extracted/re-verified against the real git history blobs yet (this table only
+        // records resolutions this audit has actually confirmed against real files, never a guess), so
+        // they remain unregistered until that re-check happens.
     ];
 
     /// <summary>
@@ -189,13 +285,27 @@ public static class CorpusManifestBuilder
     /// <c>.xsq</c> found under it (backup/cache/this-app's-own-output exclusions, or "not part of the
     /// known resolution set" for anything genuinely new since this audit was last done).
     /// </summary>
-    public static CorpusManifest Build(string rootDirectory)
+    /// <param name="rootDirectory">The corpus root to enumerate (a live working tree, or a scratch directory a caller has already extracted a historical git commit into -- see build-plan Phase 17 §2b; this method itself stays git-unaware).</param>
+    /// <param name="excludedProjectRootDirectories">
+    /// Build-plan Phase 17 §2a: absolute root directories of this app's own prior projects (e.g. every
+    /// <c>ProjectSummary.RootDirectory</c> from <c>IRecentProjectsStore.Load()</c>), so a generated
+    /// <c>.xsq</c> that was later copied or moved outside its project's own <c>exports/</c> folder is
+    /// still excluded from corpus mining, not just the ones still sitting directly under <c>exports/</c>.
+    /// This method deliberately takes the list as data rather than depending on
+    /// <c>XlightsAI.Studio.Projects</c> itself, to keep this a pure, dependency-light directory scanner.
+    /// Optional; omitted (or empty) for a corpus root with no overlap against this app's own projects.
+    /// </param>
+    public static CorpusManifest Build(string rootDirectory, IReadOnlyList<string>? excludedProjectRootDirectories = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(rootDirectory);
         if (!Directory.Exists(rootDirectory))
         {
             throw new DirectoryNotFoundException($"Corpus root directory not found: '{rootDirectory}'.");
         }
+
+        var excludedProjectRoots = (excludedProjectRootDirectories ?? [])
+            .Select(Path.GetFullPath)
+            .ToList();
 
         var entries = new List<CorpusEntry>();
         var excluded = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
@@ -234,7 +344,9 @@ public static class CorpusManifestBuilder
                 SongTitle: DeriveSongTitle(sequencePath),
                 Provenance: resolution.Provenance,
                 DuplicatePaths: duplicatePaths,
-                Notes: resolution.Notes));
+                Notes: resolution.Notes,
+                SourceCommit: resolution.SourceCommit,
+                IsFavorite: resolution.IsFavorite));
         }
 
         foreach (var xsqPath in Directory.EnumerateFiles(rootDirectory, "*.xsq", SearchOption.AllDirectories))
@@ -244,7 +356,7 @@ public static class CorpusManifestBuilder
                 continue;
             }
 
-            excluded[xsqPath] = ClassifyUnresolvedPath(xsqPath);
+            excluded[xsqPath] = ClassifyUnresolvedPath(xsqPath, excludedProjectRoots);
         }
 
         return new CorpusManifest(
@@ -254,7 +366,16 @@ public static class CorpusManifestBuilder
             ExcludedPaths: excluded);
     }
 
-    private static string ClassifyUnresolvedPath(string xsqPath)
+    /// <summary>
+    /// Build-plan Phase 17 §2a: excludes this app's own generated output via two independent rules --
+    /// (1) any path with a segment literally named <c>exports</c> (<c>ChoreographyGenerationPipeline</c>'s
+    /// own <c>exportsDir</c>/<c>XsqExporter</c> output convention, generic across every project this app
+    /// creates, not just one hard-coded project name), and (2) any path lying under one of
+    /// <paramref name="excludedProjectRoots"/> (this app's own recorded project directories), which also
+    /// catches a generated file later copied or moved outside its original <c>exports/</c> folder. Either
+    /// rule alone would miss cases the other catches.
+    /// </summary>
+    private static string ClassifyUnresolvedPath(string xsqPath, IReadOnlyList<string> excludedProjectRoots)
     {
         var normalized = xsqPath.Replace('/', '\\');
         if (normalized.Contains(@"\RenderCache\", StringComparison.OrdinalIgnoreCase))
@@ -267,9 +388,19 @@ public static class CorpusManifestBuilder
             return "under Backup/ -- xLights auto-backup copy, not a distinct corpus sequence";
         }
 
-        if (normalized.Contains(@"Bad Feelings\exports", StringComparison.OrdinalIgnoreCase))
+        if (normalized.Contains(@"\exports\", StringComparison.OrdinalIgnoreCase))
         {
-            return "under Bad Feelings/exports -- this app's own prior output, not a corpus sequence";
+            return "under an exports/ folder -- this app's own generated output convention (ChoreographyGenerationPipeline), not a corpus sequence";
+        }
+
+        var fullXsqPath = Path.GetFullPath(xsqPath);
+        foreach (var projectRoot in excludedProjectRoots)
+        {
+            if (fullXsqPath.StartsWith(projectRoot + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase) ||
+                string.Equals(fullXsqPath, projectRoot, StringComparison.OrdinalIgnoreCase))
+            {
+                return $"under this app's own recorded project directory '{projectRoot}' -- this app's own prior output, not a corpus sequence";
+            }
         }
 
         if (xsqPath.EndsWith(".bak", StringComparison.OrdinalIgnoreCase) ||

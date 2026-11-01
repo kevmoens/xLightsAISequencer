@@ -14,7 +14,7 @@ public sealed class UnsupportedAudioPlatformException : NotSupportedException
     public UnsupportedAudioPlatformException(string platformDescription)
         : base(
             $"Real audio playback is not yet implemented on this platform ({platformDescription}). " +
-            "Only Windows has a real playback backend today (WaveOutAudioTransport, via winmm.dll). " +
+            "Only Windows (winmm.dll) and macOS (OpenAL) have a real playback backend today. " +
             "Audio import/probing/metadata still work on every platform; only Open/Play/Pause/Seek/" +
             "loop playback is unavailable here. This is a known, intentionally tracked gap, not a bug " +
             "— see docs/ARCHITECTURE-AND-GUARDRAILS.md's 'Platform coverage' section for the plan to " +

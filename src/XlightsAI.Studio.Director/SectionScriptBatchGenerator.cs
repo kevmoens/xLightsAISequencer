@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Director;
@@ -51,12 +52,13 @@ public sealed class SectionScriptBatchGenerator
 
     public async Task<IReadOnlyDictionary<Guid, SectionScriptGenerationReport>> GenerateAllAsync(
         string stablePrefix, IReadOnlyList<SectionScriptBatchItem> items, Guid songId, LookLibrary lookLibrary, DisplayGraph layout,
-        int maxOutputTokens, CancellationToken ct)
+        EffectVocabularyCatalog vocabulary, int maxOutputTokens, CancellationToken ct)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
         ArgumentNullException.ThrowIfNull(items);
         ArgumentNullException.ThrowIfNull(lookLibrary);
         ArgumentNullException.ThrowIfNull(layout);
+        ArgumentNullException.ThrowIfNull(vocabulary);
 
         if (items.Count == 0)
         {
@@ -108,7 +110,7 @@ public sealed class SectionScriptBatchGenerator
                     });
                     violations = script is null
                         ? [new SectionScriptValidationError("transport", "Batch item's JSON deserialized to null.")]
-                        : SectionScriptValidator.Validate(script, lookLibrary, layout);
+                        : SectionScriptValidator.Validate(script, lookLibrary, layout, vocabulary);
                 }
                 catch (Exception ex) when (ex is System.Text.Json.JsonException or AiCallRejectedException)
                 {
@@ -142,7 +144,7 @@ public sealed class SectionScriptBatchGenerator
                 await semaphore.WaitAsync(ct).ConfigureAwait(false);
                 try
                 {
-                    var report = await generator.GenerateAsync(stablePrefix, item.VolatileSuffix, songId, lookLibrary, layout, maxOutputTokens, ct).ConfigureAwait(false);
+                    var report = await generator.GenerateAsync(stablePrefix, item.VolatileSuffix, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct).ConfigureAwait(false);
                     return (item.SectionId, report);
                 }
                 finally

@@ -1,4 +1,5 @@
 using Avalonia;
+using Velopack;
 using XlightsAI.Studio.AiEdits;
 using XlightsAI.Studio.Audio;
 using XlightsAI.Studio.Director;
@@ -26,6 +27,9 @@ public static class Program
     [STAThread]
     public static int Main(string[] args)
     {
+        // Must run first: handles Velopack's install/update/uninstall hook invocations and exits.
+        VelopackApp.Build().Run();
+
         var appDataDirectory = Path.Combine(
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
             "XlightsAI.Studio");
@@ -46,7 +50,10 @@ public static class Program
         var downloadsDirectory = Path.Combine(appDataDirectory, "downloads");
         var releaseAssetDownloader = new HttpReleaseAssetDownloader();
         var assetInstaller = new AssetInstaller(downloadsDirectory, releaseAssetDownloader);
-        var ffmpegInstaller = new FfmpegInstaller(Path.Combine(appDataDirectory, "tools", "ffmpeg"), assetInstaller);
+        // Windows downloads the pinned build; other platforms use an ffmpeg the user already installed (e.g. Homebrew).
+        IFfmpegInstaller ffmpegInstaller = OperatingSystem.IsWindows()
+            ? new FfmpegInstaller(Path.Combine(appDataDirectory, "tools", "ffmpeg"), assetInstaller)
+            : new SystemFfmpegInstaller();
         var audioDecoder = new TranscodingAudioDecoder(
             new WavAudioDecoder(), ffmpegInstaller, Path.Combine(appDataDirectory, "audio-transcode-cache"));
         var songAssetStore = new JsonSongAssetStore(Path.Combine(appDataDirectory, "audio-assets"));
@@ -89,7 +96,7 @@ public static class Program
         // Settings screen the user configures the Director/Choreographer roles on is what this reads
         // from, not a second, parallel config location.
         var roleProviderConfigStore = new JsonRoleProviderConfigStore(Path.Combine(appDataDirectory, "ai-providers"));
-        var credentialStore = new DpapiCredentialStore(Path.Combine(appDataDirectory, "credentials"));
+        var credentialStore = CredentialStoreFactory.Create(Path.Combine(appDataDirectory, "credentials"));
         // HttpClient.Timeout defaults to 100s and governs the whole request regardless of any
         // CancellationToken passed to SendAsync, overriding RoleProviderConfig.RequestTimeoutSeconds
         // entirely -- confirmed against a real local Ollama model, whose chat-completion calls routinely
@@ -120,6 +127,11 @@ public static class Program
             knowledgeDirectory: corpusKnowledgeDirectory,
             style: XlightsAI.Studio.Director.StylePresetCatalog.HighEnergyEdmId);
 
+        // Build-plan Phase 14 §2a.2: same directory AiChoreographyWholeSongGenerator's own
+        // projectDirectory above uses (bible/scripts/llm/exports) -- the persisted custom prompt
+        // sits as a sibling of those, round-tripping across sessions.
+        var customPromptStore = new XlightsAI.Studio.Director.JsonCustomPromptStore(Path.Combine(appDataDirectory, "ai-choreography"));
+
         // Confirmed as a real bug against a real export: ShellViewModel's own default XsqExporter()
         // (parameterless) only knows EffectRecipeCatalog.CreateDefault()'s single hardcoded "On" recipe
         // (id effect.on.v1) -- it rejected every generated-vocabulary recipe id (effect.generated.*)
@@ -137,12 +149,9 @@ public static class Program
         var displayLayoutEditor = new DisplayLayoutEditor(new JsonDisplayLayoutCorrectionsStore(Path.Combine(appDataDirectory, "display-layout-corrections")));
         var displayGraphBuilder = new DisplayGraphBuilder();
 
-        // Mac/Linux stub coverage (docs/ARCHITECTURE-AND-GUARDRAILS.md "Platform coverage"): only
-        // Windows has a real playback backend (WaveOutAudioTransport); every other platform gets
-        // UnsupportedPlatformAudioTransport, which throws one clear, typed message on first use.
-        IAudioTransport audioTransport = OperatingSystem.IsWindows()
-            ? new WaveOutAudioTransport(audioDecoder)
-            : new UnsupportedPlatformAudioTransport();
+        // Windows uses winmm, macOS uses OpenAL; any other platform gets UnsupportedPlatformAudioTransport,
+        // which throws one clear, typed message on first use.
+        IAudioTransport audioTransport = AudioTransportFactory.Create(audioDecoder);
 
         AppDomain.CurrentDomain.UnhandledException += (_, e) =>
         {
@@ -171,6 +180,8 @@ public static class Program
         App.FfmpegInstaller = ffmpegInstaller;
         App.WholeSongGenerator = aiChoreographyWholeSongGenerator;
         App.CorpusKnowledgeDirectory = corpusKnowledgeDirectory;
+        App.AiRoleClientResolver = aiRoleClientResolver;
+        App.CustomPromptStore = customPromptStore;
         App.XsqExporter = xsqExporter;
         App.StemModelAssetManager = stemModelAssetManager;
         App.NoteTrackEditor = noteTrackEditor;
@@ -179,6 +190,7 @@ public static class Program
 
         try
         {
+            _ = Task.Run(() => AppUpdater.CheckAndStageAsync(diagnostics));
             BuildAvaloniaApp().StartWithClassicDesktopLifetime(args);
             return 0;
         }

@@ -78,7 +78,7 @@ public sealed class Phase8AcceptanceTests
         var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
         var registry = new EffectRecipeRegistry(recipes);
         var palettes = new Dictionary<string, ColorPaletteDefinition> { ["warm-gold"] = PaletteBuilder.Build(["#FFC880"]) };
-        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, palettes, RealXLightsFixture.BuildFillerPool(recipes));
+        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, palettes);
 
         var layout = BuildLayout();
         var beatGrid = BuildBeatGrid();
@@ -94,11 +94,13 @@ public sealed class Phase8AcceptanceTests
                 new LookLayer(2, "Tree", "Text", LookLayer.RoleSupport, null, "Normal", LyricTimingTrackBuilder.WordsTrackName, 1.0),
             ]);
 
+        var fillerSchedule = SectionFillerSchedule.Flat(RealXLightsFixture.BuildFillerPool(recipes), SongEndTicks);
+
         var input = new ChoreographyEngine.Input(
             layout, beatGrid, sections, phrases, BandEnergy: null, VocalActivity: vocalActivity,
             new LookLibrary([look]), new Dictionary<Guid, string> { [sectionId] = look.Id },
             new Dictionary<SectionKind, double> { [SectionKind.Verse] = 1.0 },
-            SongEndTicks, compilerSettings, VisemeMarks: visemeMarks);
+            SongEndTicks, compilerSettings, fillerSchedule, VisemeMarks: visemeMarks);
 
         var result = ChoreographyEngine.Compile(input);
 

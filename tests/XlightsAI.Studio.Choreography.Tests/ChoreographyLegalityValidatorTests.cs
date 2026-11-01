@@ -149,6 +149,92 @@ public sealed class ChoreographyLegalityValidatorTests
         Assert.DoesNotContain(violations, v => v.Rule == "never-schedule-without-a-pixel-heavy-prop");
     }
 
+    [Fact]
+    public void ValidateShow_ModelNeverTargetedByAnyEffect_FlagsModelCoverageViolationWithAffectedModelId()
+    {
+        // User feedback (2026-10-31): real generated shows left an Arch-category prop with zero effects
+        // for the whole song -- nothing previously checked whole-show model coverage at all.
+        var layout = BuildLayout();
+        var look = BuildLook("has-tree", "hold", []);
+        var ir = BuildIrWithEffectCount(1); // targets only "Tree" -- "TinyStar" is never targeted.
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Tree")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        var violation = Assert.Single(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage);
+        Assert.Equal("TinyStar", violation.AffectedModelId);
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage && v.AffectedModelId == "Tree");
+    }
+
+    [Fact]
+    public void ValidateShow_EveryModelTargetedSomewhere_DoesNotFlagModelCoverageViolation()
+    {
+        var layout = BuildLayout();
+        var look = BuildLook("covers-both", "hold", []);
+        var treeEffect = new EffectInstance(Guid.NewGuid(), new ModelId("Tree"), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>());
+        var tinyStarEffect = new EffectInstance(Guid.NewGuid(), new ModelId("TinyStar"), 0, 1000, 2000, "recipe", "1", new Dictionary<string, string>());
+        var ir = new ChoreographyIR([], [treeEffect, tinyStarEffect], []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Tree"), new ModelId("TinyStar")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage);
+    }
+
+    [Fact]
+    public void ValidateShow_ModelCoveredViaAGroupEffect_DoesNotFlagModelCoverageViolation()
+    {
+        // A whole-show effect targeting a real group (LookCompiler's own group-collapse optimization)
+        // must count as covering every real member model, not just a literal per-model target.
+        var layout = new DisplayGraph(
+            "TEST-HASH",
+            Models:
+            [
+                new DisplayModel(new ModelId("Arch 1"), "Arch 1", "Arch", [], [], NodeCount: 50),
+                new DisplayModel(new ModelId("Tree"), "Tree", "Tree", [], [], NodeCount: 900),
+            ],
+            Groups: [new DisplayModelGroup("Arches", [new DisplayGroupMember("Arch 1", DisplayGroupMemberKind.Model)])],
+            Warnings: []);
+        var look = BuildLook("covers-group", "hold", []);
+        var groupEffect = new EffectInstance(Guid.NewGuid(), new ModelId("Arches"), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>());
+        var treeEffect = new EffectInstance(Guid.NewGuid(), new ModelId("Tree"), 0, 1000, 2000, "recipe", "1", new Dictionary<string, string>());
+        var ir = new ChoreographyIR([], [groupEffect, treeEffect], []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arches"), new ModelId("Tree")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage);
+    }
+
+    [Fact]
+    public void ValidateShow_ModelWithZeroNodeCount_NeverFlaggedForModelCoverage()
+    {
+        var layout = new DisplayGraph(
+            "TEST-HASH",
+            Models:
+            [
+                new DisplayModel(new ModelId("Bookkeeping"), "Bookkeeping", "Other", [], [], NodeCount: 0),
+                new DisplayModel(new ModelId("Tree"), "Tree", "Tree", [], [], NodeCount: 900),
+            ],
+            Groups: [],
+            Warnings: []);
+        var look = BuildLook("has-tree", "hold", []);
+        var ir = BuildIrWithEffectCount(1);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Tree")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage && v.AffectedModelId == "Bookkeeping");
+    }
+
     private static ChoreographyIR BuildIrWithEffectCount(int count)
     {
         var effects = Enumerable.Range(0, count)

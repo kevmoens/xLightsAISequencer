@@ -1,0 +1,64 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:XlightsAI.Studio.Shell"
+             x:Class="XlightsAI.Studio.App.Views.Screens.ExemplarLibraryView"
+             x:DataType="vm:ShellViewModel">
+
+  <StackPanel Spacing="14">
+    <TextBlock Classes="page-title" Text="Exemplar library" />
+    <TextBlock Classes="page-subtitle"
+               Text="Every exemplar mined from the real corpus. Disable a bad exemplar, or a whole source song's worth of material, and it is excluded from every future generation -- re-running corpus mining never resets these choices." />
+
+    <TextBlock Classes="busy" IsVisible="{Binding ExemplarLibrary.IsLoading}" Text="Loading exemplar library…" />
+    <TextBlock Classes="hint" IsVisible="{Binding ExemplarLibrary.IsEmpty}"
+               Text="No exemplars yet. Run corpus mining from Show Import first." />
+    <TextBlock Classes="error" IsVisible="{Binding ExemplarLibrary.IsError}" Text="{Binding ExemplarLibrary.ErrorMessage}" />
+
+    <TextBlock Classes="hint" IsVisible="{Binding ExemplarLibrary.IsLoaded}">
+      <Run Text="{Binding ExemplarLibrary.EnabledEntryCount}" />
+      <Run Text=" of " />
+      <Run Text="{Binding ExemplarLibrary.TotalEntryCount}" />
+      <Run Text=" exemplars enabled" />
+    </TextBlock>
+
+    <ItemsControl IsVisible="{Binding ExemplarLibrary.IsLoaded}" ItemsSource="{Binding ExemplarLibrary.SongGroups}">
+      <ItemsControl.ItemTemplate>
+        <DataTemplate x:DataType="vm:ExemplarLibrarySongGroupViewModel">
+          <Border Classes="panel" Margin="0,0,0,10" Padding="10">
+            <StackPanel Spacing="6">
+              <Grid ColumnDefinitions="*,Auto,Auto">
+                <TextBlock Grid.Column="0" FontWeight="SemiBold" Text="{Binding SongTitle}" VerticalAlignment="Center" />
+                <TextBlock Grid.Column="1" Classes="hint" VerticalAlignment="Center" Margin="0,0,10,0">
+                  <Run Text="{Binding EnabledCount}" />
+                  <Run Text=" / " />
+                  <Run Text="{Binding Entries.Count}" />
+                  <Run Text=" enabled" />
+                </TextBlock>
+                <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="6">
+                  <Button Classes="link" Content="Enable all" Command="{Binding EnableAllCommand}" />
+                  <Button Classes="link" Content="Disable all" Command="{Binding DisableAllCommand}" />
+                </StackPanel>
+              </Grid>
+
+              <ItemsControl ItemsSource="{Binding Entries}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:ExemplarLibraryEntryViewModel">
+                    <Grid ColumnDefinitions="Auto,100,90,90,*" Margin="0,2">
+                      <CheckBox Grid.Column="0" IsChecked="{Binding IsEnabled}" />
+                      <TextBlock Grid.Column="1" Classes="detail" Text="{Binding BarRangeDisplay}" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="2" Classes="detail" Text="{Binding SectionKind}" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="3" Classes="detail" VerticalAlignment="Center">
+                        <Run Text="{Binding TempoBpm, StringFormat={}{0:F0} bpm}" />
+                      </TextBlock>
+                      <TextBlock Grid.Column="4" Classes="hint" Text="{Binding Description}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+        </DataTemplate>
+      </ItemsControl.ItemTemplate>
+    </ItemsControl>
+  </StackPanel>
+</UserControl>

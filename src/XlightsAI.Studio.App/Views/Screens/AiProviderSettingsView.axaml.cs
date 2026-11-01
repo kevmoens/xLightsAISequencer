@@ -23,7 +23,7 @@ public partial class AiProviderSettingsView : UserControl
             Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XlightsAI.Studio");
 
         var configStore = new JsonRoleProviderConfigStore(Path.Combine(appDataDirectory, "ai-providers"));
-        var credentialStore = new DpapiCredentialStore(Path.Combine(appDataDirectory, "credentials"));
+        var credentialStore = CredentialStoreFactory.Create(Path.Combine(appDataDirectory, "credentials"));
 
         var viewModel = new AiProviderSettingsEditorViewModel(configStore, credentialStore);
         DataContext = viewModel;

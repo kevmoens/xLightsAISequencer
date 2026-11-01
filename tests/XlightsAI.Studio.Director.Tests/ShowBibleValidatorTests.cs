@@ -86,6 +86,33 @@ public sealed class ShowBibleValidatorTests
     }
 
     [Fact]
+    public async Task Validate_LookHasTwoLayersAtTheSameZ_FlagsDuplicateZViolation()
+    {
+        // Real-run finding (2026-10-31): previously nothing caught this, so a Look with two layers both
+        // at the same Z (most commonly the default z=0) passed validation and crashed much later in
+        // SectionScriptCompiler's own Layers.ToDictionary(l => l.Z) with a raw framework exception.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var brokenLook = content.Looks.Looks[0];
+        var duplicatedLayer = brokenLook.Layers[0] with { Z = brokenLook.Layers[0].Z };
+        var broken = content with
+        {
+            Looks = new Choreography.LookLibrary(
+                [brokenLook with { Layers = [.. brokenLook.Layers, duplicatedLayer] }, .. content.Looks.Looks.Skip(1)]),
+        };
+
+        var violations = ShowBibleValidator.Validate(broken, layout, vocabulary, recipes);
+
+        Assert.Contains(violations, v => v.Rule == "layer-duplicate-z");
+    }
+
+    [Fact]
     public async Task Validate_LookTemplateRefNotInSuppliedCatalog_FlagsViolation()
     {
         if (!RealXLightsFixture.IsAvailable)

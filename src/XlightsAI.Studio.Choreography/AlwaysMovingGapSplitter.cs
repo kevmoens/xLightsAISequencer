@@ -21,28 +21,38 @@ public static class AlwaysMovingGapSplitter
     /// (existing effects unchanged, byte-for-byte, interleaved with new filler effects) -- never mutates
     /// or reorders an existing effect.
     /// </summary>
+    /// <param name="fillerPoolResolver">
+    /// Build-plan Phase 15 §3: resolves, for any tick position, which section's own declared
+    /// <see cref="FillerPool"/> applies there -- replaces a single fixed pool for the whole song now that
+    /// filler is a per-section (and per-role) Choreographer declaration (<see cref="SectionFillerSchedule"/>
+    /// is the real caller; a test or hand-authored-Look caller may pass a constant lambda for the old
+    /// single-pool behavior). Each resolved pool keeps its own rotation cursor (keyed by pool identity,
+    /// not shared globally), so switching sections mid-song never skips or repeats states in a pool this
+    /// gap has not actually used yet.
+    /// </param>
     public static IReadOnlyList<EffectInstance> FillGaps(
         ModelId target,
         IReadOnlyList<EffectInstance> existingEffects,
         TimeWindow coverageWindow,
         BarGrid barGrid,
-        FillerPool fillerPool,
+        Func<long, FillerPool> fillerPoolResolver,
         double sectionEnergyCeiling,
         IEffectRecipeRegistry recipeRegistry)
     {
         ArgumentNullException.ThrowIfNull(existingEffects);
         ArgumentNullException.ThrowIfNull(barGrid);
-        ArgumentNullException.ThrowIfNull(fillerPool);
+        ArgumentNullException.ThrowIfNull(fillerPoolResolver);
         ArgumentNullException.ThrowIfNull(recipeRegistry);
+
+        var result = new List<EffectInstance>();
+        var cursorByPool = new Dictionary<FillerPool, int>();
 
         var sorted = existingEffects
             .Where(e => e.Target == target)
             .OrderBy(e => e.StartTicks)
             .ToList();
 
-        var result = new List<EffectInstance>();
         var cursor = coverageWindow.StartTicks;
-        var fillerCursor = 0;
 
         void FillGap(long gapStart, long gapEnd)
         {
@@ -85,8 +95,10 @@ public static class AlwaysMovingGapSplitter
                     fillerEnd = gapEnd;
                 }
 
-                segments.Add((position, fillerEnd, fillerPool.RecipeIdAt(fillerCursor)));
-                fillerCursor++;
+                var pool = fillerPoolResolver(position);
+                var poolCursor = cursorByPool.GetValueOrDefault(pool);
+                segments.Add((position, fillerEnd, pool.RecipeIdAt(poolCursor)));
+                cursorByPool[pool] = poolCursor + 1;
                 position = fillerEnd;
             }
 

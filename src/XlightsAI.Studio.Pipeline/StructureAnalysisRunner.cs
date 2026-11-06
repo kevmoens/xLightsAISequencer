@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Melody;
 using XlightsAI.Studio.Rhythm;
@@ -36,6 +38,7 @@ public sealed class StructureAnalysisRunner
     private readonly IPhraseSegmentationStore _phraseStore;
     private readonly IPhraseBoundaryOverrideStore _phraseOverrideStore;
     private readonly IMotifClusteringStore _motifStore;
+    private readonly ILogger<StructureAnalysisRunner> _logger;
 
     public StructureAnalysisRunner(
         IBarFingerprintStore fingerprintStore,
@@ -44,7 +47,8 @@ public sealed class StructureAnalysisRunner
         ISectionLabelOverrideStore labelOverrideStore,
         IPhraseSegmentationStore phraseStore,
         IPhraseBoundaryOverrideStore phraseOverrideStore,
-        IMotifClusteringStore motifStore)
+        IMotifClusteringStore motifStore,
+        ILogger<StructureAnalysisRunner>? logger = null)
     {
         _fingerprintStore = fingerprintStore ?? throw new ArgumentNullException(nameof(fingerprintStore));
         _boundaryStore = boundaryStore ?? throw new ArgumentNullException(nameof(boundaryStore));
@@ -53,6 +57,7 @@ public sealed class StructureAnalysisRunner
         _phraseStore = phraseStore ?? throw new ArgumentNullException(nameof(phraseStore));
         _phraseOverrideStore = phraseOverrideStore ?? throw new ArgumentNullException(nameof(phraseOverrideStore));
         _motifStore = motifStore ?? throw new ArgumentNullException(nameof(motifStore));
+        _logger = logger ?? NullLogger<StructureAnalysisRunner>.Instance;
     }
 
     public async Task<StructureAnalysisResult> AnalyzeAsync(
@@ -63,24 +68,30 @@ public sealed class StructureAnalysisRunner
         ArgumentNullException.ThrowIfNull(energy);
         ArgumentNullException.ThrowIfNull(melody);
 
+        var overall = System.Diagnostics.Stopwatch.StartNew();
+        _logger.LogInformation("Structure analysis starting for song {SongId}.", songId);
         var settings = StructureAnalysisSettingsBundle.Default;
 
         var fingerprints = await new BarFingerprintBuilder(_fingerprintStore)
             .BuildAsync(new BarFingerprintContext(songId, sourceHash, beatGrid, energy, melody), settings.BarFingerprint, ct)
             .ConfigureAwait(false);
+        _logger.LogDebug("Built {BarCount} bar fingerprints for song {SongId}.", fingerprints.Bars.Count, songId);
 
         var boundaries = await new SectionBoundaryDetector(_boundaryStore)
             .DetectAsync(new SectionBoundaryContext(songId, sourceHash, fingerprints), settings.SectionBoundary, ct)
             .ConfigureAwait(false);
+        _logger.LogDebug("Detected {BoundaryCount} section boundaries for song {SongId}.", boundaries.Boundaries.Count, songId);
 
         var labels = await new SectionLabelClassifier(_labelStore, _labelOverrideStore)
             .ClassifyAsync(new SectionLabelContext(songId, sourceHash, boundaries, fingerprints), settings.SectionLabel, ct)
             .ConfigureAwait(false);
+        _logger.LogDebug("Classified {SectionCount} section labels for song {SongId}.", labels.Labels.Count, songId);
 
         // PHASE-03 (Analysis extensions) Task 3: fit TargetPhraseLengthBars statistically per song
         // (MUSIC_FLOW_ANALYSIS.md's own methodology) instead of using the fixed default forever.
         var targetPhraseLengthBars = PhrasePeriodEstimator.EstimateTargetPhraseLengthBars(fingerprints.Bars);
         var phraseSettings = settings.PhraseSegmentation with { TargetPhraseLengthBars = targetPhraseLengthBars };
+        _logger.LogDebug("Estimated target phrase length of {TargetPhraseLengthBars} bars for song {SongId}.", targetPhraseLengthBars, songId);
 
         // See class doc comment (Task 4 fix): thread melody's own real SourceAssetHash through as the
         // context's MelodySourceAssetHash, so PhraseSegmenter validates it against the provenance it was
@@ -88,11 +99,14 @@ public sealed class StructureAnalysisRunner
         var phrases = await new PhraseSegmenter(_phraseStore, _phraseOverrideStore)
             .SegmentAsync(new PhraseSegmentationContext(songId, sourceHash, labels, fingerprints, melody, melody.SourceAssetHash), phraseSettings, ct)
             .ConfigureAwait(false);
+        _logger.LogDebug("Segmented {PhraseCount} phrases for song {SongId}.", phrases.Phrases.Count, songId);
 
         var motifs = await new MotifClusterer(_motifStore)
             .ClusterAsync(new MotifClusteringContext(songId, sourceHash, phrases, fingerprints), settings.MotifClustering, ct)
             .ConfigureAwait(false);
+        _logger.LogDebug("Clustered {MotifCount} motif groups for song {SongId}.", motifs.Groups.Count, songId);
 
+        _logger.LogInformation("Structure analysis completed for song {SongId} in {ElapsedMs}ms.", songId, overall.ElapsedMilliseconds);
         return new StructureAnalysisResult(fingerprints, boundaries, labels, phrases, motifs);
     }
 }

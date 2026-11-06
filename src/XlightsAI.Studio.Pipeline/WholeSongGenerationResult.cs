@@ -29,13 +29,22 @@ namespace XlightsAI.Studio.Pipeline;
 /// cannot reference either without a cyclic project reference. Empty (never null) for a generator that
 /// predates this field or produced no templated Looks.
 /// </param>
+/// <param name="GenerationRunId">
+/// Build-plan "richer analysis tools" post-processing phase (2026-11-02): only
+/// <c>AiChoreographyWholeSongGenerator</c> sets this -- the internal id its own real LLM-driven pipeline
+/// used to persist this run's Show Bible/SectionScripts under its project directory (<c>bible/</c>/
+/// <c>scripts/</c>), so a later post-processing/touch-up prompt can reload and selectively patch THIS
+/// exact run rather than guessing. <see langword="null"/> (the default) for every other generator, and
+/// for any caller that predates this field.
+/// </param>
 public sealed record WholeSongGenerationResult(
     SequenceDocument Document,
     SongId SongId,
     MelodyTrack Melody,
     PhraseSegmentationAnalysis Phrases,
     MotifClusteringAnalysis Motifs,
-    IReadOnlyList<GeneratedLookTemplateUsage>? LookTemplateUsage = null)
+    IReadOnlyList<GeneratedLookTemplateUsage>? LookTemplateUsage = null,
+    Guid? GenerationRunId = null)
 {
     public IReadOnlyList<GeneratedLookTemplateUsage> LookTemplateUsageOrEmpty => LookTemplateUsage ?? [];
 }

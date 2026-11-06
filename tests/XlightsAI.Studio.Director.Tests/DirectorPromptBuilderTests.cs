@@ -400,6 +400,44 @@ public sealed class DirectorPromptBuilderTests
     }
 
     [Fact]
+    public void Build_VolatileSuffix_RendersMeasuredEnergyTransitions_WhenPresent()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000) with
+        {
+            EnergyTransitions = [new EnergyTransition(TimeSpan.FromSeconds(24).Ticks, EnergyTransitionKind.Drop, 0.5f)],
+        };
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("Measured energy transitions", prompt.VolatileSuffix);
+        Assert.Contains("0:24 drop", prompt.VolatileSuffix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_OmitsMeasuredEnergyTransitions_WhenNoneDetected()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.DoesNotContain("Measured energy transitions", prompt.VolatileSuffix);
+    }
+
+    [Fact]
     public void Build_VolatileSuffix_OmitsBandEnergyMapping_WhenNoBandEnergyIsAvailable()
     {
         if (!RealXLightsFixture.IsAvailable)

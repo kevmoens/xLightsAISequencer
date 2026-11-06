@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using XlightsAI.Studio.Audio;
 using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Director;
@@ -37,6 +39,10 @@ public sealed class ShowImportViewModel : ObservableObject
     private SequenceDocument? _plan;
     private string? _planSavedPath;
     private WholeSongGenerationResult? _lastWholeSongGeneration;
+    private string _postProcessingPromptText = string.Empty;
+    private bool _isPostProcessingBusy;
+    private string? _postProcessingErrorMessage;
+    private string? _postProcessingStatusMessage;
 
     // PHASE-02 Step 013: "Port minimal editable XSQ writer and required sequencing metadata."
     // Deliberately separate busy/error/result state from the Discover/Generate-plan flows above,
@@ -231,9 +237,59 @@ public sealed class ShowImportViewModel : ObservableObject
             {
                 OnPropertyChanged(nameof(HasTemplatedLookUsage));
                 OnPropertyChanged(nameof(TemplatedLookUsageSummaries));
+                OnPropertyChanged(nameof(CanApplyPostProcessingPrompt));
             }
         }
     }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" post-processing phase (2026-11-02): <see langword="true"/> once
+    /// a generation has actually run and returned a real, reloadable <see cref="WholeSongGenerationResult.GenerationRunId"/>
+    /// -- the Generate &amp; Export screen's own "touch-up" card is only shown then; there is nothing yet to
+    /// touch up before a first generation succeeds.
+    /// </summary>
+    public bool CanApplyPostProcessingPrompt => LastWholeSongGeneration?.GenerationRunId is not null;
+
+    /// <summary>The live, currently-typed touch-up prompt -- a "last stop before you apply" field, same convention as <see cref="CustomPromptEditorViewModel.PromptText"/>, deliberately not persisted across sessions (a touch-up is a one-shot action, not a standing setting).</summary>
+    public string PostProcessingPromptText
+    {
+        get => _postProcessingPromptText;
+        set => SetField(ref _postProcessingPromptText, value);
+    }
+
+    public bool IsPostProcessingBusy
+    {
+        get => _isPostProcessingBusy;
+        private set => SetField(ref _isPostProcessingBusy, value);
+    }
+
+    public string? PostProcessingErrorMessage
+    {
+        get => _postProcessingErrorMessage;
+        private set
+        {
+            if (SetField(ref _postProcessingErrorMessage, value))
+            {
+                OnPropertyChanged(nameof(HasPostProcessingErrorMessage));
+            }
+        }
+    }
+
+    public bool HasPostProcessingErrorMessage => PostProcessingErrorMessage is not null;
+
+    public string? PostProcessingStatusMessage
+    {
+        get => _postProcessingStatusMessage;
+        private set
+        {
+            if (SetField(ref _postProcessingStatusMessage, value))
+            {
+                OnPropertyChanged(nameof(HasPostProcessingStatusMessage));
+            }
+        }
+    }
+
+    public bool HasPostProcessingStatusMessage => PostProcessingStatusMessage is not null;
 
     /// <summary>
     /// Build-plan Phase 10 §6b task 4: <see langword="true"/> once <see cref="LastWholeSongGeneration"/>
@@ -414,6 +470,18 @@ public sealed class ShowImportViewModel : ObservableObject
         if (!string.IsNullOrWhiteSpace(lastCorpusRootDirectory) && string.IsNullOrEmpty(CorpusRootDirectory))
         {
             CorpusRootDirectory = lastCorpusRootDirectory;
+        }
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-03): "Can't that be loaded on start up" -- same "only fill in a blank
+    /// field" convention as <see cref="RestoreLastDirectory"/>, for <see cref="XlightsExecutablePath"/>.
+    /// </summary>
+    public void RestoreXlightsExecutablePath(string? lastXlightsExecutablePath)
+    {
+        if (!string.IsNullOrWhiteSpace(lastXlightsExecutablePath) && string.IsNullOrEmpty(XlightsExecutablePath))
+        {
+            XlightsExecutablePath = lastXlightsExecutablePath;
         }
     }
 
@@ -659,10 +727,11 @@ public sealed class ShowImportViewModel : ObservableObject
     /// <param name="customPrompt">Build-plan Phase 14 §2c: the user's own free-text creative direction for this run, or <see langword="null"/>/empty for the pre-existing default behavior.</param>
     public async Task<bool> GenerateWholeSongPlanAsync(
         IWholeSongGenerator generator, SongAsset? probedSong, ISequenceDocumentStore planStore, CancellationToken ct = default,
-        CustomGenerationPrompt? customPrompt = null)
+        CustomGenerationPrompt? customPrompt = null, ILogger<ShowImportViewModel>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(generator);
         ArgumentNullException.ThrowIfNull(planStore);
+        logger ??= NullLogger<ShowImportViewModel>.Instance;
 
         if (_isPlanBusy)
         {
@@ -672,29 +741,35 @@ public sealed class ShowImportViewModel : ObservableObject
         IsPlanBusy = true;
         PlanErrorMessage = null;
         RequiresStemModelDownload = false;
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+        logger.LogInformation("User requested whole-song plan generation (song probed: {HasProbedSong}, layout imported: {HasLayout}).",
+            probedSong is not null, Layout is not null);
         try
         {
             if (Layout is null)
             {
                 PlanErrorMessage = "Import a show layout (Discover) before generating a whole-song plan.";
+                logger.LogWarning("Whole-song plan generation blocked: no show layout imported.");
                 return false;
             }
 
             if (probedSong is null)
             {
                 PlanErrorMessage = "Probe an audio file (Audio screen) before generating a whole-song plan.";
+                logger.LogWarning("Whole-song plan generation blocked: no audio probed.");
                 return false;
             }
 
-            var generation = await generator.GenerateAsync(probedSong, Layout, ct, customPrompt).ConfigureAwait(true);
+            var generation = await generator.GenerateAsync(probedSong, Layout, ct, customPrompt, ShowDirectory, XlightsExecutablePath).ConfigureAwait(true);
             var savedPath = await planStore.SaveAsync(generation.Document, ct).ConfigureAwait(true);
 
             Plan = generation.Document;
             PlanSavedPath = savedPath;
             LastWholeSongGeneration = generation;
+            logger.LogInformation("Whole-song plan generation succeeded in {ElapsedMs}ms, saved to {SavedPath}.", stopwatch.ElapsedMilliseconds, savedPath);
             return true;
         }
-        catch (ModelAssetConsentRequiredException)
+        catch (ModelAssetConsentRequiredException ex)
         {
             Plan = null;
             PlanSavedPath = null;
@@ -702,6 +777,7 @@ public sealed class ShowImportViewModel : ObservableObject
             RequiresStemModelDownload = true;
             PlanErrorMessage =
                 "Generating a whole-song plan needs a one-time vocal/instrument separation model download.";
+            logger.LogWarning(ex, "Whole-song plan generation needs a stem-separation model download.");
             return false;
         }
         catch (AiProviderNotConfiguredException ex)
@@ -711,6 +787,16 @@ public sealed class ShowImportViewModel : ObservableObject
             LastWholeSongGeneration = null;
             PlanErrorMessage =
                 $"Configure an AI provider for the {ex.Role} role in Settings before generating a whole-song plan.";
+            logger.LogWarning(ex, "Whole-song plan generation failed: {Role} role has no configured AI provider.", ex.Role);
+            return false;
+        }
+        catch (QualityPassUnavailableException ex)
+        {
+            Plan = null;
+            PlanSavedPath = null;
+            LastWholeSongGeneration = null;
+            PlanErrorMessage = ex.Message;
+            logger.LogWarning(ex, "Whole-song plan generation's quality pass is unavailable.");
             return false;
         }
         catch (StemSeparationIncompatibleSourceException ex)
@@ -726,6 +812,7 @@ public sealed class ShowImportViewModel : ObservableObject
             PlanErrorMessage =
                 $"{ex.Message} Convert this song to 44.1 kHz stereo (or import it as MP3/M4A, which is " +
                 "converted automatically on probe), then probe it again on the Audio screen.";
+            logger.LogWarning(ex, "Whole-song plan generation failed: incompatible source audio format.");
             return false;
         }
         catch (Exception ex)
@@ -734,11 +821,96 @@ public sealed class ShowImportViewModel : ObservableObject
             PlanSavedPath = null;
             LastWholeSongGeneration = null;
             PlanErrorMessage = ex.Message;
+            logger.LogError(ex, "Whole-song plan generation failed after {ElapsedMs}ms.", stopwatch.ElapsedMilliseconds);
             return false;
         }
         finally
         {
             IsPlanBusy = false;
+        }
+    }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" post-processing phase (2026-11-02): the user's own explicit ask
+    /// -- "a post-processing prompt... where I can put time ranges and have it alter the existing
+    /// sequence, so it would only fix what I ask and leave the rest alone." Deliberately does NOT clear
+    /// <see cref="Plan"/>/<see cref="LastWholeSongGeneration"/> on failure (unlike <see cref="GenerateWholeSongPlanAsync"/>'s
+    /// own all-or-nothing framing): a touch-up attempt that fails must never discard the user's existing,
+    /// already-successful sequence -- only <see cref="PostProcessingErrorMessage"/> is set, and the prior
+    /// generation stays exactly as it was.
+    /// </summary>
+    public async Task<bool> ApplyPostProcessingPromptAsync(
+        IWholeSongGenerator generator, SongAsset? probedSong, ISequenceDocumentStore planStore, CancellationToken ct = default)
+    {
+        ArgumentNullException.ThrowIfNull(generator);
+        ArgumentNullException.ThrowIfNull(planStore);
+
+        if (_isPostProcessingBusy)
+        {
+            return false;
+        }
+
+        IsPostProcessingBusy = true;
+        PostProcessingErrorMessage = null;
+        PostProcessingStatusMessage = null;
+        try
+        {
+            if (LastWholeSongGeneration?.GenerationRunId is not { } generationRunId)
+            {
+                PostProcessingErrorMessage = "Generate a whole-song plan first -- there is nothing yet to touch up.";
+                return false;
+            }
+
+            if (Layout is null)
+            {
+                PostProcessingErrorMessage = "Import a show layout (Discover) before applying a touch-up prompt.";
+                return false;
+            }
+
+            if (probedSong is null)
+            {
+                PostProcessingErrorMessage = "Probe an audio file (Audio screen) before applying a touch-up prompt.";
+                return false;
+            }
+
+            if (string.IsNullOrWhiteSpace(PostProcessingPromptText))
+            {
+                PostProcessingErrorMessage = "Type a touch-up instruction with at least one time range (e.g. \"00:24-00:25\") first.";
+                return false;
+            }
+
+            var generation = await generator.ApplyPostProcessingPromptAsync(probedSong, Layout, generationRunId, PostProcessingPromptText, ct).ConfigureAwait(true);
+            var savedPath = await planStore.SaveAsync(generation.Document, ct).ConfigureAwait(true);
+
+            Plan = generation.Document;
+            PlanSavedPath = savedPath;
+            LastWholeSongGeneration = generation;
+            PostProcessingStatusMessage = "Touch-up applied.";
+            return true;
+        }
+        catch (PostProcessingPromptHasNoTimedInstructionsException ex)
+        {
+            PostProcessingErrorMessage = ex.Message;
+            return false;
+        }
+        catch (PostProcessingPromptMatchesNoSectionException ex)
+        {
+            PostProcessingErrorMessage = ex.Message;
+            return false;
+        }
+        catch (AiProviderNotConfiguredException ex)
+        {
+            PostProcessingErrorMessage = $"Configure an AI provider for the {ex.Role} role in Settings before applying a touch-up prompt.";
+            return false;
+        }
+        catch (Exception ex)
+        {
+            PostProcessingErrorMessage = ex.Message;
+            return false;
+        }
+        finally
+        {
+            IsPostProcessingBusy = false;
         }
     }
 

@@ -38,7 +38,18 @@ namespace XlightsAI.Studio.Contracts;
 /// reference reason <see cref="CustomGenerationPrompt"/>'s own class doc comment already explains:
 /// Contracts cannot reference Director.
 /// </param>
-public sealed record CustomGenerationPrompt(string Text, bool StayCloseToExemplars = true, string? Style = null)
+/// <param name="EnableQualityPass">
+/// Build-plan "richer analysis tools" Phase 3 (2026-11-02): <see langword="false"/> (the default, and
+/// every pre-existing caller's behavior) keeps the original single-pass "compile once, export" flow.
+/// <see langword="true"/> opts this one run into the already-built render-&gt;measure-&gt;critique-&gt;revise
+/// loop (<c>XlightsAI.Studio.Director.IterationLoop</c>) after the first compile -- genuinely slower
+/// (it re-renders the actual xLights install and re-calls the Choreographer per revision) and only
+/// available when an xLights executable/show directory is configured; see
+/// <c>ChoreographyGenerationPipeline</c>'s own remarks for the exact unavailability message when it
+/// is toggled on without that configured. Never requires a vision-capable Critic role to be configured
+/// -- runs numeric-metric-only convergence when one is not, and adds visual critique on top when one is.
+/// </param>
+public sealed record CustomGenerationPrompt(string Text, bool StayCloseToExemplars = true, string? Style = null, bool EnableQualityPass = false)
 {
     public const int MaxLength = 2000;
 

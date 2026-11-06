@@ -24,5 +24,32 @@ public interface IWholeSongGenerator
     /// this; every other implementation (<c>WholeSongGenerator</c>, <c>NullWholeSongGenerator</c>)
     /// accepts and ignores it.
     /// </param>
-    Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null);
+    /// <param name="showDirectory">
+    /// Build-plan "richer analysis tools" Phase 3 (2026-11-02): the real, on-disk xLights show directory
+    /// for the currently loaded show -- only used by <c>AiChoreographyWholeSongGenerator</c>, and only
+    /// when <paramref name="customPrompt"/>'s own <see cref="CustomGenerationPrompt.EnableQualityPass"/>
+    /// is requested; every other implementation ignores it, same as <paramref name="customPrompt"/> itself.
+    /// </param>
+    /// <param name="xlightsExecutablePath">
+    /// Build-plan "richer analysis tools" Phase 3 (2026-11-02): the configured xLights executable path --
+    /// same usage/scope as <paramref name="showDirectory"/>.
+    /// </param>
+    Task<WholeSongGenerationResult> GenerateAsync(
+        SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null,
+        string? showDirectory = null, string? xlightsExecutablePath = null);
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" post-processing phase (2026-11-02): applies a time-ranged
+    /// touch-up prompt (e.g. "at 0:24-0:25, make it flash harder") to a PRIOR generation's own persisted
+    /// Show Bible/SectionScripts, changing only the section(s) the prompt's own timestamps overlap and
+    /// leaving every other section exactly as it was -- the user's own explicit ask: "only fix what I ask
+    /// and leave the rest alone." Only <c>AiChoreographyWholeSongGenerator</c> implements this for real
+    /// (it is the only generator that persists a reloadable Show Bible/SectionScripts in the first place);
+    /// every other implementation throws, same "needs real configuration this layer does not yet own"
+    /// convention as <see cref="NullWholeSongGenerator"/>'s own <see cref="GenerateAsync"/>.
+    /// </summary>
+    /// <param name="generationRunId">The prior run's own <see cref="WholeSongGenerationResult.GenerationRunId"/> to touch up.</param>
+    /// <param name="postProcessingPromptText">Free text with one or more <c>mm:ss</c>/<c>hh:mm:ss</c>(-range) tokens naming what to change and when.</param>
+    Task<WholeSongGenerationResult> ApplyPostProcessingPromptAsync(
+        SongAsset song, DisplayGraph layout, Guid generationRunId, string postProcessingPromptText, CancellationToken ct = default);
 }

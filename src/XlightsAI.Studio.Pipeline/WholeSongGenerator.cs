@@ -43,7 +43,9 @@ public sealed class WholeSongGenerator : IWholeSongGenerator
     }
 
     /// <param name="customPrompt">Build-plan Phase 14: unused by this superseded generator -- see <see cref="IWholeSongGenerator.GenerateAsync"/>.</param>
-    public async Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null)
+    public async Task<WholeSongGenerationResult> GenerateAsync(
+        SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null,
+        string? showDirectory = null, string? xlightsExecutablePath = null)
     {
         ArgumentNullException.ThrowIfNull(song);
         ArgumentNullException.ThrowIfNull(layout);
@@ -68,4 +70,9 @@ public sealed class WholeSongGenerator : IWholeSongGenerator
 
         return new WholeSongGenerationResult(composed.Document, song.Id, audio.Melody, structure.Phrases, structure.Motifs);
     }
+
+    public Task<WholeSongGenerationResult> ApplyPostProcessingPromptAsync(
+        SongAsset song, DisplayGraph layout, Guid generationRunId, string postProcessingPromptText, CancellationToken ct = default) =>
+        throw new NotSupportedException(
+            $"{nameof(WholeSongGenerator)} (the superseded M1-M4 path) never persists a reloadable Show Bible/SectionScripts, so there is nothing for a post-processing prompt to touch up.");
 }

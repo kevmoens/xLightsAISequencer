@@ -191,7 +191,13 @@ public sealed class WholeSongPlanShellWiringTests : IDisposable
 
     private sealed class ThrowingWholeSongGenerator(Exception failure) : IWholeSongGenerator
     {
-        public Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null) =>
+        public Task<WholeSongGenerationResult> GenerateAsync(
+            SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null,
+            string? showDirectory = null, string? xlightsExecutablePath = null) =>
+            throw failure;
+
+        public Task<WholeSongGenerationResult> ApplyPostProcessingPromptAsync(
+            SongAsset song, DisplayGraph layout, Guid generationRunId, string postProcessingPromptText, CancellationToken ct = default) =>
             throw failure;
     }
 

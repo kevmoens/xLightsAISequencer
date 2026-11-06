@@ -21,6 +21,7 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
     private string _promptText = "";
     private bool _stayCloseToExemplars = true;
     private string _selectedStyle = StylePresetCatalog.HighEnergyEdmId;
+    private bool _enableQualityPass;
     private string? _statusMessage;
     private string? _errorMessage;
 
@@ -117,6 +118,20 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
     public string SelectedStyleDescription =>
         AvailableStyles.FirstOrDefault(s => s.Id == SelectedStyle)?.Description ?? string.Empty;
 
+    /// <summary>
+    /// Build-plan "richer analysis tools" Phase 3 (2026-11-02): unchecked (the default, and every
+    /// pre-existing save/generation's behavior) keeps the original single-pass generation. Checked opts
+    /// this generation into the real render-&gt;measure-&gt;critique-&gt;revise loop -- genuinely slower, and
+    /// only effective once an xLights executable/show directory is configured on the Show Import screen
+    /// (see <see cref="CustomGenerationPrompt.EnableQualityPass"/>'s own doc comment for the exact
+    /// unavailability message otherwise).
+    /// </summary>
+    public bool EnableQualityPass
+    {
+        get => _enableQualityPass;
+        set => SetField(ref _enableQualityPass, value);
+    }
+
     public string? StatusMessage
     {
         get => _statusMessage;
@@ -162,6 +177,7 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
                 SelectedStyle = style;
             }
 
+            EnableQualityPass = loaded.EnableQualityPass;
             StatusMessage = null;
         }
         catch (Exception ex)
@@ -177,7 +193,7 @@ public sealed class CustomPromptEditorViewModel : ObservableObject
         StatusMessage = null;
         try
         {
-            await _store.SaveAsync(new CustomGenerationPrompt(PromptText, StayCloseToExemplars, SelectedStyle), ct).ConfigureAwait(true);
+            await _store.SaveAsync(new CustomGenerationPrompt(PromptText, StayCloseToExemplars, SelectedStyle, EnableQualityPass), ct).ConfigureAwait(true);
             StatusMessage = "Saved.";
             return true;
         }

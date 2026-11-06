@@ -59,6 +59,10 @@
                   Content="Stay close to similar corpus exemplars"
                   ToolTip.Tip="Checked: regenerating always retrieves the closest-matching real corpus examples (same effects/motion every time, only colors vary). Unchecked: regenerating draws from a wider, randomized spread of examples, so effect/motion choices can meaningfully differ run to run, not just color." />
 
+        <CheckBox IsChecked="{Binding CustomPrompt.EnableQualityPass}"
+                  Content="Quality pass (render, critique, revise -- slower)"
+                  ToolTip.Tip="Checked: after the first compile, re-renders the real xLights install and revises sections with issues, up to a few rounds -- genuinely slower (a real render plus extra AI calls per round) and requires the xLights executable/show directory to be configured on the Show Import screen. Unchecked (default): the original single-pass generation." />
+
         <StackPanel Orientation="Horizontal" Spacing="10">
           <Button Content="Save" Command="{Binding CustomPrompt.SaveCommand}" />
         </StackPanel>

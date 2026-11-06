@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Choreography;
+using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Refinement.Harness;
 
 namespace XlightsAI.Studio.Director;
@@ -130,4 +131,138 @@ public static class RevisionDirectiveDeriver
                 [$"model-coverage:{modelId}"]))
             .ToList();
     }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" Phase 1 (2026-11-01): turns each
+    /// <see cref="TimedCueComplianceChecker.FindMissedCues"/> result into a real, targeted repair
+    /// directive -- a user-requested moment (e.g. "hit BANG near 0:24") the previous attempt did not
+    /// satisfy. Targets whichever real section's own window overlaps the cue's tolerance-expanded window
+    /// and sits closest (by window midpoint) to the cue's own stated time -- when more than one section
+    /// overlaps (a cue near a section boundary), the closer one is the more natural fit for "near this
+    /// moment." A cue whose window overlaps NO section at all (a time past the end of the song, or a
+    /// gap in bar-grid coverage) produces no directive -- nothing this deriver can act on, same
+    /// "unmapped == no directive" convention as <see cref="FromNumericFindings"/>.
+    /// </summary>
+    public static IReadOnlyList<RevisionDirective> FromMissedTimedCues(
+        IReadOnlyList<TimedCue> missedCues, IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById)
+    {
+        ArgumentNullException.ThrowIfNull(missedCues);
+        ArgumentNullException.ThrowIfNull(sectionWindowsById);
+
+        var directives = new List<RevisionDirective>();
+        foreach (var cue in missedCues)
+        {
+            var windowStartTicks = cue.WindowStart.Ticks;
+            var windowEndTicks = cue.WindowEnd.Ticks;
+            var cueMidpointTicks = (cue.Start.Ticks + cue.EffectiveEnd.Ticks) / 2;
+
+            var overlapping = sectionWindowsById
+                .Where(kv => kv.Value.Start < windowEndTicks && kv.Value.End > windowStartTicks)
+                .ToList();
+
+            if (overlapping.Count == 0)
+            {
+                continue;
+            }
+
+            var targetSectionId = overlapping
+                .OrderBy(kv => Math.Abs((kv.Value.Start + kv.Value.End) / 2 - cueMidpointTicks))
+                .First().Key;
+
+            var rangeText = cue.End is { } end && end != cue.Start
+                ? $"{FormatTimestamp(cue.Start)}-{FormatTimestamp(end)}"
+                : FormatTimestamp(cue.Start);
+
+            directives.Add(new RevisionDirective(
+                targetSectionId, "timed-cue",
+                $"A user-requested cue near {rangeText} was NOT satisfied in the previous attempt: " +
+                $"\"{cue.Instruction}\". Add a short, discrete (brief, instantaneous-feeling) effect as " +
+                "close as you reasonably can to that real-time moment, somewhere in THIS section specifically.",
+                [$"timed-cue:{cue.Start}"]));
+        }
+
+        return directives;
+    }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" Phase 8 (2026-11-02): turns each
+    /// <see cref="SingleModelComplianceChecker.FindGroupedViolations"/> result into a real, targeted repair
+    /// directive -- the user explicitly asked for this model to be targeted individually (via
+    /// <see cref="SingleModelDirectiveParser"/>), but the previous attempt only ever reached it through a
+    /// group. Targets the single longest section, same deterministic, defensible choice as
+    /// <see cref="FromModelCoverageViolations"/> for the same reasoning (the most real screen-time to
+    /// plausibly fit one more direct binding into). A show with no sections produces no directive --
+    /// nothing this deriver can act on.
+    /// </summary>
+    public static IReadOnlyList<RevisionDirective> FromSingleModelViolations(
+        IReadOnlyList<ModelId> violatedModels, IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById)
+    {
+        ArgumentNullException.ThrowIfNull(violatedModels);
+        ArgumentNullException.ThrowIfNull(sectionWindowsById);
+
+        if (violatedModels.Count == 0 || sectionWindowsById.Count == 0)
+        {
+            return [];
+        }
+
+        var longestSectionId = sectionWindowsById
+            .OrderByDescending(kv => kv.Value.End - kv.Value.Start)
+            .First().Key;
+
+        return violatedModels
+            .Select(modelId => new RevisionDirective(
+                longestSectionId, "single-model-not-group",
+                $"Model '{modelId.Value}' has only ever been targeted through a group effect so far, but the user explicitly " +
+                "asked for it to be targeted individually, not (only) as part of a group. Add at least one effect in THIS " +
+                $"section that binds directly to '{modelId.Value}' by its own name, not a group containing it.",
+                [$"single-model-not-group:{modelId.Value}"]))
+            .ToList();
+    }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" post-processing phase (2026-11-02): turns a user's own explicit
+    /// touch-up request (e.g. "at 0:24-0:25, make it flash harder") into a directive for EVERY real
+    /// section whose own window overlaps the cue's tolerance-expanded window -- deliberately every
+    /// overlapping section, not just the single closest one <see cref="FromModelCoverageViolations"/>/
+    /// <see cref="FromMissedTimedCues"/> pick for an automatically-DETECTED miss: this is a direct,
+    /// user-authored edit naming its own exact range, so a range spanning a section boundary should touch
+    /// every section it actually overlaps, not guess at the one "most likely" section. A cue whose window
+    /// overlaps no section at all (a timestamp past the end of the song, or a typo) produces no directive --
+    /// nothing this deriver can act on, same "unmapped == no directive" convention as every other method
+    /// here.
+    /// </summary>
+    public static IReadOnlyList<RevisionDirective> FromPostProcessingCues(
+        IReadOnlyList<TimedCue> cues, IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById)
+    {
+        ArgumentNullException.ThrowIfNull(cues);
+        ArgumentNullException.ThrowIfNull(sectionWindowsById);
+
+        var directives = new List<RevisionDirective>();
+        foreach (var cue in cues)
+        {
+            var windowStartTicks = cue.WindowStart.Ticks;
+            var windowEndTicks = cue.WindowEnd.Ticks;
+            var rangeText = cue.End is { } end && end != cue.Start
+                ? $"{FormatTimestamp(cue.Start)}-{FormatTimestamp(end)}"
+                : FormatTimestamp(cue.Start);
+
+            foreach (var (sectionId, window) in sectionWindowsById)
+            {
+                if (window.Start >= windowEndTicks || window.End <= windowStartTicks)
+                {
+                    continue;
+                }
+
+                directives.Add(new RevisionDirective(
+                    sectionId, "post-processing-edit",
+                    $"Touch-up request for around {rangeText}: \"{cue.Instruction}\". Apply ONLY this change -- keep " +
+                    "everything else about this section's existing treatment as close to its current form as reasonable.",
+                    [$"post-processing:{cue.Start}"]));
+            }
+        }
+
+        return directives;
+    }
+
+    private static string FormatTimestamp(TimeSpan time) => $"{(int)time.TotalMinutes}:{time.Seconds:00}";
 }

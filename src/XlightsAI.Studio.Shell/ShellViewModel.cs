@@ -1,3 +1,4 @@
+using Microsoft.Extensions.Logging;
 using XlightsAI.Studio.Audio;
 using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Director;
@@ -55,6 +56,7 @@ public sealed class ShellViewModel : ObservableObject
     private readonly DownloadableAsset? _optionalModelAsset;
     private readonly IFfmpegInstaller _ffmpegInstaller;
     private readonly IWholeSongGenerator _wholeSongGenerator;
+    private readonly Microsoft.Extensions.Logging.ILoggerFactory _loggerFactory;
     private readonly IModelAssetManager _stemModelAssetManager;
     private readonly INoteTrackEditor _noteTrackEditor;
     private readonly IMotifLinkOverrideStore _motifLinkOverrideStore;
@@ -106,8 +108,10 @@ public sealed class ShellViewModel : ObservableObject
         IDisplayGraphBuilder? displayGraphBuilder = null,
         string? corpusKnowledgeDirectory = null,
         ICustomPromptStore? customPromptStore = null,
-        AiRoleClientResolver? aiRoleClientResolver = null)
+        AiRoleClientResolver? aiRoleClientResolver = null,
+        Microsoft.Extensions.Logging.ILoggerFactory? loggerFactory = null)
     {
+        _loggerFactory = loggerFactory ?? Microsoft.Extensions.Logging.Abstractions.NullLoggerFactory.Instance;
         _navigator = navigator ?? throw new ArgumentNullException(nameof(navigator));
         _projectNamesSource = projectNamesSource ?? throw new ArgumentNullException(nameof(projectNamesSource));
         _settingsStore = settingsStore ?? NullSettingsStore.Instance;
@@ -384,9 +388,17 @@ public sealed class ShellViewModel : ObservableObject
             () => LastGenerateEffectPlanCommandTask = ShowImport.GenerateEffectPlanAsync(
                 _threeEffectPlanFactory, _effectRecipeRegistry, _sequenceDocumentStore),
             () => _navigator.State == StartupState.Ready && !ShowImport.IsPlanBusy);
+        // User feedback (2026-11-03): "don't allow generate until that is filled in" -- when the quality
+        // pass toggle is on, Generate is disabled until a real xLights executable path is configured,
+        // rather than letting the user click through to a QualityPassUnavailableException every time.
+        // Quality pass off (the default) needs no such gate -- unchanged from before.
         GenerateWholeSongPlanCommand = new DelegateCommand(
             () => LastGenerateEffectPlanCommandTask = RunGenerateWholeSongPlanAsync(),
-            () => _navigator.State == StartupState.Ready && !ShowImport.IsPlanBusy);
+            () => _navigator.State == StartupState.Ready && !ShowImport.IsPlanBusy &&
+                  (!CustomPrompt.EnableQualityPass || !string.IsNullOrWhiteSpace(ShowImport.XlightsExecutablePath)));
+        ApplyPostProcessingPromptCommand = new DelegateCommand(
+            () => LastApplyPostProcessingPromptCommandTask = ShowImport.ApplyPostProcessingPromptAsync(_wholeSongGenerator, Audio.ProbedAsset, _sequenceDocumentStore),
+            () => _navigator.State == StartupState.Ready && !ShowImport.IsPostProcessingBusy);
         DownloadStemSeparationModelCommand = new DelegateCommand(
             () => LastDownloadStemSeparationModelCommandTask = ShowImport.DownloadStemSeparationModelAsync(_stemModelAssetManager),
             () => _navigator.State == StartupState.Ready && ShowImport.RequiresStemModelDownload && !ShowImport.IsDownloadingStemModel);
@@ -467,6 +479,15 @@ public sealed class ShellViewModel : ObservableObject
             }
         };
 
+        CustomPrompt.PropertyChanged += (_, e) =>
+        {
+            if (e.PropertyName == nameof(CustomPromptEditorViewModel.EnableQualityPass))
+            {
+                GenerateWholeSongPlanCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(ShowQualityPassPathWarning));
+            }
+        };
+
         ShowImport.PropertyChanged += (_, e) =>
         {
             if (e.PropertyName == nameof(ShowImportViewModel.IsBusy))
@@ -485,9 +506,30 @@ public sealed class ShellViewModel : ObservableObject
                 GenerateWholeSongPlanCommand.RaiseCanExecuteChanged();
             }
 
+            if (e.PropertyName == nameof(ShowImportViewModel.IsPostProcessingBusy))
+            {
+                ApplyPostProcessingPromptCommand.RaiseCanExecuteChanged();
+            }
+
             if (e.PropertyName is nameof(ShowImportViewModel.RequiresStemModelDownload) or nameof(ShowImportViewModel.IsDownloadingStemModel))
             {
                 DownloadStemSeparationModelCommand.RaiseCanExecuteChanged();
+            }
+
+            // User feedback (2026-11-03): "Can't that be loaded on start up and don't allow generate
+            // until that is filled in" -- persisted on every change (so it survives the next app
+            // restart, unlike before) and re-evaluates whether Generate can run (see
+            // GenerateWholeSongPlanCommand's own CanExecute: quality pass needs a non-blank path).
+            if (e.PropertyName == nameof(ShowImportViewModel.XlightsExecutablePath))
+            {
+                var current = _settingsStore.Load();
+                if (current.XlightsExecutablePath != ShowImport.XlightsExecutablePath)
+                {
+                    _settingsStore.Save(current with { SchemaVersion = AppSettings.CurrentSchemaVersion, XlightsExecutablePath = ShowImport.XlightsExecutablePath });
+                }
+
+                GenerateWholeSongPlanCommand.RaiseCanExecuteChanged();
+                OnPropertyChanged(nameof(ShowQualityPassPathWarning));
             }
 
             if (e.PropertyName == nameof(ShowImportViewModel.IsExportBusy))
@@ -817,6 +859,9 @@ public sealed class ShellViewModel : ObservableObject
     /// <summary>Real whole-song AI pipeline "Generate Whole-Song Plan" action (uses every real prop, never a manually-typed 3-name list).</summary>
     public DelegateCommand GenerateWholeSongPlanCommand { get; }
 
+    /// <summary>Build-plan "richer analysis tools" post-processing phase (2026-11-02): applies <see cref="ShowImportViewModel.PostProcessingPromptText"/> as a targeted touch-up to the most recent generation, leaving every other section untouched.</summary>
+    public DelegateCommand ApplyPostProcessingPromptCommand { get; }
+
     /// <summary>"Download separation model" action: enabled only once a whole-song plan attempt has set <see cref="ShowImportViewModel.RequiresStemModelDownload"/>.</summary>
     public DelegateCommand DownloadStemSeparationModelCommand { get; }
 
@@ -839,6 +884,9 @@ public sealed class ShellViewModel : ObservableObject
     /// refresh has run.
     /// </summary>
     public Task? LastProjectCommandTask { get; private set; }
+
+    /// <summary>The fire-and-forget recent-projects load <see cref="OnNavigatorChanged"/> kicks off when navigating to the Projects screen, so a test can deterministically await it -- same reason every other <c>LastXxxTask</c> property exists.</summary>
+    public Task? LastLoadRecentProjectsTask { get; private set; }
 
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="DiscoverShowDirectoryCommand"/>.</summary>
     public Task? LastShowImportCommandTask { get; private set; }
@@ -863,6 +911,9 @@ public sealed class ShellViewModel : ObservableObject
 
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="GenerateEffectPlanCommand"/>.</summary>
     public Task? LastGenerateEffectPlanCommandTask { get; private set; }
+
+    /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="ApplyPostProcessingPromptCommand"/>.</summary>
+    public Task? LastApplyPostProcessingPromptCommandTask { get; private set; }
 
     /// <summary>Same deterministic-await purpose as <see cref="LastProjectCommandTask"/>, for <see cref="DownloadStemSeparationModelCommand"/>.</summary>
     public Task? LastDownloadStemSeparationModelCommandTask { get; private set; }
@@ -960,6 +1011,14 @@ public sealed class ShellViewModel : ObservableObject
 
     public bool IsShowingCustomPrompt => State == StartupState.Ready && CurrentScreen == ShellScreen.CustomPrompt;
 
+    /// <summary>
+    /// User feedback (2026-11-03): "don't allow generate until that is filled in" -- true exactly when
+    /// <see cref="GenerateWholeSongPlanCommand"/>'s own quality-pass gate is the reason Generate is
+    /// disabled, so the Generate &amp; export screen can explain why instead of showing a silently-disabled
+    /// button.
+    /// </summary>
+    public bool ShowQualityPassPathWarning => CustomPrompt.EnableQualityPass && string.IsNullOrWhiteSpace(ShowImport.XlightsExecutablePath);
+
     public bool IsShowingGenerateExport => State == StartupState.Ready && CurrentScreen == ShellScreen.GenerateExport;
 
     public bool IsShowingTimeline => State == StartupState.Ready && CurrentScreen == ShellScreen.Timeline;
@@ -1033,6 +1092,11 @@ public sealed class ShellViewModel : ObservableObject
                 ShowImport.RestoreLastDirectory(settings.LastShowDirectory);
                 LastStartupDiscoverShowDirectoryTask = RunDiscoverShowDirectoryAsync();
             }
+
+            // User feedback (2026-11-03): "Can't that be loaded on start up" -- the xLights executable
+            // path used to reset to blank every session, re-triggering the quality-pass toggle's own
+            // QualityPassUnavailableException even after it had already been configured once.
+            ShowImport.RestoreXlightsExecutablePath(settings.XlightsExecutablePath);
         }
         catch (Exception ex)
         {
@@ -1052,6 +1116,7 @@ public sealed class ShellViewModel : ObservableObject
                 case ShellScreen.Projects:
                     Projects.Load(_projectNamesSource);
                     Projects.RestoreLastProjectDirectory(_settingsStore.Load().LastProjectRootDirectory);
+                    LastLoadRecentProjectsTask = RunLoadRecentProjectsAsync();
                     break;
                 case ShellScreen.Settings:
                     Settings.Load(_settingsStore.Load);
@@ -1090,6 +1155,7 @@ public sealed class ShellViewModel : ObservableObject
                     // CorpusRootDirectory is the one exception -- same "fill in a blank field only"
                     // convention as ShowImport.RestoreLastDirectory above, it never runs mining itself.
                     ShowImport.RestoreLastCorpusRootDirectory(_settingsStore.Load().CorpusRootDirectory);
+                    ShowImport.RestoreXlightsExecutablePath(_settingsStore.Load().XlightsExecutablePath);
                     break;
                 case ShellScreen.Timeline:
                     // Deliberately does not auto-load: the required failure/edge case ("missing
@@ -1182,6 +1248,7 @@ public sealed class ShellViewModel : ObservableObject
         DiscoverShowDirectoryCommand.RaiseCanExecuteChanged();
         GenerateEffectPlanCommand.RaiseCanExecuteChanged();
         GenerateWholeSongPlanCommand.RaiseCanExecuteChanged();
+        ApplyPostProcessingPromptCommand.RaiseCanExecuteChanged();
         DownloadStemSeparationModelCommand.RaiseCanExecuteChanged();
         ExportXsqCommand.RaiseCanExecuteChanged();
         LaunchXlightsCommand.RaiseCanExecuteChanged();
@@ -1216,6 +1283,25 @@ public sealed class ShellViewModel : ObservableObject
         {
             Projects.Load(_projectNamesSource);
             OnProjectOpened(manifest);
+        }
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-01): populates <see cref="ProjectsViewModel.RecentProjects"/> from
+    /// <see cref="IProjectService.RecentAsync"/> every time the Projects screen is shown -- a failure
+    /// here (e.g. a corrupt recent-projects file) must never block the screen itself, so it is swallowed
+    /// rather than surfaced as an action error; the dropdown is simply empty for this visit.
+    /// </summary>
+    private async Task RunLoadRecentProjectsAsync()
+    {
+        try
+        {
+            var recentProjects = await _projectService.RecentAsync(CancellationToken.None).ConfigureAwait(true);
+            Projects.SetRecentProjects(recentProjects);
+        }
+        catch (Exception)
+        {
+            Projects.SetRecentProjects([]);
         }
     }
 
@@ -1358,9 +1444,10 @@ public sealed class ShellViewModel : ObservableObject
         // waypoint, not a save-gated settings form (see CustomPromptEditorViewModel's own doc comment).
         // An empty/blank prompt here is CustomGenerationPrompt.Empty's own IsEmpty case, which every
         // downstream builder treats identically to the pre-existing no-custom-prompt default.
-        var customPrompt = new CustomGenerationPrompt(CustomPrompt.PromptText, CustomPrompt.StayCloseToExemplars, CustomPrompt.SelectedStyle);
+        var customPrompt = new CustomGenerationPrompt(CustomPrompt.PromptText, CustomPrompt.StayCloseToExemplars, CustomPrompt.SelectedStyle, CustomPrompt.EnableQualityPass);
         var succeeded = await ShowImport.GenerateWholeSongPlanAsync(
-            _wholeSongGenerator, Audio.ProbedAsset, _sequenceDocumentStore, ct: default, customPrompt: customPrompt).ConfigureAwait(true);
+            _wholeSongGenerator, Audio.ProbedAsset, _sequenceDocumentStore, ct: default, customPrompt: customPrompt,
+            logger: _loggerFactory.CreateLogger<ShowImportViewModel>()).ConfigureAwait(true);
         if (!succeeded || ShowImport.LastWholeSongGeneration is not { } generation)
         {
             return;

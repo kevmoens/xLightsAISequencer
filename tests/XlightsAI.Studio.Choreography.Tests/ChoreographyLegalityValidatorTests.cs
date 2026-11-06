@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Contracts;
+using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Choreography.Tests;
@@ -241,6 +242,71 @@ public sealed class ChoreographyLegalityValidatorTests
             .Select(i => new EffectInstance(Guid.NewGuid(), new ModelId("Tree"), 0, i * 1000L, (i + 1) * 1000L, "recipe", "1", new Dictionary<string, string>()))
             .ToList();
         return new ChoreographyIR([], effects, []);
+    }
+
+    private static EnergyEnvelope BuildEnergyEnvelope(float normalizedEnergy, int sampleRate = 8000, int seconds = 10) =>
+        new(Guid.NewGuid(), new SongId(Guid.NewGuid()), "hash", "decoder/1", "test/1",
+            new RhythmSettings(sampleRate, 256, 128),
+            [new EnergyFrame(0, seconds * (long)sampleRate, normalizedEnergy, normalizedEnergy)]);
+
+    [Fact]
+    public void ValidateShow_UndeclaredDarkSectionWithAudibleRealAudio_FlagsSilenceCrossValidation()
+    {
+        // Build-plan "richer analysis tools" Phase 5 (2026-11-02).
+        var layout = BuildLayout();
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("dark-look", "hold", []);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, BuildIrWithEffectCount(0), [new ModelId("Tree")], window) };
+        var audioEnergy = BuildEnergyEnvelope(normalizedEnergy: 0.9f);
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage, audioEnergy);
+
+        Assert.Contains(violations, v => v.Rule == "declared-darkness-vs-measured-audio-silence");
+    }
+
+    [Fact]
+    public void ValidateShow_DeclaredDarkSectionWithAudibleRealAudio_FlagsSilenceCrossValidation()
+    {
+        var layout = BuildLayout();
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("declared-dark-look", "hold", [], declaredDarkness: true);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, BuildIrWithEffectCount(0), [new ModelId("Tree")], window) };
+        var audioEnergy = BuildEnergyEnvelope(normalizedEnergy: 0.9f);
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage, audioEnergy);
+
+        Assert.Contains(violations, v => v.Rule == "declared-darkness-vs-measured-audio-silence");
+    }
+
+    [Fact]
+    public void ValidateShow_DeclaredDarkSectionWithGenuinelyQuietRealAudio_DoesNotFlagSilenceCrossValidation()
+    {
+        var layout = BuildLayout();
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("declared-dark-look", "hold", [], declaredDarkness: true);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, BuildIrWithEffectCount(0), [new ModelId("Tree")], window) };
+        var audioEnergy = BuildEnergyEnvelope(normalizedEnergy: 0.05f);
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage, audioEnergy);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "declared-darkness-vs-measured-audio-silence");
+    }
+
+    [Fact]
+    public void ValidateShow_NoAudioEnergySupplied_SkipsSilenceCrossValidation_RatherThanInventingValues()
+    {
+        var layout = BuildLayout();
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("dark-look", "hold", []);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, BuildIrWithEffectCount(0), [new ModelId("Tree")], window) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "declared-darkness-vs-measured-audio-silence");
     }
 
     [Fact]

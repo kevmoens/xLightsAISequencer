@@ -8,10 +8,10 @@ Songs completed end-to-end: 3 / 5.
 
 | Song | Sections | Sections needing individual retry | Effect count | Effect type diversity | Palettes | Timing tracks | Choreographer cost |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Dubstep Christmas Light Show (30s clip) | 1 | 0 | 95 | 6 | 3 | 5 | $0.0000 |
-| All I Want For Christmas Is You shortened (30s clip) | 9 | 0 | 134 | 6 | 9 | 5 | $0.0000 |
+| Dubstep Christmas Light Show (30s clip) | 1 | 0 | 74 | 6 | 3 | 5 | $0.0000 |
+| All I Want For Christmas Is You shortened (30s clip) | 9 | 0 | 157 | 6 | 9 | 5 | $0.0000 |
 | Carrie Underwood - Away In A Manger Lite (30s clip) | generation failed: Timing track 'Beats' mark (301420862-301420863 ticks) rounds to a non-positive duration at the 25ms xLights frame grid; no file was written. | | | | | | |
-| Cher-DJ Play a Christmas Song (30s clip) | 9 | 0 | 200 | 6 | 9 | 5 | $0.0000 |
+| Cher-DJ Play a Christmas Song (30s clip) | 13 | 0 | 200 | 6 | 13 | 5 | $0.0000 |
 | Christmas Tree Hot to Go - Chappell Roan (30s clip) | generation failed: Timing track 'Beats' mark (302564626-302564627 ticks) rounds to a non-positive duration at the 25ms xLights frame grid; no file was written. | | | | | | |
 
 Architecture §1 corpus range for comparison: effects 1,114-36,453 (full-length songs; these are ~30s clips, so an

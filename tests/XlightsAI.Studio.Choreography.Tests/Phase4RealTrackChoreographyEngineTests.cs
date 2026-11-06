@@ -160,7 +160,16 @@ public sealed class Phase4RealTrackChoreographyEngineTests : IDisposable
         // trip: it was never designed to vary change-rate by section energy ceiling or to spread usage
         // across a wide effect vocabulary -- exactly the flat-density and narrow-vocabulary problems these
         // two phases exist to fix in a real AI-generated Look library, not in this fixed test fixture.
-        var postPhase7Rules = new HashSet<string>(StringComparer.Ordinal) { "declared-vs-measured-change-density", "whole-song-effect-concentration" };
+        // Build-plan "AI arch-coverage fix" (2026-10-31): RuleModelCoverage also postdates architecture
+        // §7, and is also a deliberately soft/advisory finding (never a hard compile failure) -- this
+        // fixture's fixed Phase4LookLibraryFixture/lookIdBySection mapping was authored against the
+        // reference show's main props and was never designed to also address this layout's real Arches
+        // models, exactly the kind of gap the Director's own self-healing repair pass (not this
+        // deterministic, no-LLM compiler-only test) exists to catch in a real AI-generated run.
+        var postPhase7Rules = new HashSet<string>(StringComparer.Ordinal)
+        {
+            "declared-vs-measured-change-density", "whole-song-effect-concentration", ChoreographyLegalityValidator.RuleModelCoverage,
+        };
         var preExistingViolations = result.Violations.Where(v => !postPhase7Rules.Contains(v.Rule)).ToList();
         if (preExistingViolations.Count > 0)
         {

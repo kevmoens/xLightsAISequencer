@@ -61,7 +61,8 @@ public static class ChoreographyEngine
         SectionFillerSchedule FillerSchedule,
         int CoverageLadderRungCount = 7,
         IReadOnlyList<VisemeMark>? VisemeMarks = null,
-        IReadOnlyDictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>>? PhraseLookAssignmentsBySectionId = null);
+        IReadOnlyDictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>>? PhraseLookAssignmentsBySectionId = null,
+        EnergyEnvelope? AudioEnergy = null);
 
     public sealed record Result(
         ChoreographyIR IR,
@@ -169,7 +170,7 @@ public static class ChoreographyEngine
         mergedIR = mergedIR with { Effects = gapFilledEffects };
 
         var coverageLadder = PixelCoverageLadder.Build(input.Layout, input.CoverageLadderRungCount);
-        violations.AddRange(ChoreographyLegalityValidator.ValidateShow(sectionAssignments, input.Layout, coverageLadder));
+        violations.AddRange(ChoreographyLegalityValidator.ValidateShow(sectionAssignments, input.Layout, coverageLadder, input.AudioEnergy));
 
         return new Result(mergedIR, violations, coverageLadder, barGrid);
     }

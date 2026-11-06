@@ -123,10 +123,21 @@ public static class SectionScriptPromptBuilder
     /// <see langword="null"/>/empty for the pre-existing default. Appended into this volatile suffix
     /// only, never <see cref="BuildStablePrefix"/> -- same reasoning as <see cref="DirectorPromptBuilder"/>.
     /// </param>
+    /// <summary>100ns ticks/second -- same unit/constant as every other tick field in this codebase.</summary>
+    private const long TicksPerSecond = 10_000_000L;
+
+    /// <param name="timedCues">
+    /// Build-plan "richer analysis tools" Phase 1 (2026-11-01): only the <see cref="TimedCue"/>s
+    /// (parsed once from the whole custom prompt via <see cref="CustomPromptTimedCueParser"/>) whose own
+    /// tolerance-expanded window overlaps THIS section's real time window -- the caller
+    /// (<see cref="ChoreographyGenerationPipeline"/>) is responsible for that overlap filtering, so this
+    /// method never has to re-derive it. <see langword="null"/>/empty for the pre-existing default (no
+    /// custom prompt, or none of its cues land in this section).
+    /// </param>
     public static string BuildVolatileSuffix(
         SectionLabelCandidate section, SectionMusicContext context, LayoutSummary layout, int occurrenceIndex = 1, int totalOccurrences = 1,
         SectionMelodicBrief? melodicBrief = null, SectionMotifLink? motifLink = null, IReadOnlyList<PhraseCandidate>? phrases = null,
-        string? customPrompt = null)
+        string? customPrompt = null, IReadOnlyList<TimedCue>? timedCues = null)
     {
         ArgumentNullException.ThrowIfNull(section);
         ArgumentNullException.ThrowIfNull(context);
@@ -137,6 +148,7 @@ public static class SectionScriptPromptBuilder
         sb.AppendLine($"SectionId: {section.Id}");
         sb.AppendLine($"Kind: {context.Kind}");
         sb.AppendLine($"Bars: [{section.StartBarIndex},{section.EndBarIndexExclusive})");
+        sb.AppendLine($"Real time: {FormatTimestamp(context.Window.StartTicks)}-{FormatTimestamp(context.Window.EndTicks)} (mm:ss, approximate to the nearest frame).");
         if (totalOccurrences > 1)
         {
             sb.AppendLine($"This is repeat {occurrenceIndex} of {totalOccurrences} sections classified as {context.Kind} in this song.");
@@ -156,6 +168,7 @@ public static class SectionScriptPromptBuilder
         AppendMelodicContourLine(sb, context, melodicBrief);
         AppendMotifLinkedPredecessorLine(sb, context, motifLink);
         AppendPhraseListLines(sb, phrases);
+        AppendTimedCueLines(sb, context, timedCues);
         sb.AppendLine();
         sb.AppendLine(layout.ToPromptText());
 
@@ -183,6 +196,35 @@ public static class SectionScriptPromptBuilder
 
         return sb.ToString();
     }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" Phase 1 (2026-11-01): one line per <see cref="TimedCue"/>
+    /// already known to overlap this section (the caller filters; this method just renders), naming the
+    /// cue's own approximate real-time window and its instruction verbatim. Appends nothing when
+    /// <paramref name="timedCues"/> is <see langword="null"/>/empty -- never an invented cue.
+    /// </summary>
+    private static void AppendTimedCueLines(StringBuilder sb, SectionMusicContext context, IReadOnlyList<TimedCue>? timedCues)
+    {
+        if (timedCues is not { Count: > 0 })
+        {
+            return;
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("## Timed cues from the user's own creative direction (approximate, not exact)");
+        sb.AppendLine("The user asked for something specific to happen near each real-time moment below, which falls within (or close to the edge of) this section's own real time window above. Treat each timestamp as approximate, not frame-exact -- a hand-typed time is never going to land on the beat grid precisely. Where the instruction calls for a hard, instantaneous hit/flash, use a SHORT, discrete effect (not a long sustained one) placed as close as you reasonably can to the stated moment.");
+        foreach (var cue in timedCues)
+        {
+            var rangeText = cue.End is { } end && end != cue.Start
+                ? $"{FormatTimestamp(cue.Start)}-{FormatTimestamp(end)}"
+                : FormatTimestamp(cue.Start);
+            sb.AppendLine($"- Around {rangeText} (within about ±{cue.Tolerance.TotalSeconds:0.#}s): {cue.Instruction}");
+        }
+    }
+
+    private static string FormatTimestamp(TimeSpan time) => $"{(int)time.TotalMinutes}:{time.Seconds:00}";
+
+    private static string FormatTimestamp(long ticks) => FormatTimestamp(TimeSpan.FromSeconds(ticks / (double)TicksPerSecond));
 
     /// <summary>Build-plan Phase 10 §3e task 3: one numbered line per this section's own real phrase, e.g. "Phrase 1 of 4: bars [16,20)." -- the exact phraseIndex numbering a declared phraseVariations entry must reference. Appends nothing when <paramref name="phrases"/> is <see langword="null"/>/empty -- never an invented phrase list.</summary>
     private static void AppendPhraseListLines(StringBuilder sb, IReadOnlyList<PhraseCandidate>? phrases)

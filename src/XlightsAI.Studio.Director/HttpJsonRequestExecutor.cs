@@ -1,4 +1,6 @@
 using System.Text;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 
 namespace XlightsAI.Studio.Director;
 
@@ -17,11 +19,13 @@ public sealed class HttpJsonRequestExecutor : IDisposable
 {
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
+    private readonly ILogger<HttpJsonRequestExecutor> _logger;
 
-    public HttpJsonRequestExecutor(HttpClient httpClient, bool ownsHttpClient = false)
+    public HttpJsonRequestExecutor(HttpClient httpClient, bool ownsHttpClient = false, ILogger<HttpJsonRequestExecutor>? logger = null)
     {
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
         _ownsHttpClient = ownsHttpClient;
+        _logger = logger ?? NullLogger<HttpJsonRequestExecutor>.Instance;
     }
 
     /// <summary>
@@ -40,11 +44,15 @@ public sealed class HttpJsonRequestExecutor : IDisposable
         ArgumentNullException.ThrowIfNull(headers);
 
         Exception? lastTransient = null;
+        var callId = Guid.NewGuid().ToString("N")[..8];
+
+        _logger.LogTrace("[{CallId}] >>> POST {Uri}\n{Body}", callId, uri, jsonBody);
 
         for (var attempt = 0; ; attempt++)
         {
             using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             attemptCts.CancelAfter(requestTimeout);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
             {
@@ -69,6 +77,9 @@ public sealed class HttpJsonRequestExecutor : IDisposable
 
                 var body = await response.Content.ReadAsStringAsync(attemptCts.Token).ConfigureAwait(false);
 
+                _logger.LogTrace("[{CallId}] <<< attempt {Attempt} HTTP {StatusCode} in {ElapsedMs}ms\n{Body}",
+                    callId, attempt + 1, (int)response.StatusCode, stopwatch.ElapsedMilliseconds, body);
+
                 if (Encoding.UTF8.GetByteCount(body) > maxResponseBytes)
                 {
                     throw new AiCallRejectedException(
@@ -90,10 +101,13 @@ public sealed class HttpJsonRequestExecutor : IDisposable
                         $"Provider returned HTTP {(int)response.StatusCode}: {Truncate(body, 500)}");
                 }
 
+                _logger.LogInformation("[{CallId}] POST {Uri} succeeded on attempt {Attempt} in {ElapsedMs}ms ({Bytes} response bytes).",
+                    callId, uri, attempt + 1, stopwatch.ElapsedMilliseconds, Encoding.UTF8.GetByteCount(body));
                 return body;
             }
-            catch (AiCallRejectedException)
+            catch (AiCallRejectedException ex)
             {
+                _logger.LogError(ex, "[{CallId}] POST {Uri} rejected on attempt {Attempt}: {Reason}", callId, uri, attempt + 1, ex.Reason);
                 throw; // Never retried -- the response itself is wrong, not the network.
             }
             catch (Exception ex) when (IsTransient(ex))
@@ -101,12 +115,16 @@ public sealed class HttpJsonRequestExecutor : IDisposable
                 lastTransient = ex;
                 if (attempt >= maxRetries)
                 {
+                    _logger.LogError(ex, "[{CallId}] POST {Uri} unreachable after {Attempts} attempt(s).", callId, uri, maxRetries + 1);
                     throw new AiCallRejectedException(
                         AiCallRejectionReason.ProviderUnavailable,
                         $"Provider unreachable after {maxRetries + 1} attempt(s): {lastTransient.Message}", lastTransient);
                 }
 
-                await Task.Delay(TimeSpan.FromMilliseconds(200 * Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                var delay = TimeSpan.FromMilliseconds(200 * Math.Pow(2, attempt));
+                _logger.LogWarning(ex, "[{CallId}] POST {Uri} attempt {Attempt} failed transiently; retrying in {DelayMs}ms.",
+                    callId, uri, attempt + 1, delay.TotalMilliseconds);
+                await Task.Delay(delay, ct).ConfigureAwait(false);
             }
         }
     }
@@ -126,11 +144,15 @@ public sealed class HttpJsonRequestExecutor : IDisposable
         ArgumentNullException.ThrowIfNull(headers);
 
         Exception? lastTransient = null;
+        var callId = Guid.NewGuid().ToString("N")[..8];
+
+        _logger.LogTrace("[{CallId}] >>> GET {Uri}", callId, uri);
 
         for (var attempt = 0; ; attempt++)
         {
             using var attemptCts = CancellationTokenSource.CreateLinkedTokenSource(ct);
             attemptCts.CancelAfter(requestTimeout);
+            var stopwatch = System.Diagnostics.Stopwatch.StartNew();
 
             try
             {
@@ -152,6 +174,9 @@ public sealed class HttpJsonRequestExecutor : IDisposable
 
                 var body = await response.Content.ReadAsStringAsync(attemptCts.Token).ConfigureAwait(false);
 
+                _logger.LogTrace("[{CallId}] <<< attempt {Attempt} HTTP {StatusCode} in {ElapsedMs}ms\n{Body}",
+                    callId, attempt + 1, (int)response.StatusCode, stopwatch.ElapsedMilliseconds, body);
+
                 if (Encoding.UTF8.GetByteCount(body) > maxResponseBytes)
                 {
                     throw new AiCallRejectedException(
@@ -173,10 +198,13 @@ public sealed class HttpJsonRequestExecutor : IDisposable
                         $"Provider returned HTTP {(int)response.StatusCode}: {Truncate(body, 500)}");
                 }
 
+                _logger.LogInformation("[{CallId}] GET {Uri} succeeded on attempt {Attempt} in {ElapsedMs}ms ({Bytes} response bytes).",
+                    callId, uri, attempt + 1, stopwatch.ElapsedMilliseconds, Encoding.UTF8.GetByteCount(body));
                 return body;
             }
-            catch (AiCallRejectedException)
+            catch (AiCallRejectedException ex)
             {
+                _logger.LogError(ex, "[{CallId}] GET {Uri} rejected on attempt {Attempt}: {Reason}", callId, uri, attempt + 1, ex.Reason);
                 throw;
             }
             catch (Exception ex) when (IsTransient(ex))
@@ -184,12 +212,16 @@ public sealed class HttpJsonRequestExecutor : IDisposable
                 lastTransient = ex;
                 if (attempt >= maxRetries)
                 {
+                    _logger.LogError(ex, "[{CallId}] GET {Uri} unreachable after {Attempts} attempt(s).", callId, uri, maxRetries + 1);
                     throw new AiCallRejectedException(
                         AiCallRejectionReason.ProviderUnavailable,
                         $"Provider unreachable after {maxRetries + 1} attempt(s): {lastTransient.Message}", lastTransient);
                 }
 
-                await Task.Delay(TimeSpan.FromMilliseconds(200 * Math.Pow(2, attempt)), ct).ConfigureAwait(false);
+                var delay = TimeSpan.FromMilliseconds(200 * Math.Pow(2, attempt));
+                _logger.LogWarning(ex, "[{CallId}] GET {Uri} attempt {Attempt} failed transiently; retrying in {DelayMs}ms.",
+                    callId, uri, attempt + 1, delay.TotalMilliseconds);
+                await Task.Delay(delay, ct).ConfigureAwait(false);
             }
         }
     }

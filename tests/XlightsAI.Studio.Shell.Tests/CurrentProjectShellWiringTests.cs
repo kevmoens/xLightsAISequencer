@@ -57,6 +57,31 @@ public sealed class CurrentProjectShellWiringTests : IDisposable
     }
 
     [Fact]
+    public async Task NavigatingToProjects_PopulatesRecentProjects_MostRecentFirst()
+    {
+        // User feedback (2026-11-01): "The Project should have a drop down for existing projects and
+        // have that load the workspace folder and project name."
+        var appDirectory = Path.Combine(_rootDirectory, "app");
+        var projectService = CreateProjectService(appDirectory);
+        var firstDirectory = Path.Combine(_rootDirectory, "First Song");
+        var secondDirectory = Path.Combine(_rootDirectory, "Second Song");
+        await projectService.CreateAsync(firstDirectory, "First Song", CancellationToken.None);
+        await projectService.CreateAsync(secondDirectory, "Second Song", CancellationToken.None);
+
+        var navigator = new ShellNavigator();
+        var vm = new ShellViewModel(navigator, () => Array.Empty<string>(), projectService: projectService);
+        vm.RunStartup();
+
+        Assert.False(vm.Projects.HasRecentProjects);
+
+        vm.NavigateToProjectsCommand.Execute(null);
+        await vm.LastLoadRecentProjectsTask!;
+
+        Assert.True(vm.Projects.HasRecentProjects);
+        Assert.Equal(["Second Song", "First Song"], vm.Projects.RecentProjects.Select(p => p.Name).ToList());
+    }
+
+    [Fact]
     public async Task OpenProjectCommand_OnSuccess_SetsCurrentProject()
     {
         var appDirectory = Path.Combine(_rootDirectory, "app");

@@ -45,6 +45,15 @@ namespace XlightsAI.Studio.Shell;
 /// <see cref="LastShowDirectory"/> value, this is the full pick-list the Show Import screen's dropdown
 /// offers. A settings.json predating this field has no such JSON property, which deserializes as an
 /// empty list -- "no show directories remembered yet," correct for an upgrading installation.
+///
+/// <paramref name="XlightsExecutablePath"/> is additive, user feedback (2026-11-03): "Can't that be
+/// loaded on start up" -- previously <see cref="ShowImportViewModel.XlightsExecutablePath"/> was a
+/// plain, never-persisted bindable field that reset to empty on every app restart, so the quality-pass
+/// toggle's own <c>QualityPassUnavailableException</c> re-triggered every session even after the user
+/// had already typed/browsed to a working path once. Restored (never auto-validated) the same "restore
+/// the typed value" convention as <see cref="LastShowDirectory"/>. A settings.json predating this field
+/// has no such JSON property, which deserializes as <see langword="null"/> -- "never configured yet,"
+/// correct for an upgrading installation.
 /// </summary>
 public sealed record AppSettings(
     int SchemaVersion,
@@ -54,7 +63,8 @@ public sealed record AppSettings(
     bool HasCompletedFirstRun = false,
     string? LastProjectRootDirectory = null,
     string? CorpusRootDirectory = null,
-    IReadOnlyList<string>? RecentShowDirectories = null)
+    IReadOnlyList<string>? RecentShowDirectories = null,
+    string? XlightsExecutablePath = null)
 {
     public const int CurrentSchemaVersion = 1;
 

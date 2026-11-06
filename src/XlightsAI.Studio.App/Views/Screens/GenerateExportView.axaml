@@ -85,6 +85,14 @@
                      Text="Analysing and composing…" />
         </StackPanel>
 
+        <!-- User feedback (2026-11-03): "don't allow generate until that is filled in." Generate is
+             disabled (see GenerateWholeSongPlanCommand's own CanExecute) while quality pass is on and no
+             xLights executable is configured yet; this explains why, rather than a silently-disabled
+             button. -->
+        <TextBlock Classes="error"
+                   IsVisible="{Binding ShowQualityPassPathWarning}"
+                   Text="Quality pass is on, which needs the xLights executable path configured below (&quot;Open in xLights&quot;) before you can generate." />
+
         <!-- Surfaced only once generation has actually hit the missing-model case, same
              download-on-demand convention as ffmpeg on the Song screen. -->
         <Border Classes="panel" IsVisible="{Binding ShowImport.RequiresStemModelDownload}">
@@ -148,6 +156,37 @@
       </StackPanel>
     </Border>
 
+    <!-- ================= Touch-up (post-processing prompt) ================= -->
+    <!-- Build-plan "richer analysis tools" post-processing phase (2026-11-02): the user's own explicit
+         ask: a prompt with time ranges that alters ONLY what it names, leaving the rest of an already-
+         generated sequence exactly as it was. Only shown once a generation has actually run (there is
+         nothing yet to touch up before that). -->
+    <Border Classes="card" IsVisible="{Binding ShowImport.CanApplyPostProcessingPrompt}">
+      <StackPanel Spacing="8">
+        <TextBlock Classes="section" Text="Touch up this sequence" />
+        <TextBlock Classes="hint"
+                   Text="Change only specific moments, leaving everything else exactly as it is. Use the same time-range syntax as creative direction cues, e.g. &quot;at 00:24-00:25, make it flash harder.&quot;" />
+
+        <TextBox Text="{Binding ShowImport.PostProcessingPromptText}"
+                 AcceptsReturn="True" TextWrapping="Wrap"
+                 MinHeight="70" MaxHeight="160"
+                 Watermark="e.g. At 01:18-01:20, add a bright strobe on the Mega Tree only." />
+
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <Button Classes="primary" Content="Apply touch-up" Command="{Binding ApplyPostProcessingPromptCommand}" />
+          <TextBlock Classes="busy" VerticalAlignment="Center" IsVisible="{Binding ShowImport.IsPostProcessingBusy}"
+                     Text="Applying touch-up…" />
+        </StackPanel>
+
+        <TextBlock Classes="detail"
+                   IsVisible="{Binding ShowImport.HasPostProcessingStatusMessage}"
+                   Text="{Binding ShowImport.PostProcessingStatusMessage}" />
+        <TextBlock Classes="error"
+                   IsVisible="{Binding ShowImport.HasPostProcessingErrorMessage}"
+                   Text="{Binding ShowImport.PostProcessingErrorMessage}" />
+      </StackPanel>
+    </Border>
+
     <!-- ================= Export ================= -->
     <Border Classes="card">
       <StackPanel Spacing="8">
@@ -206,8 +245,14 @@
     </Border>
 
     <!-- ================= Open in xLights ================= -->
-    <!-- PHASE-02 Step 014: open the exported XSQ in installed xLights for human-attested verification. -->
-    <Border Classes="card" IsVisible="{Binding ShowImport.HasExport}">
+    <!-- PHASE-02 Step 014: open the exported XSQ in installed xLights for human-attested verification.
+         Build-plan "richer analysis tools" Phase 3 (2026-11-02): this is also the only place
+         XlightsExecutablePath is configured, and the quality-pass toggle needs it configured BEFORE the
+         first generation (to render intermediate iterations), not after. Previously gated behind
+         HasExport, which made it unreachable until a generation had already succeeded once, a real
+         catch-22 for a first-time quality-pass run. Always visible now; only the "Open in xLights" launch
+         button itself still needs a real export (it reports its own clear error otherwise). -->
+    <Border Classes="card">
       <StackPanel Spacing="8">
         <TextBlock Classes="section" Text="Open in xLights" />
         <TextBlock Classes="field" Text="INSTALLED XLIGHTS PROGRAM" />

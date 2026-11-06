@@ -13,6 +13,7 @@
     <!-- PHASE-11 Step 075: DpapiCredentialStore is the first credential-storage code in this repository;
          System.Security.Cryptography.ProtectedData ships the cross-targeting ProtectedData API whose
          Windows implementation DPAPI-encrypts a BYOK cloud provider's API key before it touches disk. -->
+    <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="10.0.0" />
     <PackageReference Include="System.Security.Cryptography.ProtectedData" Version="9.0.0" />
   </ItemGroup>
 

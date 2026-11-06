@@ -20,9 +20,16 @@ public sealed class NullWholeSongGenerator : IWholeSongGenerator
     {
     }
 
-    public Task<WholeSongGenerationResult> GenerateAsync(SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null)
+    public Task<WholeSongGenerationResult> GenerateAsync(
+        SongAsset song, DisplayGraph layout, CancellationToken ct = default, CustomGenerationPrompt? customPrompt = null,
+        string? showDirectory = null, string? xlightsExecutablePath = null)
     {
         throw new InvalidOperationException(
             "No real whole-song generator is configured for this composition root yet (no analysis-cache directories/stem-separation model wired up).");
     }
+
+    public Task<WholeSongGenerationResult> ApplyPostProcessingPromptAsync(
+        SongAsset song, DisplayGraph layout, Guid generationRunId, string postProcessingPromptText, CancellationToken ct = default) =>
+        throw new InvalidOperationException(
+            "No real whole-song generator is configured for this composition root yet (no analysis-cache directories/stem-separation model wired up).");
 }

@@ -1,4 +1,5 @@
 using System.Text.Json;
+using Microsoft.Extensions.Logging;
 
 namespace XlightsAI.Studio.Shell;
 
@@ -29,12 +30,14 @@ public sealed class AppDiagnostics : IAppDiagnostics
     private readonly string _logFilePath;
     private readonly List<DiagnosticEvent> _recentEvents = new();
     private readonly object _gate = new();
+    private readonly ILogger<AppDiagnostics> _logger;
     private int _persistedLineCount;
 
-    public AppDiagnostics(string logDirectory)
+    public AppDiagnostics(string logDirectory, ILogger<AppDiagnostics>? logger = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(logDirectory);
         _logDirectory = logDirectory;
+        _logger = logger ?? Microsoft.Extensions.Logging.Abstractions.NullLogger<AppDiagnostics>.Instance;
         _logFilePath = Path.Combine(logDirectory, "diagnostics.log");
         var existing = TryReadExistingEvents();
         _recentEvents.AddRange(existing);
@@ -76,8 +79,16 @@ public sealed class AppDiagnostics : IAppDiagnostics
         }
 
         TryAppendToLogFile(entry);
+        _logger.Log(ToLogLevel(level), "[{Code}] {Message} (diagnostic-id {CorrelationId})", code, entry.Message, entry.CorrelationId);
         Changed?.Invoke(this, EventArgs.Empty);
     }
+
+    private static LogLevel ToLogLevel(DiagnosticEventLevel level) => level switch
+    {
+        DiagnosticEventLevel.Warning => LogLevel.Warning,
+        DiagnosticEventLevel.Error => LogLevel.Error,
+        _ => LogLevel.Information,
+    };
 
     public void RecordFailure(string code, Exception error)
     {

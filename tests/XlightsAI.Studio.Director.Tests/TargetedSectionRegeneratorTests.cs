@@ -94,6 +94,46 @@ public sealed class TargetedSectionRegeneratorTests
     }
 
     [Fact]
+    public async Task RegenerateAsync_DirectedSectionHasPriorContent_IncludesItInThePromptSoTheModelHasSomethingToPreserve()
+    {
+        // User feedback (2026-11-03): a real touch-up came back measurably thinner than the section it
+        // replaced -- the Choreographer was never shown what the section currently contained, so "keep
+        // everything else as-is" (the directive's own wording) was an instruction with nothing to honor.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await LoadLayoutAsync();
+        var directedId = Guid.NewGuid();
+        var richPriorScript = new SectionScript(
+            directedId, "golden-hold",
+            PropBindings: [new SectionEventBinding(1, "group:Arches")],
+            FillerEffects: RealXLightsFixture.SixCommonEffectNames);
+        var regeneratedScript = new SectionScript(directedId, "golden-hold", FillerEffects: RealXLightsFixture.SixCommonEffectNames);
+
+        var fake = new FakeChatCompletionClient([_ => new ChatCompletionResult(JsonSerializer.Serialize(regeneratedScript), new AiUsage(10, 5, null, null))]);
+        var generator = new SectionScriptBatchGenerator(fake);
+
+        var existing = new Dictionary<Guid, SectionScript> { [directedId] = richPriorScript };
+        var directives = new List<RevisionDirective> { new(directedId, "post-processing-edit", "Touch up this one moment.", ["post-processing:x"]) };
+        var suffixes = new Dictionary<Guid, string> { [directedId] = "## This section\nSectionId: " + directedId };
+
+        await TargetedSectionRegenerator.RegenerateAsync(
+            generator, "stable prefix", existing, directives, suffixes, Guid.NewGuid(), OneLook(), layout, FakeVocabulary(), maxOutputTokens: 500, CancellationToken.None);
+
+        Assert.Single(fake.Requests);
+        Assert.Contains("CURRENT content", fake.Requests[0].UserPrompt);
+        // The actual prior FillerEffects/PropBindings content must appear verbatim -- not just a vague
+        // mention that prior content exists.
+        Assert.Contains("group:Arches", fake.Requests[0].UserPrompt);
+        foreach (var effectName in RealXLightsFixture.SixCommonEffectNames)
+        {
+            Assert.Contains(effectName, fake.Requests[0].UserPrompt);
+        }
+    }
+
+    [Fact]
     public async Task RegenerateAsync_DirectiveWithNoSuppliedSuffix_Throws()
     {
         var layout = RealXLightsFixture.IsAvailable ? await LoadLayoutAsync() : new DisplayGraph("none", [], [], []);

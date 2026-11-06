@@ -26,6 +26,9 @@
     <PackageReference Include="Avalonia.Themes.Fluent" Version="11.3.2" />
     <PackageReference Include="Avalonia.Fonts.Inter" Version="11.3.2" />
     <PackageReference Include="Avalonia.Diagnostics" Version="11.3.2" Condition="'$(Configuration)' == 'Debug'" />
+    <PackageReference Include="Microsoft.Extensions.DependencyInjection" Version="10.0.0" />
+    <PackageReference Include="NLog" Version="6.2.2" />
+    <PackageReference Include="NLog.Extensions.Logging" Version="5.5.0" />
     <!-- Transitive dep of Avalonia.Desktop (Linux clipboard/D-Bus); pinned past GHSA-xrw6-gwf8-vvr9. -->
     <PackageReference Include="Tmds.DBus.Protocol" Version="0.95.1" />
     <PackageReference Include="Velopack" Version="1.2.161" />

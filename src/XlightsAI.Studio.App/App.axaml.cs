@@ -1,6 +1,8 @@
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using XlightsAI.Studio.App.Views;
 using XlightsAI.Studio.Audio;
 using XlightsAI.Studio.Pipeline;
@@ -21,6 +23,14 @@ public partial class App : Application
     /// never null-reference-crashes the composition root.
     /// </summary>
     public static IAppDiagnostics? Diagnostics { get; set; }
+
+    /// <summary>
+    /// The DI container <see cref="Program.Main"/> built everything from -- available so any
+    /// screen that needs an <see cref="Microsoft.Extensions.Logging.ILogger{T}"/> or other
+    /// container-registered service that doesn't have its own dedicated <c>App.*</c> property can
+    /// resolve it, instead of every new dependency growing its own static property here.
+    /// </summary>
+    public static IServiceProvider? Services { get; set; }
 
     public static ISettingsStore? SettingsStore { get; set; }
 
@@ -174,7 +184,8 @@ public partial class App : Application
                 xsqExporter: xsqExporter,
                 corpusKnowledgeDirectory: CorpusKnowledgeDirectory,
                 customPromptStore: customPromptStore,
-                aiRoleClientResolver: aiRoleClientResolver);
+                aiRoleClientResolver: aiRoleClientResolver,
+                loggerFactory: Services?.GetService<ILoggerFactory>());
             shellViewModel.RunStartup();
 
             desktop.MainWindow = new MainWindow(shellViewModel);

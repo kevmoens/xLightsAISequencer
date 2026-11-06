@@ -21,7 +21,13 @@ public sealed record StructureAnalysisSettingsBundle(
         BarFingerprint: new BarFingerprintSettings(ChromaBins: 12, RecipeId: BarFingerprintBuilder.EnergyPlusChromaRecipeId),
         SectionBoundary: new SectionBoundarySettings(
             InitialNoveltyThreshold: 0.6, MinNoveltyThreshold: 0.3, MinBoundaryCount: 1, MaxRefinementIterations: 10,
-            RecipeId: SectionBoundaryDetector.AdjacentCosineNoveltyRecipeId),
+            RecipeId: SectionBoundaryDetector.AdjacentCosineNoveltyRecipeId,
+            // User feedback (2026-11-04): a real 50-bar song converged after one iteration with one
+            // section spanning 33 of those 50 bars (66%) -- MinBoundaryCount alone could not catch this,
+            // since a handful of very obvious transitions already satisfied it. 0.35 means no single
+            // section is allowed to dominate more than a third of the song before the search is required
+            // to keep relaxing toward MinNoveltyThreshold looking for real internal structure.
+            MaxSectionSpanFraction: 0.35),
         SectionLabel: new SectionLabelSettings(
             RepetitionSimilarityThreshold: 0.85, MinConfidenceToLabel: 0.5,
             RecipeId: SectionLabelClassifier.RepetitionAndPositionRecipeId),

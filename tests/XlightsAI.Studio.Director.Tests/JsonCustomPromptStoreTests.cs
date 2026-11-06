@@ -55,6 +55,33 @@ public sealed class JsonCustomPromptStoreTests : IDisposable
     }
 
     [Fact]
+    public async Task SaveAsync_ThenLoad_RoundTripsEnableQualityPass()
+    {
+        // Build-plan "richer analysis tools" Phase 3 (2026-11-02).
+        var store = new JsonCustomPromptStore(_root);
+        var prompt = new CustomGenerationPrompt("Use a red and gold palette throughout.", EnableQualityPass: true);
+
+        await store.SaveAsync(prompt, CancellationToken.None);
+        var loaded = await store.LoadAsync(CancellationToken.None);
+
+        Assert.True(loaded.EnableQualityPass);
+    }
+
+    [Fact]
+    public async Task LoadAsync_PreExistingFileWithNoEnableQualityPassProperty_DeserializesAsFalse()
+    {
+        // A custom-prompt.json saved before this field existed has no "EnableQualityPass" JSON property
+        // at all -- must deserialize as false (the pre-existing single-pass default), never throw.
+        var store = new JsonCustomPromptStore(_root);
+        Directory.CreateDirectory(_root);
+        await File.WriteAllTextAsync(store.GetPath(), """{"Text":"legacy text","StayCloseToExemplars":true}""", CancellationToken.None);
+
+        var loaded = await store.LoadAsync(CancellationToken.None);
+
+        Assert.False(loaded.EnableQualityPass);
+    }
+
+    [Fact]
     public async Task LoadAsync_PreExistingFileWithNoStyleProperty_DeserializesStyleAsNull()
     {
         // A custom-prompt.json saved before this field existed has no "Style" JSON property at all --

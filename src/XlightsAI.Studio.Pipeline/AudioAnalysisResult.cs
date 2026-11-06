@@ -12,4 +12,5 @@ public sealed record AudioAnalysisResult(
     MelodyTrack Melody,
     VocalActivityEnvelope VocalActivity,
     BandEnergyEnvelope BandEnergy,
-    IReadOnlyList<VisemeMark> VisemeMarks);
+    IReadOnlyList<VisemeMark> VisemeMarks,
+    OnsetAnalysis? Onsets = null);

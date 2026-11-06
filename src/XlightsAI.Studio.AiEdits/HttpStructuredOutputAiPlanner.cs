@@ -1,6 +1,8 @@
 using System.Text;
 using System.Text.Json;
 using System.Text.Json.Serialization;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Xlights;
 
@@ -68,11 +70,14 @@ public sealed class HttpStructuredOutputAiPlanner : IOptionalAiPlanner, IDisposa
     private readonly HttpClient _httpClient;
     private readonly bool _ownsHttpClient;
     private readonly string? _apiKey;
+    private readonly ILogger<HttpStructuredOutputAiPlanner> _logger;
 
     /// <param name="options">Must have <see cref="AiProviderOptions.Enabled"/> set -- construct a disabled planner via <see cref="OptionalAiPlannerFactory.Create"/>, never this type, directly.</param>
     /// <param name="httpClient">The transport to use. Never disposed by this instance unless <paramref name="ownsHttpClient"/> is <see langword="true"/>.</param>
     /// <param name="apiKey">A BYOK cloud API key already retrieved from <see cref="ICredentialStore"/>, or <see langword="null"/> for <see cref="AiProviderKind.OllamaLocal"/>. Never logged; attached only as a bearer <c>Authorization</c> header on the outbound request.</param>
-    public HttpStructuredOutputAiPlanner(AiProviderOptions options, HttpClient httpClient, bool ownsHttpClient = false, string? apiKey = null)
+    public HttpStructuredOutputAiPlanner(
+        AiProviderOptions options, HttpClient httpClient, bool ownsHttpClient = false, string? apiKey = null,
+        ILogger<HttpStructuredOutputAiPlanner>? logger = null)
     {
         ArgumentNullException.ThrowIfNull(options);
         ArgumentNullException.ThrowIfNull(httpClient);
@@ -88,6 +93,7 @@ public sealed class HttpStructuredOutputAiPlanner : IOptionalAiPlanner, IDisposa
         _httpClient = httpClient;
         _ownsHttpClient = ownsHttpClient;
         _apiKey = apiKey;
+        _logger = logger ?? NullLogger<HttpStructuredOutputAiPlanner>.Instance;
     }
 
     public async Task<EditProposal> ProposeAsync(
@@ -157,6 +163,7 @@ public sealed class HttpStructuredOutputAiPlanner : IOptionalAiPlanner, IDisposa
     private async Task<AiProposalEnvelopeDto> SendAsync(AiPlannerRequestPayload payload, CancellationToken ct)
     {
         var requestJson = JsonSerializer.Serialize(payload);
+        var callId = Guid.NewGuid().ToString("N")[..8];
         using var request = new HttpRequestMessage(HttpMethod.Post, _options.Endpoint)
         {
             Content = new StringContent(requestJson, Encoding.UTF8, "application/json"),
@@ -167,10 +174,14 @@ public sealed class HttpStructuredOutputAiPlanner : IOptionalAiPlanner, IDisposa
             request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", _apiKey);
         }
 
+        _logger.LogTrace("[{CallId}] >>> POST {Uri}\n{Body}", callId, _options.Endpoint, requestJson);
+        var stopwatch = System.Diagnostics.Stopwatch.StartNew();
+
         using var response = await _httpClient.SendAsync(request, HttpCompletionOption.ResponseHeadersRead, ct).ConfigureAwait(false);
 
         if (!response.IsSuccessStatusCode)
         {
+            _logger.LogWarning("[{CallId}] POST {Uri} returned HTTP {StatusCode}.", callId, _options.Endpoint, (int)response.StatusCode);
             throw new HttpRequestException($"AI provider responded with status {(int)response.StatusCode}.");
         }
 
@@ -183,6 +194,9 @@ public sealed class HttpStructuredOutputAiPlanner : IOptionalAiPlanner, IDisposa
         }
 
         var body = await response.Content.ReadAsStringAsync(ct).ConfigureAwait(false);
+        _logger.LogTrace("[{CallId}] <<< HTTP {StatusCode} in {ElapsedMs}ms\n{Body}",
+            callId, (int)response.StatusCode, stopwatch.ElapsedMilliseconds, body);
+
         if (Encoding.UTF8.GetByteCount(body) > _options.MaxResponseBytes)
         {
             throw new AiProposalRejectedException(
@@ -193,12 +207,20 @@ public sealed class HttpStructuredOutputAiPlanner : IOptionalAiPlanner, IDisposa
         try
         {
             var envelope = JsonSerializer.Deserialize<AiProposalEnvelopeDto>(body, ResponseOptions);
-            return envelope ?? throw new AiProposalRejectedException(
-                AiProposalRejectionReason.MalformedJson,
-                "AI provider returned a JSON body that deserialized to null.");
+            if (envelope is null)
+            {
+                throw new AiProposalRejectedException(
+                    AiProposalRejectionReason.MalformedJson,
+                    "AI provider returned a JSON body that deserialized to null.");
+            }
+
+            _logger.LogInformation("[{CallId}] POST {Uri} succeeded in {ElapsedMs}ms with {OperationCount} operation(s).",
+                callId, _options.Endpoint, stopwatch.ElapsedMilliseconds, envelope.Operations?.Count ?? 0);
+            return envelope;
         }
         catch (JsonException ex)
         {
+            _logger.LogError(ex, "[{CallId}] POST {Uri} returned unparsable JSON.", callId, _options.Endpoint);
             throw new AiProposalRejectedException(
                 AiProposalRejectionReason.MalformedJson,
                 "AI provider returned JSON that could not be parsed, or that carried a property outside the declared schema.",

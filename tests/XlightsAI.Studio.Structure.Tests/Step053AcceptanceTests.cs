@@ -234,6 +234,126 @@ public sealed class Step053AcceptanceTests : IDisposable
     }
 
     [Fact]
+    public async Task DetectAsync_OneDominantSectionBelowMinBoundaryCountAlone_RelaxesFurtherToSatisfyMaxSectionSpanFraction()
+    {
+        // User feedback (2026-11-04): a real song converged after its very first iteration because
+        // MinBoundaryCount (1) was already satisfied by a handful of very obvious transitions, even
+        // though one resulting section spanned the overwhelming majority of the song. This fixture
+        // reproduces that shape: bars 0-1 differ sharply from bars 2-7 (one strong, obvious transition
+        // at bar 2 -- satisfies MinBoundaryCount=1 alone), but bars 2-7 contain a real, subtler internal
+        // change at bar 5 that only a lower threshold reveals.
+        var songId = new SongId(Guid.NewGuid());
+        const string sourceHash = "deadbeef";
+
+        var bars = new[]
+        {
+            Bar(0, 1.0, 0.0, 0.0), // "intro"
+            Bar(1, 1.0, 0.0, 0.0),
+            Bar(2, 0.0, 1.0, 0.0), // bar 2: strong, obvious transition from the intro (novelty 1.0)
+            Bar(3, 0.0, 1.0, 0.0),
+            Bar(4, 0.0, 1.0, 0.0),
+            Bar(5, 0.0, 0.6, 0.8), // bar 5: a real but subtler internal change (novelty 0.4 vs bar 4)
+            Bar(6, 0.0, 0.6, 0.8),
+            Bar(7, 0.0, 0.6, 0.8),
+        };
+        var fingerprintSet = BuildFingerprintSet(songId, sourceHash, bars);
+        var context = new SectionBoundaryContext(songId, sourceHash, fingerprintSet);
+
+        // At the initial threshold (0.5), only bar 2's own transition clears the bar (bar 5's own 0.4
+        // novelty does not yet) -- one non-trivial candidate, already satisfying MinBoundaryCount=1, but
+        // leaving a 6-bar span (2-8, 6 of 8 total bars = 75%) that MaxSectionSpanFraction (0.4) does not
+        // allow. One halving step down to 0.25 then reveals bar 5's own real transition.
+        var spanAwareSettings = Settings with { MaxSectionSpanFraction = 0.4 };
+
+        var detector = new SectionBoundaryDetector(new JsonSectionBoundaryStore(Path.Combine(_tempDir, "sb-cache")));
+        var analysis = await detector.DetectAsync(context, spanAwareSettings, CancellationToken.None);
+
+        // Must have relaxed past the first iteration to find bar 5's own subtler transition too.
+        Assert.Equal([0, 2, 5], analysis.Boundaries.Select(b => b.BarIndex).ToArray());
+        Assert.True(analysis.ErrorReport.Converged);
+        Assert.True(analysis.ErrorReport.IterationsRun > 1, "expected the search to relax past the first iteration to satisfy the span cap.");
+    }
+
+    [Fact]
+    public async Task DetectAsync_DefaultMaxSectionSpanFraction_NeverChangesPriorConvergenceBehavior()
+    {
+        // MaxSectionSpanFraction's own default (1.0) must reproduce the exact pre-existing acceptance
+        // behavior -- converges on the very first iteration despite one large resulting span, since the
+        // check is disabled entirely at 1.0.
+        var songId = new SongId(Guid.NewGuid());
+        const string sourceHash = "deadbeef";
+        var bars = new[]
+        {
+            Bar(0, 1.0, 0.0, 0.0),
+            Bar(1, 1.0, 0.0, 0.0),
+            Bar(2, 0.0, 1.0, 0.0),
+            Bar(3, 0.0, 1.0, 0.0),
+            Bar(4, 0.0, 1.0, 0.0),
+            Bar(5, 0.0, 0.6, 0.4),
+            Bar(6, 0.0, 0.6, 0.4),
+            Bar(7, 0.0, 0.6, 0.4),
+        };
+        var fingerprintSet = BuildFingerprintSet(songId, sourceHash, bars);
+        var context = new SectionBoundaryContext(songId, sourceHash, fingerprintSet);
+
+        var detector = new SectionBoundaryDetector(new JsonSectionBoundaryStore(Path.Combine(_tempDir, "sb-cache")));
+        var analysis = await detector.DetectAsync(context, Settings, CancellationToken.None);
+
+        Assert.Equal([0, 2], analysis.Boundaries.Select(b => b.BarIndex).ToArray());
+        Assert.Equal(1, analysis.ErrorReport.IterationsRun);
+    }
+
+    [Fact]
+    public async Task DetectAsync_SpanCapUnsatisfiableEvenAtNoveltyFloor_HonestlyReportsExhaustedRetryBudget()
+    {
+        // A genuinely flat 5-bar stretch (bars 3-7) with no real novelty anywhere inside it, even at the
+        // novelty floor -- no amount of relaxing can ever satisfy an aggressive span cap here. Must be
+        // honestly reported as not converged, never a fabricated boundary.
+        var songId = new SongId(Guid.NewGuid());
+        const string sourceHash = "deadbeef";
+        var bars = new[]
+        {
+            Bar(0, 1.0, 0.0),
+            Bar(1, 1.0, 0.0),
+            Bar(2, 0.0, 1.0),
+            Bar(3, 0.0, 1.0),
+            Bar(4, 0.0, 1.0),
+            Bar(5, 0.0, 1.0),
+            Bar(6, 0.0, 1.0),
+            Bar(7, 0.0, 1.0),
+        };
+        var fingerprintSet = BuildFingerprintSet(songId, sourceHash, bars);
+        var context = new SectionBoundaryContext(songId, sourceHash, fingerprintSet);
+
+        var aggressiveSettings = Settings with { MaxSectionSpanFraction = 0.2 };
+        var detector = new SectionBoundaryDetector(new JsonSectionBoundaryStore(Path.Combine(_tempDir, "sb-cache")));
+        var analysis = await detector.DetectAsync(context, aggressiveSettings, CancellationToken.None);
+
+        Assert.Equal([0, 2], analysis.Boundaries.Select(b => b.BarIndex).ToArray());
+        Assert.False(analysis.ErrorReport.Converged);
+        Assert.True(analysis.ErrorReport.RetryBudgetExhausted);
+        Assert.NotEmpty(analysis.ErrorReport.Warnings);
+    }
+
+    [Theory]
+    [InlineData(0.0)]
+    [InlineData(1.1)]
+    public async Task DetectAsync_InvalidMaxSectionSpanFraction_ThrowsSectionBoundaryInvalidException(double invalidFraction)
+    {
+        var songId = new SongId(Guid.NewGuid());
+        const string sourceHash = "deadbeef";
+        var fingerprintSet = BuildFingerprintSet(songId, sourceHash, [Bar(0, 1.0, 0.0)]);
+        var context = new SectionBoundaryContext(songId, sourceHash, fingerprintSet);
+
+        var detector = new SectionBoundaryDetector(new JsonSectionBoundaryStore(Path.Combine(_tempDir, "sb-cache")));
+        var badSettings = Settings with { MaxSectionSpanFraction = invalidFraction };
+
+        var ex = await Assert.ThrowsAsync<SectionBoundaryInvalidException>(
+            () => detector.DetectAsync(context, badSettings, CancellationToken.None));
+        Assert.Contains("MaxSectionSpanFraction", ex.Reason);
+    }
+
+    [Fact]
     public async Task DetectAsync_NullArguments_ThrowArgumentNullException()
     {
         var songId = new SongId(Guid.NewGuid());

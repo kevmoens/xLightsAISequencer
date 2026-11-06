@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Knowledge;
+using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Choreography;
@@ -30,6 +31,7 @@ public static class ChoreographyLegalityValidator
     private const string RuleDeclaredDarkness = "declared-vs-accidental-darkness";
     private const string RuleSectionDensityContrast = "declared-vs-measured-change-density";
     private const string RuleEffectConcentration = "whole-song-effect-concentration";
+    private const string RuleSilenceCrossValidation = "declared-darkness-vs-measured-audio-silence";
 
     /// <summary>
     /// Public (unlike every other rule id here) because <see cref="XlightsAI.Studio.Director.RevisionDirectiveDeriver"/>
@@ -64,6 +66,17 @@ public static class ChoreographyLegalityValidator
 
     /// <summary>A song needs at least this many real, name-resolved effects before <see cref="RuleEffectConcentration"/> bothers computing a share -- a 1-2 effect sample is too small for "concentration" to mean anything.</summary>
     private const int MinEffectsForConcentrationCheck = 10;
+
+    /// <summary>Below this duty-corrected pixel coverage, a section's own compiled visuals count as "dark" -- shared by <see cref="RuleDeclaredDarkness"/> and <see cref="RuleSilenceCrossValidation"/> so both rules agree on what "dark" means.</summary>
+    private const double VisualDarknessThreshold = 0.02;
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" Phase 5 (2026-11-02): above this real, measured
+    /// <see cref="EnergyFrame.NormalizedEnergy"/> average, a section's own audio counts as clearly
+    /// audible ("not quiet") for <see cref="RuleSilenceCrossValidation"/>'s own purposes. Deliberately well
+    /// above a true-silence floor so an only-mildly-quiet section is never mistaken for loud.
+    /// </summary>
+    private const double AudibleEnergyThreshold = 0.3;
 
     /// <summary>Effects needing many pixels to read as intended (fine textural/gradient/continuous material) -- architecture §7: "high-resolution props get continuous, gradient, textural material... low-resolution props get discrete, graphic material."</summary>
     public static readonly IReadOnlyCollection<string> TexturalHighResolutionEffects = new HashSet<string>(StringComparer.Ordinal)
@@ -168,8 +181,15 @@ public static class ChoreographyLegalityValidator
         TimeWindow? Window = null, double? EnergyCeiling = null);
 
     /// <summary>Validates whole-song concerns that no single section's own compile can check in isolation: peak-Look uniqueness, pixel-heavy coverage, and declared-vs-accidental darkness.</summary>
+    /// <param name="audioEnergy">
+    /// Build-plan "richer analysis tools" Phase 5 (2026-11-02): this song's own real, measured broadband
+    /// <see cref="EnergyEnvelope"/>, or <see langword="null"/> (the default, and every pre-existing
+    /// caller's behavior) when none is available. Only consulted by <see cref="RuleSilenceCrossValidation"/>
+    /// -- every other rule here is unaffected by its presence or absence.
+    /// </param>
     public static IReadOnlyList<LegalityViolation> ValidateShow(
-        IReadOnlyList<SectionAssignment> sections, DisplayGraph layout, IReadOnlyList<PixelCoverageLadder.Rung> coverageLadder)
+        IReadOnlyList<SectionAssignment> sections, DisplayGraph layout, IReadOnlyList<PixelCoverageLadder.Rung> coverageLadder,
+        EnergyEnvelope? audioEnergy = null)
     {
         ArgumentNullException.ThrowIfNull(sections);
         ArgumentNullException.ThrowIfNull(layout);
@@ -218,13 +238,39 @@ public static class ChoreographyLegalityValidator
 
         // Declared vs. accidental darkness (H): a section compiling to near-zero duty-corrected coverage
         // whose own Look never declared that as intentional is a defect, not negative space.
+        //
+        // Build-plan "richer analysis tools" Phase 5 (2026-11-02): when a real audioEnergy envelope is
+        // available, also cross-validates visual darkness against this song's own real, measured audio in
+        // the same window (L) -- catching both an undeclared-dark section that is actually audible, and a
+        // deliberately-declared-dark Look applied where the real audio is not actually quiet (a plausible
+        // sign the Look/section pairing is a mismatch). Soft/advisory, same framing as every rule above;
+        // skipped entirely (not even attempted) when audioEnergy or the section's own Window is unavailable.
         foreach (var section in sections)
         {
             var dutyCorrectedCoverage = EstimateDutyCorrectedCoverage(section.CompiledIR, layout);
-            if (dutyCorrectedCoverage < 0.02 && !section.Look.DeclaredDarkness)
+            var isVisuallyDark = dutyCorrectedCoverage < VisualDarknessThreshold;
+            if (isVisuallyDark && !section.Look.DeclaredDarkness)
             {
                 violations.Add(new LegalityViolation(RuleDeclaredDarkness,
                     $"Section '{section.SectionId}' (Look '{section.Look.Id}') compiles to near-zero duty-corrected pixel coverage ({dutyCorrectedCoverage:P1}) without DeclaredDarkness set -- undeclared darkness is a defect, declared darkness is negative space."));
+            }
+
+            if (audioEnergy is not null && section.Window is { } window)
+            {
+                var measuredEnergy = AverageNormalizedEnergyInWindow(audioEnergy, window.StartTicks, window.EndTicks);
+                if (measuredEnergy > AudibleEnergyThreshold)
+                {
+                    if (isVisuallyDark && !section.Look.DeclaredDarkness)
+                    {
+                        violations.Add(new LegalityViolation(RuleSilenceCrossValidation,
+                            $"Section '{section.SectionId}' (Look '{section.Look.Id}') compiles visually dark ({dutyCorrectedCoverage:P1} coverage) without DeclaredDarkness, but the real audio in this window measures {measuredEnergy:0.00} normalized energy -- not actually quiet."));
+                    }
+                    else if (section.Look.DeclaredDarkness)
+                    {
+                        violations.Add(new LegalityViolation(RuleSilenceCrossValidation,
+                            $"Section '{section.SectionId}' (Look '{section.Look.Id}') declares DeclaredDarkness, but the real audio in this window measures {measuredEnergy:0.00} normalized energy -- not actually quiet; a declared-dark Look applied where the music is audible."));
+                    }
+                }
             }
         }
 
@@ -331,6 +377,36 @@ public static class ChoreographyLegalityValidator
         var window = section.Window!.Value;
         var durationSeconds = (window.EndTicks - window.StartTicks) / (double)TicksPerSecond;
         return durationSeconds > 0 ? section.CompiledIR.Effects.Count / durationSeconds : 0.0;
+    }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" Phase 5 (2026-11-02): averages <see cref="EnergyFrame.NormalizedEnergy"/>
+    /// across every frame overlapping the half-open <c>[startTicks, endTicks)</c> window -- the same
+    /// windowed-query shape as <see cref="BandEnergyEnvelope.AverageInWindow"/>, just over broadband
+    /// <see cref="EnergyEnvelope"/> instead (no equivalent query method exists on that type yet). Returns
+    /// <c>0</c> for a window with no overlapping frames, the same "silence is a valid, inspectable result"
+    /// convention <see cref="BandEnergyEnvelope.AverageInWindow"/> already uses.
+    /// </summary>
+    private static double AverageNormalizedEnergyInWindow(EnergyEnvelope energy, long startTicks, long endTicks)
+    {
+        var sampleRate = energy.Settings.AnalysisSampleRate;
+
+        double sum = 0;
+        var count = 0;
+        foreach (var frame in energy.Frames)
+        {
+            var frameStartTicks = sampleRate > 0 ? frame.StartSample * TicksPerSecond / sampleRate : 0;
+            var frameEndTicks = sampleRate > 0 ? frame.EndSample * TicksPerSecond / sampleRate : 0;
+            if (frameEndTicks <= startTicks || frameStartTicks >= endTicks)
+            {
+                continue;
+            }
+
+            sum += frame.NormalizedEnergy;
+            count++;
+        }
+
+        return count == 0 ? 0.0 : sum / count;
     }
 
     /// <summary>Rough duty-corrected coverage estimate: sum of (target pixel weight x that effect's own duty-cycle correction) across every effect in the IR, normalized by the layout's own total pixels. A coarse, section-wide approximation (not a true per-frame render), sufficient only to flag a clearly-empty section.</summary>

@@ -2,6 +2,7 @@
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
              xmlns:vm="using:XlightsAI.Studio.Shell"
              xmlns:conv="using:Avalonia.Data.Converters"
+             xmlns:proj="using:XlightsAI.Studio.Projects"
              x:Class="XlightsAI.Studio.App.Views.Screens.ProjectsView"
              x:DataType="vm:ShellViewModel">
 
@@ -34,6 +35,22 @@
     <Border Classes="card">
       <StackPanel Spacing="8">
         <TextBlock Classes="section" IsVisible="{Binding HasCurrentProject}" Text="Switch project" />
+
+        <ComboBox IsVisible="{Binding Projects.HasRecentProjects}"
+                  ItemsSource="{Binding Projects.RecentProjects}"
+                  PlaceholderText="Open an existing project…"
+                  HorizontalAlignment="Stretch"
+                  SelectionChanged="OnRecentProjectSelected">
+          <ComboBox.ItemTemplate>
+            <DataTemplate x:DataType="proj:ProjectSummary">
+              <StackPanel>
+                <TextBlock Text="{Binding Name}" />
+                <TextBlock Classes="hint" Text="{Binding RootDirectory}" />
+              </StackPanel>
+            </DataTemplate>
+          </ComboBox.ItemTemplate>
+        </ComboBox>
+
         <TextBlock Classes="field" Text="WORKSPACE FOLDER" />
         <Grid ColumnDefinitions="*,Auto" ColumnSpacing="6">
           <TextBox Grid.Column="0" Text="{Binding Projects.WorkspaceDirectory}"

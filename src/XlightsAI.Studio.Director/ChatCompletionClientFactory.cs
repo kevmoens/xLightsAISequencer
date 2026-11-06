@@ -1,3 +1,5 @@
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.Logging.Abstractions;
 using XlightsAI.Studio.AiEdits;
 
 namespace XlightsAI.Studio.Director;
@@ -11,11 +13,15 @@ public sealed class ChatCompletionClientFactory
 {
     private readonly ICredentialStore _credentialStore;
     private readonly HttpClient _httpClient;
+    private readonly ILoggerFactory _loggerFactory;
+    private readonly ILogger<ChatCompletionClientFactory> _logger;
 
-    public ChatCompletionClientFactory(ICredentialStore credentialStore, HttpClient httpClient)
+    public ChatCompletionClientFactory(ICredentialStore credentialStore, HttpClient httpClient, ILoggerFactory? loggerFactory = null)
     {
         _credentialStore = credentialStore ?? throw new ArgumentNullException(nameof(credentialStore));
         _httpClient = httpClient ?? throw new ArgumentNullException(nameof(httpClient));
+        _loggerFactory = loggerFactory ?? NullLoggerFactory.Instance;
+        _logger = _loggerFactory.CreateLogger<ChatCompletionClientFactory>();
     }
 
     /// <summary>Returns <see langword="null"/> when <paramref name="config"/> is not <see cref="RoleProviderConfig.Enabled"/> -- an explicit "this role is not configured" result, never a silently-constructed client that would immediately fail.</summary>
@@ -25,6 +31,7 @@ public sealed class ChatCompletionClientFactory
 
         if (!config.Enabled)
         {
+            _logger.LogDebug("Provider config for {ProviderType} is disabled; no client created.", config.ProviderType);
             return null;
         }
 
@@ -32,7 +39,10 @@ public sealed class ChatCompletionClientFactory
             ? await _credentialStore.TryGetAsync(name, ct).ConfigureAwait(false)
             : null;
 
-        var executor = new HttpJsonRequestExecutor(_httpClient);
+        var executor = new HttpJsonRequestExecutor(_httpClient, logger: _loggerFactory.CreateLogger<HttpJsonRequestExecutor>());
+
+        _logger.LogInformation("Resolved chat-completion client: provider={ProviderType}, model={Model}, endpoint={Endpoint}",
+            config.ProviderType, config.ModelName, config.Endpoint);
 
         return config.ProviderType switch
         {

@@ -20,6 +20,7 @@ public sealed class ProjectsViewModel : ObservableObject
     private string _newProjectName = string.Empty;
     private string? _actionErrorMessage;
     private bool _isBusy;
+    private IReadOnlyList<ProjectSummary> _recentProjects = [];
 
     public ProjectsLoadState LoadState
     {
@@ -85,6 +86,33 @@ public sealed class ProjectsViewModel : ObservableObject
         get => _isBusy;
         private set => SetField(ref _isBusy, value);
     }
+
+    /// <summary>
+    /// User feedback (2026-11-01): "The Project should have a drop down for existing projects and have
+    /// that load the workspace folder and project name." Every project this installation has ever
+    /// created/opened (<see cref="IProjectService.RecentAsync"/>'s own list), most-recent first --
+    /// backs this screen's dropdown so reopening an already-known project is a pick, not a retyped
+    /// path. Populated by <see cref="ShellViewModel"/> on navigating to this screen (same division of
+    /// responsibility as every other restored/persisted value here); this view model owns no
+    /// persistence of its own.
+    /// </summary>
+    public IReadOnlyList<ProjectSummary> RecentProjects
+    {
+        get => _recentProjects;
+        private set
+        {
+            if (SetField(ref _recentProjects, value))
+            {
+                OnPropertyChanged(nameof(HasRecentProjects));
+            }
+        }
+    }
+
+    public bool HasRecentProjects => RecentProjects.Count > 0;
+
+    /// <summary>Sets <see cref="RecentProjects"/> -- a plain setter method (not a public property setter), same convention <see cref="ShowImportViewModel.SetRecentShowDirectories"/> already uses.</summary>
+    public void SetRecentProjects(IReadOnlyList<ProjectSummary> recentProjects) =>
+        RecentProjects = recentProjects ?? throw new ArgumentNullException(nameof(recentProjects));
 
     /// <summary>
     /// Creates a project at <see cref="WorkspaceDirectory"/> named <see cref="NewProjectName"/> via

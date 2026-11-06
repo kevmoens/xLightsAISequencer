@@ -2,6 +2,7 @@ using System.Text;
 using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Pipeline;
+using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Structure;
 
 namespace XlightsAI.Studio.Director;
@@ -220,6 +221,9 @@ public static class DirectorPromptBuilder
             sb.AppendLine($"Vocal-active regions: {vocals.ActiveRegions.Count}.");
         }
 
+        AppendEnergyTransitions(sb, music);
+        AppendKeyChanges(sb, music);
+
         sb.AppendLine();
         sb.AppendLine(layout.ToPromptText());
 
@@ -228,6 +232,46 @@ public static class DirectorPromptBuilder
         CustomPromptBlockFormatter.AppendBlock(sb, customPrompt);
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" Phase 4 (2026-11-02): grounds the baseline craft guidance's own
+    /// "design for pops and build-ups" line (above) with this song's actual measured moments, rather than
+    /// leaving it pure unverified prose with nothing real to point at. Appends nothing when
+    /// <see cref="MusicModel.EnergyTransitions"/> was never computed (no <see cref="MusicModel.BandEnergy"/>
+    /// available) or came back empty (a song with no detectable sharp transition).
+    /// </summary>
+    private static void AppendEnergyTransitions(StringBuilder sb, MusicModel music)
+    {
+        if (music.EnergyTransitions is not { Count: > 0 } transitions)
+        {
+            return;
+        }
+
+        var rendered = transitions
+            .OrderBy(t => t.TimeTicks)
+            .Select(t => $"{TimeSpan.FromTicks(t.TimeTicks):m\\:ss} {(t.Kind == EnergyTransitionKind.Buildup ? "build-up" : "drop")}");
+        sb.AppendLine($"Measured energy transitions (real, from the audio -- not assumed): {string.Join(", ", rendered)}.");
+    }
+
+    /// <summary>
+    /// Build-plan "richer analysis tools" Phase 7 (2026-11-02): surfaces this song's own real, measured
+    /// key/mode changes (<see cref="KeyDetector"/>) as harmonic-shift moments worth a palette change --
+    /// a real signal a Director previously had nothing like. Appends nothing when
+    /// <see cref="MusicModel.KeyChanges"/> was never computed or came back empty (no confident key reading
+    /// anywhere, or a genuinely single-key song).
+    /// </summary>
+    private static void AppendKeyChanges(StringBuilder sb, MusicModel music)
+    {
+        if (music.KeyChanges is not { Count: > 0 } keyChanges)
+        {
+            return;
+        }
+
+        var rendered = keyChanges
+            .OrderBy(k => k.TimeTicks)
+            .Select(k => $"{TimeSpan.FromTicks(k.TimeTicks):m\\:ss} -> {k.KeyName}");
+        sb.AppendLine($"Measured key/mode changes (real, from the audio -- not assumed): {string.Join(", ", rendered)}. Consider a palette or accent-color shift at each one -- a harmonic change is a natural place for the visuals to shift too.");
     }
 
     /// <summary>

@@ -13,14 +13,17 @@ namespace XlightsAI.Studio.Structure;
 /// <b>Adaptive threshold search (this step's own "error report" and "exhausted retry budget" required
 /// acceptance/failure text, verbatim).</b> The search starts at
 /// <see cref="SectionBoundarySettings.InitialNoveltyThreshold"/> and, if too few non-trivial candidates
-/// are found, relaxes the threshold toward <see cref="SectionBoundarySettings.MinNoveltyThreshold"/> one
-/// halving step at a time, up to <see cref="SectionBoundarySettings.MaxRefinementIterations"/> attempts.
-/// The loop stops -- honestly, via <see cref="SectionBoundaryErrorReport"/>, never by silently
-/// presenting a sparse result as a clean pass -- as soon as any of three conditions holds: (1) the
-/// target <see cref="SectionBoundarySettings.MinBoundaryCount"/> is reached (converged); (2) relaxing
-/// the threshold produced no additional candidates versus the previous iteration (a genuine plateau --
-/// retrying further at the same effective threshold cannot improve the result); or (3) the iteration
-/// budget or the threshold floor is reached first. Only case (1) sets
+/// are found (or the resulting sections are too lopsided -- see
+/// <see cref="SectionBoundarySettings.MaxSectionSpanFraction"/>), relaxes the threshold toward
+/// <see cref="SectionBoundarySettings.MinNoveltyThreshold"/> one halving step at a time, up to
+/// <see cref="SectionBoundarySettings.MaxRefinementIterations"/> attempts. The loop stops -- honestly, via
+/// <see cref="SectionBoundaryErrorReport"/>, never by silently presenting a sparse result as a clean pass
+/// -- as soon as any of three conditions holds: (1) BOTH the target
+/// <see cref="SectionBoundarySettings.MinBoundaryCount"/> is reached AND no resulting section spans more
+/// than <see cref="SectionBoundarySettings.MaxSectionSpanFraction"/> of the whole song (converged); (2)
+/// relaxing the threshold produced no additional candidates versus the previous iteration (a genuine
+/// plateau -- retrying further at the same effective threshold cannot improve either the count or the
+/// span); or (3) the iteration budget or the threshold floor is reached first. Only case (1) sets
 /// <see cref="SectionBoundaryErrorReport.Converged"/> to <see langword="true"/>.
 /// <para>
 /// <b>Malformed proposals never persist.</b> Every computed candidate list is structurally validated
@@ -144,6 +147,12 @@ public sealed class SectionBoundaryDetector : ISectionBoundaryDetector
                 $"SectionBoundarySettings.MaxRefinementIterations ({settings.MaxRefinementIterations}) must be positive -- an exhausted retry budget must still be bounded.");
         }
 
+        if (settings.MaxSectionSpanFraction is <= 0.0 or > 1.0)
+        {
+            throw new SectionBoundaryInvalidException(context.SongId,
+                $"SectionBoundarySettings.MaxSectionSpanFraction ({settings.MaxSectionSpanFraction}) must be in (0, 1].");
+        }
+
         if (string.IsNullOrWhiteSpace(settings.RecipeId))
         {
             throw new SectionBoundaryInvalidException(context.SongId, "SectionBoundarySettings.RecipeId must not be empty.");
@@ -185,14 +194,17 @@ public sealed class SectionBoundaryDetector : ISectionBoundaryDetector
         var iterations = 1;
         int? previousNonTrivialCount = null;
         var converged = false;
+        var maxSpanBars = ComputeMaxSpanBars(candidates, bars);
+        var maxSpanAllowed = settings.MaxSectionSpanFraction * bars.Count;
 
         while (true)
         {
             ct.ThrowIfCancellationRequested();
 
             var nonTrivialCount = candidates.Count - 1;
+            var spanOk = maxSpanBars <= maxSpanAllowed;
 
-            if (nonTrivialCount >= settings.MinBoundaryCount)
+            if (nonTrivialCount >= settings.MinBoundaryCount && spanOk)
             {
                 converged = true;
                 break;
@@ -201,7 +213,8 @@ public sealed class SectionBoundaryDetector : ISectionBoundaryDetector
             if (previousNonTrivialCount == nonTrivialCount)
             {
                 warnings.Add(
-                    $"Threshold search plateaued at {nonTrivialCount} candidate(s) (below MinBoundaryCount {settings.MinBoundaryCount}) " +
+                    $"Threshold search plateaued at {nonTrivialCount} candidate(s) (below MinBoundaryCount {settings.MinBoundaryCount}, " +
+                    $"or largest section span {maxSpanBars} bars still exceeds the allowed {maxSpanAllowed:0.#} bars) " +
                     $"at iteration {iterations}; stopping rather than retrying without improvement.");
                 break;
             }
@@ -209,22 +222,25 @@ public sealed class SectionBoundaryDetector : ISectionBoundaryDetector
             if (iterations >= settings.MaxRefinementIterations)
             {
                 warnings.Add(
-                    $"Exhausted MaxRefinementIterations ({settings.MaxRefinementIterations}) with only {nonTrivialCount} " +
-                    $"candidate(s), below MinBoundaryCount ({settings.MinBoundaryCount}).");
+                    $"Exhausted MaxRefinementIterations ({settings.MaxRefinementIterations}) with {nonTrivialCount} " +
+                    $"candidate(s) (MinBoundaryCount {settings.MinBoundaryCount}) and largest section span {maxSpanBars} bars " +
+                    $"(allowed {maxSpanAllowed:0.#}).");
                 break;
             }
 
             if (threshold <= settings.MinNoveltyThreshold)
             {
                 warnings.Add(
-                    $"Reached MinNoveltyThreshold floor ({settings.MinNoveltyThreshold}) with only {nonTrivialCount} " +
-                    $"candidate(s), below MinBoundaryCount ({settings.MinBoundaryCount}).");
+                    $"Reached MinNoveltyThreshold floor ({settings.MinNoveltyThreshold}) with {nonTrivialCount} " +
+                    $"candidate(s) (MinBoundaryCount {settings.MinBoundaryCount}) and largest section span {maxSpanBars} bars " +
+                    $"(allowed {maxSpanAllowed:0.#}).");
                 break;
             }
 
             previousNonTrivialCount = nonTrivialCount;
             threshold = Math.Max(settings.MinNoveltyThreshold, threshold / 2.0);
             candidates = ComputeCandidates(bars, threshold);
+            maxSpanBars = ComputeMaxSpanBars(candidates, bars);
             iterations++;
         }
 
@@ -259,6 +275,26 @@ public sealed class SectionBoundaryDetector : ISectionBoundaryDetector
         }
 
         return result;
+    }
+
+    /// <summary>
+    /// The largest gap, in bars, between two consecutive accepted candidates (including the tail from the
+    /// last candidate to the end of the song) -- the real, song-length-scaled signal
+    /// <see cref="SectionBoundarySettings.MaxSectionSpanFraction"/> checks against, rather than a flat
+    /// count that cannot generalize across songs of different length/complexity.
+    /// </summary>
+    private static int ComputeMaxSpanBars(IReadOnlyList<SectionBoundaryCandidate> candidates, IReadOnlyList<BarFingerprint> bars)
+    {
+        var endOfSongBarIndex = bars[^1].BarIndex + 1;
+        var maxSpan = 0;
+        for (var i = 0; i < candidates.Count; i++)
+        {
+            var start = candidates[i].BarIndex;
+            var end = i + 1 < candidates.Count ? candidates[i + 1].BarIndex : endOfSongBarIndex;
+            maxSpan = Math.Max(maxSpan, end - start);
+        }
+
+        return maxSpan;
     }
 
     private static void ValidateCandidates(

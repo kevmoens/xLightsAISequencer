@@ -23,4 +23,9 @@ public sealed record MusicModel(
     VocalActivityEnvelope? VocalActivity,
     IReadOnlyList<VisemeMark>? VisemeMarks = null,
     MelodyTrack? Melody = null,
-    MotifClusteringAnalysis? Motifs = null);
+    MotifClusteringAnalysis? Motifs = null,
+    IReadOnlyList<TransientHit>? TransientHits = null,
+    IReadOnlyList<EnergyTransition>? EnergyTransitions = null,
+    EnergyEnvelope? Energy = null,
+    IReadOnlyList<KeyChange>? KeyChanges = null,
+    IReadOnlyList<TranscribedWord>? Transcript = null);

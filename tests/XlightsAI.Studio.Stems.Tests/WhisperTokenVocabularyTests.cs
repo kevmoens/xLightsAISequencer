@@ -48,6 +48,32 @@ public sealed class WhisperTokenVocabularyTests : IDisposable
         Assert.Equal(" Hi", vocabulary.Decode([0, 999]));
     }
 
+    /// <summary>
+    /// User-requested real investigation (2026-11-08): pushing to a larger Whisper variant (large-v3)
+    /// surfaced a real file, <c>sherpa-onnx-whisper-large-v3</c>'s own <c>large-v3-tokens.txt</c>, whose
+    /// line 50256 reads literally <c>"= 50256"</c> -- a reserved/placeholder entry (sitting exactly where
+    /// EndOfText belongs) whose own "base64" field is not valid base64 at all, crashing the whole
+    /// vocabulary load with <see cref="FormatException"/> before this fix. That id is never looked up by
+    /// <see cref="WhisperTokenVocabulary.Decode"/> in practice (every id passed to it is a real content
+    /// token the decode loop already excluded from being a timestamp or EndOfText), so skipping the
+    /// unparseable entry -- rather than crashing the whole load -- is always safe.
+    /// </summary>
+    [Fact]
+    public async Task LoadAsync_LineWithInvalidBase64Field_SkipsThatLineRatherThanThrowing()
+    {
+        await File.WriteAllLinesAsync(_path,
+        [
+            $"{Convert.ToBase64String(System.Text.Encoding.UTF8.GetBytes(" Hi"))} 0",
+            "= 1",
+        ]);
+
+        var vocabulary = await WhisperTokenVocabulary.LoadAsync(_path, CancellationToken.None);
+
+        Assert.Equal(1, vocabulary.VocabularySize);
+        Assert.Equal(" Hi", vocabulary.Decode([0]));
+        Assert.Equal(string.Empty, vocabulary.Decode([1])); // id 1 was never loaded -- silently skipped, not decoded as garbage.
+    }
+
     [Fact]
     public async Task VocabularySize_ReflectsLoadedEntryCount()
     {

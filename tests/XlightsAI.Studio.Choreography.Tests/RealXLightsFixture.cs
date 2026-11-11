@@ -15,8 +15,17 @@ public static class RealXLightsFixture
     public const string EffectMetadataRoot = @"C:\Program Files\xLights\effectmetadata";
     public const string ShowDirectory = @"C:\xLights";
     public const string LayoutPath = @"C:\xLights\xlights_rgbeffects.xml";
+    public const string XlightsExecutablePath = @"C:\Program Files\xLights\xlights.exe";
 
     public static bool IsAvailable => Directory.Exists(EffectMetadataRoot) && File.Exists(LayoutPath);
+
+    /// <summary>
+    /// Build-plan Phase 18 §3 (Phase B)'s own disclosed hard dependency: a real headless render needs a
+    /// real, configured xLights executable in addition to the static effect metadata/layout
+    /// <see cref="IsAvailable"/> already checks -- same "skip cleanly, never fail" convention, just a
+    /// stricter gate for tests that actually launch xLights.
+    /// </summary>
+    public static bool IsRenderAvailable => IsAvailable && File.Exists(XlightsExecutablePath);
 
     public static (EffectVocabularyCatalog Vocabulary, EffectRecipeCatalog Recipes) BuildCatalogs() =>
         EffectCatalogFactory.BuildFromMetadataDirectory(EffectMetadataRoot);

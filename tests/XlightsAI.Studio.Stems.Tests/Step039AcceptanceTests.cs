@@ -130,6 +130,70 @@ public sealed class Step039AcceptanceTests : IDisposable
         Assert.Equal(0, downloader.CallCount);
     }
 
+    /// <summary>
+    /// User-requested real feature (2026-11-08): "all models should ship with our app" -- a directory
+    /// installed alongside the app executable (never <paramref name="_cacheDirectory"/> itself) can carry
+    /// a pre-verified copy too, found before any network access and without requiring consent, the exact
+    /// same "offline pre-provisioned asset" guarantee as a copy placed directly in the cache directory.
+    /// </summary>
+    [Fact]
+    public async Task EnsureVerifiedAsync_BundledSearchDirectoryHasVerifiedCopy_SkipsDownloadAndNeverTouchesCacheDirectory()
+    {
+        var payload = Encoding.UTF8.GetBytes("a model file shipped inside the installer, next to the exe");
+        var asset = FixtureAsset(payload);
+        var downloader = FakeModelAssetDownloader.NeverCalled();
+        var bundledDirectory = Path.Combine(Path.GetTempPath(), $"xlai-step039-bundled-{Guid.NewGuid():N}");
+        try
+        {
+            var manager = new ModelAssetManager(_cacheDirectory, downloader, bundledSearchDirectories: [bundledDirectory]);
+            Directory.CreateDirectory(bundledDirectory);
+            var bundledPath = Path.Combine(bundledDirectory, Path.GetFileName(manager.GetVerifiedPath(asset)));
+            await File.WriteAllBytesAsync(bundledPath, payload);
+
+            var path = await manager.EnsureVerifiedAsync(asset, userConsent: false, CancellationToken.None);
+
+            Assert.Equal(bundledPath, path);
+            Assert.Equal(0, downloader.CallCount);
+            Assert.False(Directory.Exists(_cacheDirectory), "A bundled hit must never touch/create the cache directory at all.");
+        }
+        finally
+        {
+            if (Directory.Exists(bundledDirectory))
+            {
+                Directory.Delete(bundledDirectory, recursive: true);
+            }
+        }
+    }
+
+    [Fact]
+    public async Task EnsureVerifiedAsync_BundledSearchDirectoryHasTamperedCopy_FallsThroughToCacheDirectoryDownload_NegativePath()
+    {
+        var declaredPayload = Encoding.UTF8.GetBytes("the real, expected bundled model weights");
+        var tamperedPayload = Encoding.UTF8.GetBytes("a tampered bundled file, never trusted");
+        var asset = FixtureAsset(declaredPayload);
+        var downloader = FakeModelAssetDownloader.ReturningBytes(declaredPayload);
+        var bundledDirectory = Path.Combine(Path.GetTempPath(), $"xlai-step039-bundled-tampered-{Guid.NewGuid():N}");
+        try
+        {
+            var manager = new ModelAssetManager(_cacheDirectory, downloader, bundledSearchDirectories: [bundledDirectory]);
+            Directory.CreateDirectory(bundledDirectory);
+            var bundledPath = Path.Combine(bundledDirectory, Path.GetFileName(manager.GetVerifiedPath(asset)));
+            await File.WriteAllBytesAsync(bundledPath, tamperedPayload);
+
+            var path = await manager.EnsureVerifiedAsync(asset, userConsent: true, CancellationToken.None);
+
+            Assert.Equal(manager.GetVerifiedPath(asset), path);
+            Assert.Equal(1, downloader.CallCount);
+        }
+        finally
+        {
+            if (Directory.Exists(bundledDirectory))
+            {
+                Directory.Delete(bundledDirectory, recursive: true);
+            }
+        }
+    }
+
     [Fact]
     public async Task Step039_Acceptance_Passes_InterruptedDownloadRecoversCleanly()
     {

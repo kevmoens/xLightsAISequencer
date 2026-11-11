@@ -174,7 +174,7 @@ public sealed class ChoreographyGenerationPipeline
         // 4/5. Compile via Phase 4's own unmodified engine -- a local function so the model-coverage
         // repair pass below can recompile against a patched set of scripts without duplicating this logic.
         ChoreographyEngine.Result CompileFromScripts(IReadOnlyDictionary<Guid, SectionScript> currentScripts) =>
-            CompileSectionScripts(bible, music, layoutSummary, settings, currentScripts);
+            CompileSectionScripts(bible, music, layoutSummary, settings, currentScripts, scriptGeneration.TimedCues);
 
         var compiled = CompileFromScripts(scripts);
 
@@ -200,6 +200,11 @@ public sealed class ChoreographyGenerationPipeline
 
             var missedCues = TimedCueComplianceChecker.FindMissedCues(compiled.IR, scriptGeneration.TimedCues);
             var timedCueDirectives = RevisionDirectiveDeriver.FromMissedTimedCues(missedCues, scriptGeneration.SectionWindowsById);
+            if (scriptGeneration.TimedCues.Count > 0)
+            {
+                _logger.LogInformation("Timed-cue compliance for song {SongId}: {SatisfiedCount}/{TotalCues} cue(s) satisfied on the first pass.",
+                    songId, scriptGeneration.TimedCues.Count - missedCues.Count, scriptGeneration.TimedCues.Count);
+            }
 
             // Build-plan "richer analysis tools" Phase 8 (2026-11-02): a third violation source, same
             // single-repair-pass philosophy -- a model the user explicitly asked to be targeted
@@ -217,13 +222,15 @@ public sealed class ChoreographyGenerationPipeline
                 var repairBatchGenerator = new SectionScriptBatchGenerator(_choreographerClient, callLog: callLog, modelName: _choreographerModelName);
                 scripts = await TargetedSectionRegenerator.RegenerateAsync(
                     repairBatchGenerator, scriptGeneration.StablePrefix, scripts, repairDirectives, scriptGeneration.VolatileSuffixBySectionId,
-                    songId, bible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct).ConfigureAwait(false);
+                    songId, bible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct,
+                    scriptGeneration.PhraseCountBySectionId).ConfigureAwait(false);
                 await PersistScriptsAsync(scriptsDir, songId, scripts, ct).ConfigureAwait(false);
                 compiled = CompileFromScripts(scripts);
             }
         }
 
         _logger.LogInformation("Compiled result for song {SongId}: {ViolationCount} legality violation(s).", songId, compiled.Violations.Count);
+        LogLayerDensitySummary(bible, music, scripts, songId);
 
         // 6. Export.
         Directory.CreateDirectory(exportsDir);
@@ -338,7 +345,12 @@ public sealed class ChoreographyGenerationPipeline
 
         var prompt = DirectorPromptBuilder.Build(_knowledge, _style, music, layoutSummary, _customPrompt);
         var generator = new ShowBibleGenerator(_directorClient, callLog: callLog, modelName: _directorModelName);
-        var report = await generator.GenerateAsync(prompt, songId, settings.Layout, settings.Vocabulary, settings.RecipeCatalog, _maxOutputTokens, ct, _knowledge.TemplatesOrEmpty).ConfigureAwait(false);
+        var sectionKindOccurrenceCounts = music.Sections.Labels
+            .GroupBy(l => l.Kind)
+            .ToDictionary(g => g.Key, g => g.Count());
+        var report = await generator.GenerateAsync(
+            prompt, songId, settings.Layout, settings.Vocabulary, settings.RecipeCatalog, _maxOutputTokens, ct,
+            _knowledge.TemplatesOrEmpty, sectionKindOccurrenceCounts).ConfigureAwait(false);
 
         return report.Bible ?? throw new InvalidOperationException(
             $"Show Bible generation exhausted {report.AttemptCount} attempt(s) without validating: {string.Join("; ", report.FinalViolations.Select(v => v.Message))}");
@@ -356,7 +368,8 @@ public sealed class ChoreographyGenerationPipeline
         string StablePrefix,
         IReadOnlyDictionary<Guid, string> VolatileSuffixBySectionId,
         IReadOnlyDictionary<Guid, (long Start, long End)> SectionWindowsById,
-        IReadOnlyList<TimedCue> TimedCues);
+        IReadOnlyList<TimedCue> TimedCues,
+        IReadOnlyDictionary<Guid, int> PhraseCountBySectionId);
 
     /// <summary>
     /// Build-plan "richer analysis tools" post-processing phase (2026-11-02): everything
@@ -374,7 +387,8 @@ public sealed class ChoreographyGenerationPipeline
         IReadOnlyDictionary<Guid, string> VolatileSuffixBySectionId,
         IReadOnlyDictionary<Guid, (long Start, long End)> SectionWindowsById,
         IReadOnlyList<TimedCue> TimedCues,
-        IReadOnlyList<SectionScriptBatchItem> Items);
+        IReadOnlyList<SectionScriptBatchItem> Items,
+        IReadOnlyDictionary<Guid, int> PhraseCountBySectionId);
 
     private SectionPromptMaterial BuildSectionPromptMaterial(
         ShowBible bible, MusicModel music, LayoutSummary layoutSummary, IReadOnlyDictionary<SectionKind, double> energyCeilingByKind)
@@ -396,9 +410,38 @@ public sealed class ChoreographyGenerationPipeline
         var occurrenceByKind = new Dictionary<SectionKind, int>();
         var melodicBriefsBySectionId = MelodicContourBriefBuilder.ComputeSectionBriefs(music).ToDictionary(b => b.SectionId);
         var motifLinksBySectionId = MotifLinkedPredecessorBuilder.ComputeSectionLinks(music).ToDictionary(l => l.SectionId);
+        var vocalNoteEmphasisBySectionId = VocalNoteEmphasisBriefBuilder.ComputeSectionBriefs(music).ToDictionary(b => b.SectionId);
         var phrasesBySectionId = music.Phrases.Phrases
             .GroupBy(p => p.SectionLabelId)
             .ToDictionary(g => g.Key, g => g.OrderBy(p => p.StartBarIndex).ToList());
+
+        // User feedback (2026-11-08): "underwhelming... movement doesn't hit on major emphasis in the
+        // song, sometimes words, sometimes notes" -- every one of these signals is real and already
+        // computed, but until now nothing logged what was actually detected or how much of it reached a
+        // section's own prompt, so the only way to check was manually digging a Trace-level raw request
+        // body out of the log. This is diagnostic only (no behavior change) -- it makes it possible to
+        // confirm, from the log alone, whether a thin/unreactive show is a DATA problem (nothing detected)
+        // or a PROMPT/MODEL problem (detected but not surfaced or not honored).
+        _logger.LogInformation(
+            "Song {SongId} emphasis signals: {TransientHitCount} transient hit(s), {EnergyTransitionCount} energy transition(s), {KeyChangeCount} key change(s), {TranscriptWordCount} transcribed word(s), {NoteCount} vocal note(s) ({VocalNoteSectionCount} section(s) with a salient-note brief), {MelodicBriefCount}/{SectionCount} section(s) with a melodic contour brief, {MotifLinkCount} section(s) with a motif-linked predecessor.",
+            music.SongId, music.TransientHits?.Count ?? 0, music.EnergyTransitions?.Count ?? 0, music.KeyChanges?.Count ?? 0,
+            music.Transcript?.Count ?? 0, music.Melody?.Notes.Count ?? 0, vocalNoteEmphasisBySectionId.Count,
+            melodicBriefsBySectionId.Count, orderedSections.Count, motifLinksBySectionId.Count);
+        if (music.TransientHits is { Count: > 0 } hits)
+        {
+            _logger.LogDebug("Song {SongId} transient hits (time, strength): {Hits}.", music.SongId,
+                string.Join(", ", hits.OrderBy(h => h.TimeTicks).Select(h => $"{FormatTimestamp(TimeSpan.FromTicks(h.TimeTicks))}@{h.Strength:0.00}")));
+        }
+        if (music.EnergyTransitions is { Count: > 0 } transitions)
+        {
+            _logger.LogDebug("Song {SongId} energy transitions: {Transitions}.", music.SongId,
+                string.Join(", ", transitions.OrderBy(t => t.TimeTicks).Select(t => $"{FormatTimestamp(TimeSpan.FromTicks(t.TimeTicks))}:{t.Kind}")));
+        }
+        if (music.KeyChanges is { Count: > 0 } keyChangesForLog)
+        {
+            _logger.LogDebug("Song {SongId} key changes: {KeyChanges}.", music.SongId,
+                string.Join(", ", keyChangesForLog.OrderBy(k => k.TimeTicks).Select(k => $"{FormatTimestamp(TimeSpan.FromTicks(k.TimeTicks))}->{k.KeyName}")));
+        }
 
         // Build-plan "richer analysis tools" Phase 1 (2026-11-01): parsed once for the whole song, then
         // filtered per-section below by real-time overlap -- never the whole cue list pasted into every
@@ -424,6 +467,12 @@ public sealed class ChoreographyGenerationPipeline
         // word within its (by-then-tightened) window.
         allTimedCues = TimedCueTranscriptResolver.Resolve(allTimedCues, music.Transcript);
 
+        if (allTimedCues.Count > 0)
+        {
+            _logger.LogInformation("Song {SongId} has {TimedCueCount} timed cue(s) from the custom prompt (user-typed only -- auto-derived emphasis cues from transient hits/energy transitions/lyrics are not yet generated).",
+                music.SongId, allTimedCues.Count);
+        }
+
         var volatileSuffixBySectionId = new Dictionary<Guid, string>();
         var sectionWindowsById = new Dictionary<Guid, (long Start, long End)>();
         var items = orderedSections.Select(section =>
@@ -447,19 +496,22 @@ public sealed class ChoreographyGenerationPipeline
             var totalOccurrences = totalByKind[section.Kind];
             melodicBriefsBySectionId.TryGetValue(section.Id, out var melodicBrief);
             motifLinksBySectionId.TryGetValue(section.Id, out var motifLink);
+            vocalNoteEmphasisBySectionId.TryGetValue(section.Id, out var vocalNoteEmphasis);
             var phrases = phrasesBySectionId.GetValueOrDefault(section.Id, []);
 
             var sectionStartSeconds = window.StartTicks / (double)TicksPerSecond;
             var sectionEndSeconds = window.EndTicks / (double)TicksPerSecond;
             var matchingCues = allTimedCues.Where(c => c.OverlapsSeconds(sectionStartSeconds, sectionEndSeconds)).ToList();
+            var matchingHits = music.TransientHits?.Where(h => h.TimeTicks >= window.StartTicks && h.TimeTicks < window.EndTicks).ToList();
 
-            var volatileSuffix = SectionScriptPromptBuilder.BuildVolatileSuffix(section, context, layoutSummary, occurrenceIndex, totalOccurrences, melodicBrief, motifLink, phrases, _customPrompt?.Text, matchingCues);
+            var volatileSuffix = SectionScriptPromptBuilder.BuildVolatileSuffix(section, context, layoutSummary, occurrenceIndex, totalOccurrences, melodicBrief, motifLink, phrases, _customPrompt?.Text, matchingCues, vocalNoteEmphasis?.SalientNotes, matchingHits);
             volatileSuffixBySectionId[section.Id] = volatileSuffix;
 
             return new SectionScriptBatchItem(section.Id, volatileSuffix);
         }).ToList();
 
-        return new SectionPromptMaterial(stablePrefix, volatileSuffixBySectionId, sectionWindowsById, allTimedCues, items);
+        var phraseCountBySectionId = phrasesBySectionId.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
+        return new SectionPromptMaterial(stablePrefix, volatileSuffixBySectionId, sectionWindowsById, allTimedCues, items, phraseCountBySectionId);
     }
 
     private async Task<SectionScriptGenerationResult> GenerateSectionScriptsAsync(
@@ -474,13 +526,15 @@ public sealed class ChoreographyGenerationPipeline
         var material = BuildSectionPromptMaterial(bible, music, layoutSummary, energyCeilingByKind);
 
         var batchGenerator = new SectionScriptBatchGenerator(_choreographerClient, callLog: callLog, modelName: _choreographerModelName);
-        var reports = await batchGenerator.GenerateAllAsync(material.StablePrefix, material.Items, songId, bible.Content.Looks, layout, vocabulary, _maxOutputTokens, ct).ConfigureAwait(false);
+        var reports = await batchGenerator.GenerateAllAsync(
+            material.StablePrefix, material.Items, songId, bible.Content.Looks, layout, vocabulary, _maxOutputTokens, ct,
+            material.PhraseCountBySectionId).ConfigureAwait(false);
 
         var scripts = reports
             .Where(kvp => kvp.Value.Script is not null)
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Script!);
 
-        return new SectionScriptGenerationResult(scripts, material.StablePrefix, material.VolatileSuffixBySectionId, material.SectionWindowsById, material.TimedCues);
+        return new SectionScriptGenerationResult(scripts, material.StablePrefix, material.VolatileSuffixBySectionId, material.SectionWindowsById, material.TimedCues, material.PhraseCountBySectionId);
     }
 
     private static Dictionary<string, TimingTrack> BuildTimingTracksForPrompt(MusicModel music, BarGrid barGrid)
@@ -558,13 +612,28 @@ public sealed class ChoreographyGenerationPipeline
     /// sub-section variations, each section's resolved filler schedule, then Phase 4's own unmodified
     /// engine.
     /// </summary>
-    private static ChoreographyEngine.Result CompileSectionScripts(
+    private ChoreographyEngine.Result CompileSectionScripts(
         ShowBible bible, MusicModel music, LayoutSummary layoutSummary, ChoreographyGenerationSettings settings,
-        IReadOnlyDictionary<Guid, SectionScript> scripts)
+        IReadOnlyDictionary<Guid, SectionScript> scripts, IReadOnlyList<TimedCue>? timedCues = null)
     {
         var phrasesBySectionId = music.Phrases.Phrases
             .GroupBy(p => p.SectionLabelId)
             .ToDictionary(g => g.Key, g => (IReadOnlyList<PhraseCandidate>)g.OrderBy(p => p.StartBarIndex).ToList());
+
+        // Real-run finding (2026-11-08): a SectionScript's phraseVariations are validated against the
+        // phrase data available AT GENERATION TIME, but this compile step can run again later against
+        // phrase data that is no longer guaranteed identical -- most importantly the post-processing
+        // touch-up path (ApplyPostProcessingPromptAsync), which reconstructs its own MusicModel from the
+        // same cached analysis stages rather than reusing the original run's own instance, and
+        // Structure's own section-label/phrase classifiers are not guaranteed to reproduce byte-identical
+        // output for every section (a very short, e.g. single-bar, section's own phrase boundary is the
+        // observed real case) across two separate analysis passes. A script that was perfectly valid when
+        // first generated must never hard-crash a later compile over phrase data drift it had no part in
+        // -- this section's phrase-scoped staging is simply dropped back to its own base Look (exactly
+        // like a section that never declared any variation), not fabricated, and logged so the drift is
+        // visible rather than silent.
+        scripts = SanitizeStalePhraseVariations(scripts, phrasesBySectionId, _logger);
+
         var paletteLibrary = BuildPaletteLibrary(bible.Content.Palettes);
         var compilerSettings = new LookCompilerSettings(settings.Vocabulary, settings.RecipeCatalog, settings.RecipeRegistry, paletteLibrary);
 
@@ -579,8 +648,103 @@ public sealed class ChoreographyGenerationPipeline
         var engineInput = new ChoreographyEngine.Input(
             settings.Layout, music.BeatGrid, music.Sections, music.Phrases, music.BandEnergy, music.VocalActivity,
             effectiveLibrary, lookIdBySectionId, settings.EnergyCeilingByKind, music.SongDurationTicks, compilerSettings, fillerSchedule,
-            VisemeMarks: music.VisemeMarks, PhraseLookAssignmentsBySectionId: phraseLookAssignmentsBySectionId, AudioEnergy: music.Energy);
-        return ChoreographyEngine.Compile(engineInput);
+            VisemeMarks: music.VisemeMarks, PhraseLookAssignmentsBySectionId: phraseLookAssignmentsBySectionId, AudioEnergy: music.Energy,
+            EmphasisInstants: BuildEmphasisInstants(music, timedCues), BrightnessCatalog: _knowledge.EffectVisualCharacters);
+        var result = ChoreographyEngine.Compile(engineInput);
+
+        // Build-plan Phase 22 §4: the user asked to be told the real measured numbers, not just that the
+        // feature ran -- 2b's own real adoption rate (before §2d's fallback ever touches anything) and how
+        // often §2d's deterministic patch had to fire, straight from this real compile.
+        if (result.EmphasisContrast is { } contrast)
+        {
+            _logger.LogInformation(
+                "Emphasis-contrast (build-plan Phase 22) for song {SongId}: {MeasuredPairCount} real (instant, target) pair(s) measured, {AdoptionRate:P0} already showed real brightness-tier contrast before any fallback, {PatchCount} patch(es) applied by the deterministic fallback, landing on {DistinctTargetCount} distinct model/group(s).",
+                music.SongId.Value, contrast.MeasuredPairCount, contrast.AdoptionRateBeforeFallback, contrast.PatchesApplied, contrast.DistinctPatchedTargets.Count);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Build-plan Phase 22 §0 ("repetition" scope clarification): every real, already-detected emphasis
+    /// signal across the WHOLE song -- not only the capped/filtered subset <see cref="BuildSectionPromptMaterial"/>
+    /// surfaces to the Choreographer's own prompt -- reduced to <see cref="EmphasisInstant"/>s
+    /// <see cref="EmphasisContrastPlanner"/> can measure/repair against. <paramref name="timedCues"/> is
+    /// optional (<see langword="null"/> for a caller with none resolved yet) -- every pre-existing caller
+    /// of <see cref="CompileSectionScripts"/> that cannot cheaply supply it still compiles against transient
+    /// hits/vocal-note onsets alone, never crashing for want of it.
+    /// </summary>
+    private static IReadOnlyList<EmphasisInstant> BuildEmphasisInstants(MusicModel music, IReadOnlyList<TimedCue>? timedCues)
+    {
+        var instants = new List<EmphasisInstant>();
+
+        if (music.TransientHits is { Count: > 0 } hits)
+        {
+            instants.AddRange(hits.Select(h => new EmphasisInstant(h.TimeTicks, EmphasisSignalKind.TransientHit)));
+        }
+
+        if (music.Melody is { } melody)
+        {
+            // User follow-up (2026-11-10): carries this note's own real sung end tick through too, so
+            // TimingTrackEmitter.VocalNotes can size a bound layer's own effect to the real note's own
+            // duration instead of always snapping to the same short fixed flash a transient hit gets.
+            instants.AddRange(melody.Notes.Select(n => new EmphasisInstant(n.StartTicks, EmphasisSignalKind.VocalNoteOnset, n.EndTicks)));
+        }
+
+        if (timedCues is { Count: > 0 })
+        {
+            instants.AddRange(timedCues.Select(c => new EmphasisInstant(c.Start.Ticks, EmphasisSignalKind.TimedCue)));
+        }
+
+        return instants;
+    }
+
+    /// <summary>
+    /// See <see cref="CompileSectionScripts"/>'s own doc comment for why this exists. Drops (never
+    /// shrinks/renumbers) a script's own <see cref="SectionScript.PhraseVariations"/> entries that no
+    /// longer have a matching real phrase at this compile's own <paramref name="phrasesBySectionId"/> --
+    /// either the whole section has none anymore, or a specific declared <see cref="SectionPhraseVariation.PhraseIndex"/>
+    /// now falls outside the section's current phrase count. Every other field of the script (Look,
+    /// propBindings, fillerEffects) is preserved untouched.
+    /// </summary>
+    /// <summary>
+    /// Public (not private), same reason as <see cref="BuildFillerSchedule"/>: a caller that recompiles
+    /// the same scripts repeatedly against independently-recomputed phrase data (<see cref="IterationLoop"/>'s
+    /// own real-run test harness is the first such caller outside this pipeline) can apply the exact same
+    /// real-data-drift tolerance this pipeline's own <see cref="CompileSectionScripts"/> already relies on,
+    /// rather than re-deriving it or hard-crashing instead. <paramref name="logger"/> is optional (<see
+    /// langword="null"/> silently skips the warning) purely so a caller without one of its own does not
+    /// need to fabricate one.
+    /// </summary>
+    public static IReadOnlyDictionary<Guid, SectionScript> SanitizeStalePhraseVariations(
+        IReadOnlyDictionary<Guid, SectionScript> scripts, IReadOnlyDictionary<Guid, IReadOnlyList<PhraseCandidate>> phrasesBySectionId, ILogger? logger = null)
+    {
+        Dictionary<Guid, SectionScript>? sanitized = null;
+
+        foreach (var (sectionId, script) in scripts)
+        {
+            if (script.PhraseVariationsOrEmpty.Count == 0)
+            {
+                continue;
+            }
+
+            var phraseCount = phrasesBySectionId.TryGetValue(sectionId, out var phrases) ? phrases.Count : 0;
+            var kept = script.PhraseVariationsOrEmpty.Where(v => v.PhraseIndex >= 1 && v.PhraseIndex <= phraseCount).ToList();
+            if (kept.Count == script.PhraseVariationsOrEmpty.Count)
+            {
+                continue;
+            }
+
+            var dropped = script.PhraseVariationsOrEmpty.Count - kept.Count;
+            logger?.LogWarning(
+                "Section {SectionId} declared {DeclaredCount} phrase-scoped variation(s) but this compile's own phrase data has {PhraseCount} phrase(s) for it -- dropping {DroppedCount} stale variation(s) rather than failing the whole compile.",
+                sectionId, script.PhraseVariationsOrEmpty.Count, phraseCount, dropped);
+
+            sanitized ??= new Dictionary<Guid, SectionScript>(scripts);
+            sanitized[sectionId] = script with { PhraseVariations = kept.Count == 0 ? null : kept };
+        }
+
+        return sanitized ?? scripts;
     }
 
     /// <summary>
@@ -626,6 +790,9 @@ public sealed class ChoreographyGenerationPipeline
             throw new PostProcessingPromptHasNoTimedInstructionsException();
         }
 
+        _logger.LogInformation("Post-processing prompt for song {SongId} parsed into {CueCount} timed cue(s): {Cues}.",
+            songId, cues.Count, string.Join(", ", cues.OrderBy(c => c.Start).Select(c => $"{FormatTimestamp(c.Start)}:{c.Instruction}")));
+
         var material = BuildSectionPromptMaterial(existingBible, music, layoutSummary, settings.EnergyCeilingByKind);
 
         var directives = RevisionDirectiveDeriver.FromPostProcessingCues(cues, material.SectionWindowsById);
@@ -642,10 +809,11 @@ public sealed class ChoreographyGenerationPipeline
         var batchGenerator = new SectionScriptBatchGenerator(_choreographerClient, callLog: callLog, modelName: _choreographerModelName);
         var updatedScripts = await TargetedSectionRegenerator.RegenerateAsync(
             batchGenerator, material.StablePrefix, existingScripts, directives, material.VolatileSuffixBySectionId,
-            songId, existingBible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct).ConfigureAwait(false);
+            songId, existingBible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct,
+            material.PhraseCountBySectionId).ConfigureAwait(false);
         await PersistScriptsAsync(scriptsDir, songId, updatedScripts, ct).ConfigureAwait(false);
 
-        var compiled = CompileSectionScripts(existingBible, music, layoutSummary, settings, updatedScripts);
+        var compiled = CompileSectionScripts(existingBible, music, layoutSummary, settings, updatedScripts, cues);
 
         // User feedback (2026-11-03): "didn't do a good job of fixing it" -- the touch-up path regenerated
         // each targeted section exactly once and trusted whatever the Choreographer produced, with nothing
@@ -654,15 +822,20 @@ public sealed class ChoreographyGenerationPipeline
         // landed, and if not, give the Choreographer one more targeted attempt at exactly that section
         // before giving up -- never a silent "the AI said it did it" trust.
         var missedCues = TimedCueComplianceChecker.FindMissedCues(compiled.IR, cues);
+        _logger.LogInformation("Post-processing timed-cue compliance for song {SongId}: {SatisfiedCount}/{TotalCues} cue(s) satisfied on the first pass.",
+            songId, cues.Count - missedCues.Count, cues.Count);
         var repairDirectives = RevisionDirectiveDeriver.FromMissedTimedCues(missedCues, material.SectionWindowsById);
         if (repairDirectives.Count > 0)
         {
             updatedScripts = await TargetedSectionRegenerator.RegenerateAsync(
                 batchGenerator, material.StablePrefix, updatedScripts, repairDirectives, material.VolatileSuffixBySectionId,
-                songId, existingBible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct).ConfigureAwait(false);
+                songId, existingBible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct,
+                material.PhraseCountBySectionId).ConfigureAwait(false);
             await PersistScriptsAsync(scriptsDir, songId, updatedScripts, ct).ConfigureAwait(false);
-            compiled = CompileSectionScripts(existingBible, music, layoutSummary, settings, updatedScripts);
+            compiled = CompileSectionScripts(existingBible, music, layoutSummary, settings, updatedScripts, cues);
         }
+
+        LogLayerDensitySummary(existingBible, music, updatedScripts, songId);
 
         Directory.CreateDirectory(exportsDir);
         var exporter = new XsqExporter(settings.RecipeCatalog, settings.Vocabulary);
@@ -672,6 +845,81 @@ public sealed class ChoreographyGenerationPipeline
             settings.Layout, compiled.IR.ToSequenceDocument(metadata), outputPath, "2026.03", XsqExportPolicy.AppendCollisionSuffix, ct).ConfigureAwait(false);
 
         return new ChoreographyGenerationReport(existingBible, updatedScripts, compiled, exportResult, music.Sections.Labels.Count, SectionsNeedingRetry: 0);
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-08): "not enough layers on Tree/Matrixes" -- <see cref="DirectorPromptBuilder"/>
+    /// already asks for 2-3+ concurrent layers on a Tree/Matrix-class prop during high-energy sections
+    /// (build-plan Phase 10 §6b/"richer analysis tools"), but nothing ever logged whether the real
+    /// generated output actually carries that density, so the only way to check was hand-inspecting a
+    /// persisted Show Bible. Diagnostic only -- counts each high-energy section's assigned Look's own
+    /// declared layers targeting a Tree/Matrix-class prop (<see cref="ShowBibleValidator.IsTreeOrMatrixName"/>,
+    /// the same name-matching convention <see cref="ShowBibleValidator"/> itself already uses) and logs how
+    /// many fall short of a 3-layer floor. Never throws/blocks generation -- a Look with no Tree/Matrix
+    /// layer at all (e.g. an outline-only Look) is silently excluded rather than counted as a violation.
+    /// </summary>
+    private void LogLayerDensitySummary(ShowBible bible, MusicModel music, IReadOnlyDictionary<Guid, SectionScript> scripts, Guid songId)
+    {
+        const int HighEnergyLayerFloor = 3;
+        var highEnergyKinds = new HashSet<SectionKind> { SectionKind.Chorus, SectionKind.PreChorus, SectionKind.Solo };
+
+        LookLibrary effectiveLibrary;
+        IReadOnlyDictionary<Guid, string> lookIdBySectionId;
+        try
+        {
+            // Real-run finding (2026-11-08): this diagnostic-only recompile used to call the phrase-less
+            // 2-argument overload, which -- despite its own doc comment's "null means skip phrase-scoped
+            // expansion entirely" -- actually still THROWS for any section with a real, already-validated
+            // SectionScript.PhraseVariations (SectionScriptCompiler's own deliberate "never silently
+            // fabricate" design, see SectionScriptCompilerTests.Compile_PhraseVariationsDeclaredButNoPhraseDataSupplied_Throws),
+            // crashing an otherwise-successful generation purely from this logging step. Passing the same
+            // real phrase data every actual compile already uses is the fix; the try/catch is an
+            // independent second layer honoring this method's own "never throws/blocks generation" promise
+            // literally, rather than only for this one now-understood cause.
+            var phrasesBySectionId = music.Phrases.Phrases
+                .GroupBy(p => p.SectionLabelId)
+                .ToDictionary(g => g.Key, g => (IReadOnlyList<PhraseCandidate>)g.OrderBy(p => p.StartBarIndex).ToList());
+            (effectiveLibrary, lookIdBySectionId, _, _) = SectionScriptCompiler.Compile(bible.Content.Looks, scripts, phrasesBySectionId);
+        }
+        catch (ChoreographyCompilationException ex)
+        {
+            _logger.LogWarning(ex, "Skipping Tree/Matrix layer density logging for song {SongId} -- diagnostic-only recompile failed.", songId);
+            return;
+        }
+
+        var kindBySectionId = music.Sections.Labels.ToDictionary(s => s.Id, s => s.Kind);
+
+        var highEnergyTotal = 0;
+        var thinCount = 0;
+        foreach (var (sectionId, lookId) in lookIdBySectionId)
+        {
+            if (!kindBySectionId.TryGetValue(sectionId, out var kind) || !highEnergyKinds.Contains(kind))
+            {
+                continue;
+            }
+
+            var look = effectiveLibrary.Find(lookId);
+            var treeMatrixLayerCount = look?.Layers.Count(l => ShowBibleValidator.IsTreeOrMatrixName(l.Props)) ?? 0;
+            if (treeMatrixLayerCount == 0)
+            {
+                continue; // This Look never targets a Tree/Matrix-class prop at all -- not a density question.
+            }
+
+            highEnergyTotal++;
+            if (treeMatrixLayerCount < HighEnergyLayerFloor)
+            {
+                thinCount++;
+            }
+
+            _logger.LogDebug("Section {SectionId} ({Kind}) uses Look {LookId} with {LayerCount} Tree/Matrix layer(s).", sectionId, kind, lookId, treeMatrixLayerCount);
+        }
+
+        if (highEnergyTotal > 0)
+        {
+            _logger.LogInformation(
+                "Tree/Matrix layer density for song {SongId}: {ThinCount}/{HighEnergyTotal} high-energy section(s) (Chorus/PreChorus/Solo) use a Tree/Matrix Look with fewer than {Floor} concurrent layers.",
+                songId, thinCount, highEnergyTotal, HighEnergyLayerFloor);
+        }
     }
 
     private static string FormatTimestamp(TimeSpan time) => $"{(int)time.TotalMinutes}:{time.Seconds:00}";

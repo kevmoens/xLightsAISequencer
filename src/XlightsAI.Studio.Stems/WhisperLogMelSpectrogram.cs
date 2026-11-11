@@ -3,28 +3,39 @@ namespace XlightsAI.Studio.Stems;
 /// <summary>
 /// Build-plan "richer analysis tools" Phase 6 (2026-11-02): OpenAI Whisper's own documented audio front
 /// end (<c>whisper/audio.py</c>'s <c>log_mel_spectrogram</c>) -- 16 kHz mono input, a 400-sample Hann-
-/// windowed STFT (hop 160, reflect-padded, <c>center=True</c>), an 80-band Slaney-style mel filterbank,
-/// log10 magnitude clipped to the top 8 dB, then rescaled to roughly <c>[-1, 1]</c>
-/// (<c>(log_spec + 4) / 4</c>). Every constant here is Whisper's own fixed, published preprocessing
-/// contract, not a tunable choice -- the encoder was trained against exactly this transform and will not
-/// produce sensible output against any other. Implemented as a direct (non-power-of-two) DFT rather than
+/// windowed STFT (hop 160, reflect-padded, <c>center=True</c>), a Slaney-style mel filterbank, log10
+/// magnitude clipped to the top 8 dB, then rescaled to roughly <c>[-1, 1]</c> (<c>(log_spec + 4) / 4</c>).
+/// Every constant here is Whisper's own fixed, published preprocessing contract, not a tunable choice --
+/// the encoder was trained against exactly this transform and will not produce sensible output against
+/// any other. Implemented as a direct (non-power-of-two) DFT rather than
 /// <see cref="ShortTimeFourierTransform"/> (that type requires a power-of-two FFT size; Whisper's own
 /// window size, 400, is not one). Verified end-to-end (this extractor plus the real encoder/decoder ONNX
 /// graphs) against <see cref="SherpaOnnxWhisperTinyEnModelAsset"/>'s own bundled ground-truth test clips
 /// before this feature shipped -- see that type's own doc comment.
 /// </summary>
+/// <remarks>
+/// User-requested real investigation (2026-11-08): <see cref="DefaultMelBins"/> (80) is every model from
+/// tiny through medium's own fixed mel-bin count, but OpenAI's large-v3 release switched its own encoder
+/// to a 128-bin filterbank (confirmed directly: feeding it an 80-bin tensor throws a real ONNX Runtime
+/// dimension-mismatch error, "Expected: 128"). <see cref="Compute"/>'s own <paramref name="melBins"/>
+/// parameter (default <see cref="DefaultMelBins"/>, so every pre-existing caller is unaffected) lets a
+/// caller request either -- OpenAI's own <c>audio.py</c> builds this exact same Slaney filterbank
+/// construction for whichever <c>n_mels</c> is requested (the formula is not specific to 80), so no
+/// separate formula is needed, only a parameterized bin count. Each distinct bin count's own filterbank
+/// is built once and cached, never recomputed per chunk.
+/// </remarks>
 public static class WhisperLogMelSpectrogram
 {
     public const int SampleRate = 16000;
     public const int FftSize = 400;
     public const int HopSize = 160;
-    public const int MelBins = 80;
+    public const int DefaultMelBins = 80;
     public const int ChunkSamples = 30 * SampleRate;
 
-    // Declared before MelFilterbank below: C# initializes static fields in textual declaration order, and
-    // BuildMelFilterbank() (via HzToMel/MelToHz) depends on LogStep -- a static readonly field, not a
-    // const, so it must already be initialized by the time BuildMelFilterbank() runs, or every mel-scale
-    // conversion above 1000 Hz silently divides by zero.
+    // Declared before MelFilterbankCache below: C# initializes static fields in textual declaration
+    // order, and BuildMelFilterbank() (via HzToMel/MelToHz) depends on LogStep -- a static readonly
+    // field, not a const, so it must already be initialized by the time BuildMelFilterbank() runs, or
+    // every mel-scale conversion above 1000 Hz silently divides by zero.
     private const double MelBreakFrequencyHz = 1000.0;
     private const double MelHighFrequencyQ = 1000.0 / (200.0 / 3.0);
     private static readonly double LogStep = Math.Log(6.4) / 27.0; // Slaney mel-scale log-region step.
@@ -33,7 +44,9 @@ public static class WhisperLogMelSpectrogram
     private static readonly float[] HannWindow = BuildHannWindow(FftSize);
     private static readonly double[,] CosTable = BuildTrigTable(isSine: false);
     private static readonly double[,] SinTable = BuildTrigTable(isSine: true);
-    private static readonly float[,] MelFilterbank = BuildMelFilterbank();
+    private static readonly System.Collections.Concurrent.ConcurrentDictionary<int, float[,]> MelFilterbankCache = new();
+
+    private static float[,] GetMelFilterbank(int melBins) => MelFilterbankCache.GetOrAdd(melBins, BuildMelFilterbank);
 
     /// <summary>
     /// Computes the log-mel spectrogram for one chunk of already-16kHz-mono samples, zero-padded or
@@ -41,9 +54,11 @@ public static class WhisperLogMelSpectrogram
     /// consumes a fixed-length 30-second window, silence-padding a shorter real chunk rather than varying
     /// its own input shape.
     /// </summary>
-    /// <returns><c>[MelBins, 3000]</c> row-major (mel bin, then time frame).</returns>
-    public static float[,] Compute(ReadOnlySpan<float> samples)
+    /// <param name="melBins">This model variant's own expected mel-bin count -- see this type's own remarks.</param>
+    /// <returns><c>[melBins, 3000]</c> row-major (mel bin, then time frame).</returns>
+    public static float[,] Compute(ReadOnlySpan<float> samples, int melBins = DefaultMelBins)
     {
+        var melFilterbank = GetMelFilterbank(melBins);
         var chunk = new float[ChunkSamples];
         samples[..Math.Min(samples.Length, ChunkSamples)].CopyTo(chunk);
 
@@ -76,16 +91,16 @@ public static class WhisperLogMelSpectrogram
         // Whisper's own reference implementation drops the STFT's final frame (`stft[..., :-1]`) --
         // center=True padding produces one extra trailing frame beyond what the mel filterbank expects.
         var usedFrames = frameCount - 1;
-        var mel = new float[MelBins, usedFrames];
+        var mel = new float[melBins, usedFrames];
         var maxLog = float.NegativeInfinity;
-        for (var m = 0; m < MelBins; m++)
+        for (var m = 0; m < melBins; m++)
         {
             for (var t = 0; t < usedFrames; t++)
             {
                 double sum = 0;
                 for (var k = 0; k < FrequencyBinCount; k++)
                 {
-                    sum += MelFilterbank[m, k] * power[k, t];
+                    sum += melFilterbank[m, k] * power[k, t];
                 }
 
                 var logValue = (float)Math.Log10(Math.Max(sum, 1e-10));
@@ -98,7 +113,7 @@ public static class WhisperLogMelSpectrogram
         }
 
         var floor = maxLog - 8f;
-        for (var m = 0; m < MelBins; m++)
+        for (var m = 0; m < melBins; m++)
         {
             for (var t = 0; t < usedFrames; t++)
             {
@@ -155,7 +170,7 @@ public static class WhisperLogMelSpectrogram
     /// the mel scale between 0 Hz and Nyquist, each individually area-normalized so a flat-spectrum input
     /// produces roughly equal energy per band.
     /// </summary>
-    private static float[,] BuildMelFilterbank()
+    private static float[,] BuildMelFilterbank(int melBins)
     {
         var fftFreqs = new double[FrequencyBinCount];
         for (var k = 0; k < FrequencyBinCount; k++)
@@ -165,16 +180,16 @@ public static class WhisperLogMelSpectrogram
 
         var minMel = HzToMel(0.0);
         var maxMel = HzToMel(SampleRate / 2.0);
-        var melPoints = new double[MelBins + 2];
+        var melPoints = new double[melBins + 2];
         for (var i = 0; i < melPoints.Length; i++)
         {
-            melPoints[i] = minMel + (maxMel - minMel) * i / (MelBins + 1);
+            melPoints[i] = minMel + (maxMel - minMel) * i / (melBins + 1);
         }
 
         var hzPoints = melPoints.Select(MelToHz).ToArray();
 
-        var weights = new float[MelBins, FrequencyBinCount];
-        for (var m = 0; m < MelBins; m++)
+        var weights = new float[melBins, FrequencyBinCount];
+        for (var m = 0; m < melBins; m++)
         {
             var lowerHz = hzPoints[m];
             var centerHz = hzPoints[m + 1];

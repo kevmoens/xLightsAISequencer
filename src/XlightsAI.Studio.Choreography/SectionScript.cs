@@ -14,7 +14,15 @@ namespace XlightsAI.Studio.Choreography;
 /// </summary>
 /// <param name="LayerZ">Which of the referenced Look's layers (by <see cref="LookLayer.Z"/>) this binding overrides.</param>
 /// <param name="Props">The real prop/group reference (e.g. <c>"group:MiniTrees"</c>, a bare model name) this section uses for that layer instead of the Look's own declared <see cref="LookLayer.Props"/>.</param>
-public sealed record SectionEventBinding(int LayerZ, string Props);
+/// <param name="Annotation">
+/// Build-plan Phase 18 §7 (Phase F): optional override of what THIS rebound layer is meant to visually
+/// express for this specific section, replacing the Look's own declared <see cref="LookLayer.Annotation"/>
+/// for this section only (<see langword="null"/> leaves the Look's original annotation, if any, as the
+/// effective one). Same grounding discipline as the Director's own <see cref="LookLayer.Annotation"/> --
+/// the Choreographer is only prompted to write one when the layer's effect has a catalog-confirmed visual
+/// character, never a guess.
+/// </param>
+public sealed record SectionEventBinding(int LayerZ, string Props, string? Annotation = null);
 
 /// <summary>
 /// Build-plan Phase 10 §2e/§3e: one phrase-scoped staging decision within a section -- "phrase 2 of 4: add

@@ -150,11 +150,22 @@ public static class Program
 
     private static void RegisterServices(IServiceCollection services, string appDataDirectory)
     {
+        // User-requested real feature (2026-11-08): "all models should ship with our app" -- a release
+        // build's own publish/install directory ships a "models" folder alongside the executable
+        // (populated at build/release time, never committed to source control; see the release workflow),
+        // so ModelAssetManager finds an already-verified copy here first and never needs a runtime
+        // download/consent prompt at all. A dev build that has no such folder (e.g. a plain `dotnet build`)
+        // simply finds nothing here and falls back to the pre-existing AppData-cached, consent-gated
+        // download flow unchanged -- this is purely additive.
+        var bundledModelsDirectory = Path.Combine(AppContext.BaseDirectory, "models");
+
         services.AddSingleton(sp => new AppDiagnostics(Path.Combine(appDataDirectory, "logs"), sp.GetRequiredService<ILogger<AppDiagnostics>>()));
         services.AddSingleton<IAppDiagnostics>(sp => sp.GetRequiredService<AppDiagnostics>());
         services.AddSingleton(sp => new SettingsStore(appDataDirectory, sp.GetRequiredService<IAppDiagnostics>()));
         services.AddSingleton<JsonProjectStore>();
+        services.AddSingleton<IProjectStore>(sp => sp.GetRequiredService<JsonProjectStore>());
         services.AddSingleton(_ => new RecentProjectsStore(appDataDirectory));
+        services.AddSingleton<IRecentProjectsStore>(sp => sp.GetRequiredService<RecentProjectsStore>());
         services.AddSingleton<ProjectService>();
         services.AddSingleton<ShowDirectoryDiscoveryService>();
         services.AddSingleton<ShowLayoutImporter>();
@@ -176,12 +187,16 @@ public static class Program
         services.AddSingleton(_ => new JsonSongAssetStore(Path.Combine(appDataDirectory, "audio-assets")));
         services.AddSingleton(_ => new JsonWaveformPyramidStore(Path.Combine(appDataDirectory, "waveform-cache")));
 
-        // Real whole-song AI pipeline (M1-M4): the vocal/instrument separation model is a second,
-        // separate optional consent-gated download (the Show Import screen's "Download separation
-        // model" action) -- see SherpaOnnxSpleeterModelAsset's own doc comment for the pinned
-        // version/license (and disclosed Spleeter-weights license caveat) this build downloads.
+        // Real whole-song AI pipeline (M1-M4): the vocal/instrument separation model ships bundled with
+        // the app (see bundledModelsDirectory above; the Spleeter-weights redistribution-license caveat
+        // SherpaOnnxSpleeterModelAsset's own doc comment discloses was explicitly waived by the user/
+        // maintainer on 2026-11-08 -- see implementation-evidence/PHASE-06A/STEP-044G.md). A dev build
+        // with no bundled copy falls back to the pre-existing Show Import screen's "Download separation
+        // model" consent-gated action unchanged.
         services.AddSingleton(_ => new ModelAssetManagerRegistry(
-            new ModelAssetManager(Path.Combine(appDataDirectory, "tools", "stem-separation-model"), new HttpModelAssetDownloader())));
+            new ModelAssetManager(
+                Path.Combine(appDataDirectory, "tools", "stem-separation-model"), new HttpModelAssetDownloader(),
+                bundledSearchDirectories: [bundledModelsDirectory])));
         services.AddSingleton(sp => new SpectrogramStemSeparatorAdapter(
             new SpectrogramOnnxStemSeparator(
                 sp.GetRequiredService<ModelAssetManagerRegistry>().StemSeparation, new TarBzip2ModelArchiveExpander(),
@@ -209,13 +224,16 @@ public static class Program
             sp.GetRequiredService<ILogger<StructureAnalysisRunner>>()));
         services.AddSingleton(sp => new WholeSongGenerator(sp.GetRequiredService<AudioAnalysisRunner>(), sp.GetRequiredService<StructureAnalysisRunner>()));
 
-        // Build-plan "richer analysis tools" Phase 6 (2026-11-02): speech-to-text over the vocals stem, a
-        // third, separate optional consent-gated download (same "never a hidden download" convention as
-        // the stem-separation model above) -- see SherpaOnnxWhisperTinyEnModelAsset's own doc comment for
-        // why this specific real model/vocabulary was chosen. Never blocks generation: a not-yet-installed
-        // model is caught inside AiChoreographyWholeSongGenerator itself and simply yields no transcript.
+        // Build-plan "richer analysis tools" Phase 6 (2026-11-02): speech-to-text over the vocals stem
+        // ships bundled with the app (see bundledModelsDirectory above; this model's weights are
+        // MIT-licensed, so bundling needed no waiver -- see SherpaOnnxWhisperTinyEnModelAsset's own doc
+        // comment for why this specific real model/vocabulary was chosen). Never blocks generation: a dev
+        // build with no bundled copy, and not yet consented to a runtime download, is caught inside
+        // AiChoreographyWholeSongGenerator itself and simply yields no transcript.
         services.AddSingleton(sp => new WhisperOnnxTranscriber(
-            new ModelAssetManager(Path.Combine(appDataDirectory, "tools", "whisper-transcription-model"), new HttpModelAssetDownloader()),
+            new ModelAssetManager(
+                Path.Combine(appDataDirectory, "tools", "whisper-transcription-model"), new HttpModelAssetDownloader(),
+                bundledSearchDirectories: [bundledModelsDirectory]),
             new TarBzip2ModelArchiveExpander(), sp.GetRequiredService<TranscodingAudioDecoder>(),
             SherpaOnnxWhisperTinyEnModelAsset.Bundle, Path.Combine(appDataDirectory, "whisper-transcription-output")));
 

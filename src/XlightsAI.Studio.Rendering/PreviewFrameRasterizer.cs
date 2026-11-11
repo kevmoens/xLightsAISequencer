@@ -23,6 +23,18 @@ public static class PreviewFrameRasterizer
     /// </summary>
     public static byte[] RasterizeToPng(PreviewFrame frame, int width = DefaultWidth, int height = DefaultHeight, int pointRadiusPixels = 2)
     {
+        var rgb = Rasterize(frame, width, height, pointRadiusPixels);
+        return MinimalPngEncoder.Encode(width, height, rgb);
+    }
+
+    /// <summary>
+    /// Build-plan Phase 18 §4 (Phase C): the same point-plot rasterization <see cref="RasterizeToPng"/> already
+    /// does for a single still, exposed as a raw row-major RGB buffer so a caller encoding a whole frame
+    /// *sequence* (e.g. <see cref="AnimatedGifEncoder"/>) never has to decode back out of a PNG it just asked
+    /// this type to produce.
+    /// </summary>
+    public static byte[] Rasterize(PreviewFrame frame, int width = DefaultWidth, int height = DefaultHeight, int pointRadiusPixels = 2)
+    {
         ArgumentNullException.ThrowIfNull(frame);
         if (width <= 0 || height <= 0)
         {
@@ -64,6 +76,6 @@ public static class PreviewFrameRasterizer
             }
         }
 
-        return MinimalPngEncoder.Encode(width, height, rgb);
+        return rgb;
     }
 }

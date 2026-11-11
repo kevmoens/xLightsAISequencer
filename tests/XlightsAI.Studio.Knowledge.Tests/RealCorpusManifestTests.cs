@@ -25,11 +25,12 @@ public sealed class RealCorpusManifestTests
         // and were registered as real UserAuthored KnownResolutions entries (2026-10-31) -- 5 UserAuthored
         // from before this phase plus 7 newly recovered = 12; LikelyVendorOrCommunityDownload/
         // ExternalReference counts are unchanged (Phase 16 §1c's 5 broken-copy swaps were swaps within
-        // that same category, not additions).
-        Assert.Equal(27, manifest.Entries.Count);
+        // that same category, not additions). Build-plan Phase 19 §2a: the remaining 5 of the 12 (re-
+        // verified 2026-11-09 to now parse cleanly) bring UserAuthored from 12 to 17, total from 27 to 32.
+        Assert.Equal(32, manifest.Entries.Count);
         Assert.Equal(14, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.LikelyVendorOrCommunityDownload));
         Assert.Equal(1, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.ExternalReference));
-        Assert.Equal(12, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.UserAuthored));
+        Assert.Equal(17, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.UserAuthored));
 
         foreach (var entry in manifest.Entries)
         {
@@ -39,5 +40,15 @@ public sealed class RealCorpusManifestTests
 
         // Bad Feelings/exports is this app's own prior output, never a corpus member.
         Assert.DoesNotContain(manifest.Entries, e => e.SequencePath.Contains("Bad Feelings"));
+
+        // Build-plan Phase 19 §1c/§2a: every project this app has generated since the 2026-10-31 run
+        // (confirmed present in the live C:\xLights tree as of 2026-11-09) must still be excluded, not
+        // silently picked up as a new "unresolved" corpus entry just because it is unregistered.
+        string[] appGeneratedTitleFragments = ["AJR-Bang", "Bruno-Mars-I-Just-Might", "Choosin Texas", "Bad Feeling"];
+        foreach (var fragment in appGeneratedTitleFragments)
+        {
+            Assert.DoesNotContain(manifest.Entries, e => e.SequencePath.Contains(fragment, StringComparison.OrdinalIgnoreCase));
+        }
+        Assert.DoesNotContain(manifest.Entries, e => e.SequencePath.Contains(@"\generated\", StringComparison.OrdinalIgnoreCase));
     }
 }

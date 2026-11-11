@@ -116,6 +116,68 @@ public sealed class DirectorPromptBuilderTests
         Assert.Contains("long-duration base layer spanning most of that section's own window", prompt.StablePrefix);
     }
 
+    [Fact]
+    public void Build_StablePrefix_NamesTransientsAndVocalNotesAsValidTimescales_WithAWorkedExample()
+    {
+        // User follow-up (2026-11-10): measured directly against a real hand-sequenced reference show --
+        // its dominant real emphasis technique was a short "On" flash timed to real detected hits, not the
+        // regular bar/beat grid. The Director must know "Transients"/"VocalNotes" exist as real Timescale
+        // choices, and why a short-duty, non-timing-track-bound layer bound to one of them is the
+        // highest-leverage change for making emphasis actually read as emphasis.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("Transients|VocalNotes", prompt.StablePrefix);
+        Assert.Contains("\"Timescale\": \"Transients\"", prompt.StablePrefix);
+        Assert.Contains("real detected transient hit", prompt.StablePrefix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_ReportsRealEmphasisTrackAvailability_WhenTransientHitsArePresent()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000) with
+        {
+            TransientHits = [new XlightsAI.Studio.Rhythm.TransientHit(5_000_000, 0.9f), new XlightsAI.Studio.Rhythm.TransientHit(15_000_000, 0.8f)],
+        };
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("\"Transients\" (2 real detected hits)", prompt.VolatileSuffix);
+        Assert.Contains("no \"VocalNotes\" track (0 real detected sung-note onsets)", prompt.VolatileSuffix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_OmitsEmphasisTrackAvailabilityLine_WhenNeitherSignalIsPresent()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.DoesNotContain("Real emphasis timing tracks available", prompt.VolatileSuffix);
+    }
+
     private static ExemplarIndex BuildManySameKindExemplars(SectionKind kind, int count) =>
         new(DateTimeOffset.UtcNow, Enumerable.Range(0, count)
             .Select(i => new ExemplarEntry(
@@ -336,6 +398,31 @@ public sealed class DirectorPromptBuilderTests
     }
 
     [Fact]
+    public void Build_StablePrefix_ExplainsHowToSatisfyThePerKindLookDiversityFloor()
+    {
+        // Real-run finding (2026-11-10): a real Director generation exhausted its retry budget against
+        // ShowBibleValidator's own per-Kind diversity floor (look-diversity-per-kind) without ever
+        // satisfying it -- the stable prefix told the Director to "design N distinct Looks" per repeating
+        // Kind (volatile suffix) but never explained the actual mechanism (AllowedSectionKinds eligibility)
+        // the validator checks, so this REQUIRED instruction was added to spell it out up front rather than
+        // relying purely on a terse post-failure correction message to teach the model the rule.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "Traditional / Classic", song, layout);
+
+        Assert.Contains("REQUIRED (build-plan Phase 24 §2a", prompt.StablePrefix);
+        Assert.Contains("AllowedSectionKinds", prompt.StablePrefix);
+        Assert.Contains("eligible", prompt.StablePrefix);
+    }
+
+    [Fact]
     public void Build_StablePrefix_ContainsShowLengthGuidance()
     {
         if (!RealXLightsFixture.IsAvailable)
@@ -368,6 +455,58 @@ public sealed class DirectorPromptBuilderTests
 
         Assert.Contains("143.7", prompt.VolatileSuffix);
         Assert.Contains("Verse", prompt.VolatileSuffix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_NamesEveryBarRangeForARepeatingKind_WhenItOccursThreeOrMoreTimes()
+    {
+        // Build-plan Phase 24 §2b acceptance criterion: "A real Director prompt log shows the new
+        // per-Kind repeat-structure line for any song with a 3+-occurrence Kind."
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+        var songId = song.SongId;
+        var repeatingSections = new SectionLabelAnalysis(
+            Guid.NewGuid(), songId, "hash", Guid.NewGuid(), Guid.NewGuid(), "t/1",
+            new SectionLabelSettings(0.95, 0.4, "t/1"),
+            [
+                new SectionLabelCandidate(Guid.NewGuid(), Guid.NewGuid(), 48, 64, SectionKind.Chorus, 1.0, ["test"], false),
+                new SectionLabelCandidate(Guid.NewGuid(), Guid.NewGuid(), 112, 128, SectionKind.Chorus, 1.0, ["test"], false),
+                new SectionLabelCandidate(Guid.NewGuid(), Guid.NewGuid(), 176, 192, SectionKind.Chorus, 1.0, ["test"], false),
+                new SectionLabelCandidate(Guid.NewGuid(), Guid.NewGuid(), 240, 256, SectionKind.Chorus, 1.0, ["test"], false),
+                new SectionLabelCandidate(Guid.NewGuid(), Guid.NewGuid(), 304, 328, SectionKind.Chorus, 1.0, ["test"], false),
+            ]);
+        song = song with { Sections = repeatingSections };
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("Chorus repeats 5 times:", prompt.VolatileSuffix);
+        Assert.Contains("[48,64)", prompt.VolatileSuffix);
+        Assert.Contains("[304,328)", prompt.VolatileSuffix);
+        Assert.Contains("the last one is 24 bars, longer than the others", prompt.VolatileSuffix);
+        Assert.Contains("design at least 3 visibly distinct Looks across these 5 occurrences", prompt.VolatileSuffix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_OmitsRepeatStructureLine_WhenNoKindOccursThreeOrMoreTimes()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000); // one lone Verse section
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.DoesNotContain("repeats", prompt.VolatileSuffix);
     }
 
     [Fact]
@@ -452,5 +591,107 @@ public sealed class DirectorPromptBuilderTests
         var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
 
         Assert.DoesNotContain("Band-to-group mapping", prompt.VolatileSuffix);
+    }
+
+    /// <summary>Build-plan Phase 18 §6 (Phase E): the "## Effect vocabulary" section enriches each bare effect name with its real, known visual character when one exists in the supplied catalog.</summary>
+    [Fact]
+    public void Build_StablePrefix_EnrichesEffectNameWithCatalogDescription_WhenCatalogHasAnEntry()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var craftRules = new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []);
+        var catalog = new EffectVisualCharacterCatalog(DateTimeOffset.UtcNow,
+            [new EffectVisualCharacter("Garlands", "High", "a steady repeating garland-like pattern", DateTimeOffset.UtcNow)]);
+        var knowledge = new DirectorKnowledgeContext(vocabulary, craftRules, new ExemplarIndex(DateTimeOffset.UtcNow, []), Templates: null, EffectVisualCharacters: catalog);
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "Traditional / Classic", song, layout);
+
+        Assert.Contains("Garlands -- a steady repeating garland-like pattern", prompt.StablePrefix);
+    }
+
+    /// <summary>A documented-behavior entry (an effect this pipeline's own isolated fixture could not meaningfully exercise) is surfaced in preference to the bare AI-observed description, since it says what the effect is actually FOR.</summary>
+    [Fact]
+    public void Build_StablePrefix_PrefersDocumentedBehaviorOverAiDescription_WhenBothArePresent()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var craftRules = new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []);
+        var catalog = new EffectVisualCharacterCatalog(DateTimeOffset.UtcNow,
+        [
+            new EffectVisualCharacter(
+                "Garlands", "High", "completely dark, no visible motion", DateTimeOffset.UtcNow,
+                DocumentedBehavior: "Real manual-documented purpose of Garlands.",
+                DocumentationSource: "https://manual.xlights.org/xlights/effects/off/garlands.md"),
+        ]);
+        var knowledge = new DirectorKnowledgeContext(vocabulary, craftRules, new ExemplarIndex(DateTimeOffset.UtcNow, []), Templates: null, EffectVisualCharacters: catalog);
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "Traditional / Classic", song, layout);
+
+        Assert.Contains("Real manual-documented purpose of Garlands.", prompt.StablePrefix);
+        Assert.DoesNotContain("completely dark, no visible motion", prompt.StablePrefix);
+    }
+
+    /// <summary>When only a Low-tier entry exists for an effect, that is the one surfaced (there is no High-tier entry to prefer).</summary>
+    [Fact]
+    public void Build_StablePrefix_FallsBackToLowTier_WhenOnlyLowTierCatalogEntryExists()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var craftRules = new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []);
+        var catalog = new EffectVisualCharacterCatalog(DateTimeOffset.UtcNow,
+            [new EffectVisualCharacter("Garlands", "Low", "a low-resolution-only description", DateTimeOffset.UtcNow)]);
+        var knowledge = new DirectorKnowledgeContext(vocabulary, craftRules, new ExemplarIndex(DateTimeOffset.UtcNow, []), Templates: null, EffectVisualCharacters: catalog);
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "Traditional / Classic", song, layout);
+
+        Assert.Contains("Garlands -- a low-resolution-only description", prompt.StablePrefix);
+    }
+
+    /// <summary>Build-plan Phase 18 §6 acceptance criterion: no catalog (every existing caller before this phase) renders byte-for-byte the same "## Effect vocabulary" section as before -- an additive enrichment only, never a regression to the existing exact-bare-name assertions.</summary>
+    [Fact]
+    public void Build_StablePrefix_IsByteForByteIdentical_WhenNoEffectVisualCharacterCatalogIsSupplied()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var withoutExplicitDefault = DirectorPromptBuilder.Build(BuildKnowledge(), "Traditional / Classic", song, layout);
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var craftRules = new CraftRules(DateTimeOffset.UtcNow, 0.7, 3,
+            [new CraftRule("rule-1", "Verses hold a single colour.", 10, 9, 5, false)], []);
+        var withExplicitNullCatalog = new DirectorKnowledgeContext(
+            vocabulary, craftRules, new ExemplarIndex(DateTimeOffset.UtcNow, []), Templates: null, EffectVisualCharacters: null);
+        var explicitPrompt = DirectorPromptBuilder.Build(withExplicitNullCatalog, "Traditional / Classic", song, layout);
+
+        Assert.Equal(withoutExplicitDefault.StablePrefix, explicitPrompt.StablePrefix);
+
+        // An empty (but non-null) catalog has no entry for any effect, so it must also be a no-op.
+        var withEmptyCatalog = withExplicitNullCatalog with { EffectVisualCharacters = new EffectVisualCharacterCatalog(DateTimeOffset.UtcNow, []) };
+        var emptyPrompt = DirectorPromptBuilder.Build(withEmptyCatalog, "Traditional / Classic", song, layout);
+
+        Assert.Equal(withoutExplicitDefault.StablePrefix, emptyPrompt.StablePrefix);
     }
 }

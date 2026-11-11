@@ -98,6 +98,115 @@ public sealed class RenderedFrameProjectorTests
     }
 
     [Fact]
+    public void Project_SingleLineModelWithEndpointBounds_SpreadsNodesAcrossRealDistinctPositions()
+    {
+        var model = new DisplayModel(
+            new ModelId("Line"), "Line", "Single Line", [], [],
+            Category: ModelCategory.SingleLine, StringType: "RGB Nodes", NodeCount: 3,
+            Bounds: new DisplayBounds(X: 0.0, Y: 0.5, Z: 0.0, EndX: 1.0, EndY: 0.5));
+        var layout = Layout(model);
+        // 3 nodes * 3 channels = 9 channels, all lit (never black) so every node's own position is checkable.
+        var decoded = new DecodedRenderOutput(9, 25, [new DecodedRenderFrame(0, [1, 0, 0, 0, 1, 0, 0, 0, 1])]);
+
+        var result = RenderedFrameProjector.Project(decoded, layout, SingleSpan(model.Id, 0, 3));
+
+        var frame = Assert.Single(result.Frames);
+        Assert.Equal(3, frame.Illuminated.Count);
+        // Node 0 at the start of the line, node 1 at the midpoint, node 2 at the end -- real, distinct
+        // positions, not all three collapsed onto one point.
+        Assert.Equal(0.0, frame.Illuminated[0].X);
+        Assert.Equal(0.5, frame.Illuminated[1].X);
+        Assert.Equal(1.0, frame.Illuminated[2].X);
+    }
+
+    [Fact]
+    public void Project_SingleLineModelWithAnOffNodeInTheMiddle_StillPlacesTheLitNodeAtItsRealIndex()
+    {
+        var model = new DisplayModel(
+            new ModelId("Line"), "Line", "Single Line", [], [],
+            Category: ModelCategory.SingleLine, StringType: "RGB Nodes", NodeCount: 3,
+            Bounds: new DisplayBounds(X: 0.0, Y: 0.5, Z: 0.0, EndX: 1.0, EndY: 0.5));
+        var layout = Layout(model);
+        // Only node 2 (the real last node) is lit; nodes 0 and 1 are black and must not shift node 2's
+        // own position leftward (a bug this test guards against: deriving position from list order
+        // instead of real node index would wrongly place the sole illuminated point at the start).
+        var decoded = new DecodedRenderOutput(9, 25, [new DecodedRenderFrame(0, [0, 0, 0, 0, 0, 0, 1, 0, 0])]);
+
+        var result = RenderedFrameProjector.Project(decoded, layout, SingleSpan(model.Id, 0, 3));
+
+        var pixel = Assert.Single(Assert.Single(result.Frames).Illuminated);
+        Assert.Equal(1.0, pixel.X);
+    }
+
+    [Fact]
+    public void Project_MatrixModelWithParm1Parm2_SpreadsNodesAcrossARealTwoDimensionalGrid()
+    {
+        // 2 columns (strings) x 3 rows (pixels/string) = 6 nodes -- real xLights node numbering for a
+        // multi-string model is string-major (string 0's pixels first, then string 1's).
+        var model = new DisplayModel(
+            new ModelId("Matrix"), "Matrix", "Vert Matrix", [], [],
+            Category: ModelCategory.Matrix, StringType: "RGB Nodes", NodeCount: 6, Parm1: 2, Parm2: 3);
+        var layout = Layout(model);
+        var channels = new byte[18];
+        for (var node = 0; node < 6; node++)
+        {
+            channels[node * 3] = (byte)(node + 1); // every node lit with a distinct, non-zero red value.
+        }
+
+        var decoded = new DecodedRenderOutput(18, 25, [new DecodedRenderFrame(0, channels)]);
+        var result = RenderedFrameProjector.Project(decoded, layout, SingleSpan(model.Id, 0, 6));
+
+        var frame = Assert.Single(result.Frames);
+        Assert.Equal(6, frame.Illuminated.Count);
+
+        // Node 0: column 0, row 0 -> (0, 0). Node 2: column 0, row 2 (last row of string 0) -> (0, 1).
+        // Node 3: column 1, row 0 (first pixel of string 1) -> (1, 0). Node 5: column 1, row 2 -> (1, 1).
+        Assert.Equal((0.0, 0.0), (frame.Illuminated[0].X, frame.Illuminated[0].Y));
+        Assert.Equal((0.0, 1.0), (frame.Illuminated[2].X, frame.Illuminated[2].Y));
+        Assert.Equal((1.0, 0.0), (frame.Illuminated[3].X, frame.Illuminated[3].Y));
+        Assert.Equal((1.0, 1.0), (frame.Illuminated[5].X, frame.Illuminated[5].Y));
+    }
+
+    [Fact]
+    public void Project_MatrixModelWithMismatchedParm1Parm2_FallsBackToSinglePointRatherThanGuessing()
+    {
+        // Parm1*Parm2 (2*2=4) does not equal the real NodeCount (6) -- never trust mismatched geometry data.
+        var model = new DisplayModel(
+            new ModelId("Matrix"), "Matrix", "Vert Matrix", [], [],
+            Category: ModelCategory.Matrix, StringType: "RGB Nodes", NodeCount: 6, Parm1: 2, Parm2: 2);
+        var layout = Layout(model);
+        var channels = new byte[18];
+        for (var node = 0; node < 6; node++)
+        {
+            channels[node * 3] = 255;
+        }
+
+        var decoded = new DecodedRenderOutput(18, 25, [new DecodedRenderFrame(0, channels)]);
+        var result = RenderedFrameProjector.Project(decoded, layout, SingleSpan(model.Id, 0, 6));
+
+        var frame = Assert.Single(result.Frames);
+        Assert.Equal(6, frame.Illuminated.Count);
+        Assert.All(frame.Illuminated, p => Assert.Equal(0.0, p.X)); // falls back to the single representative point.
+    }
+
+    [Fact]
+    public void Project_NonSingleLineCategory_KeepsExistingSinglePointBehaviorEvenWithEndpointBounds()
+    {
+        var model = new DisplayModel(
+            new ModelId("Matrix"), "Matrix", "Vert Matrix", [], [],
+            Category: ModelCategory.Matrix, StringType: "RGB Nodes", NodeCount: 2,
+            Bounds: new DisplayBounds(X: 0.0, Y: 0.5, Z: 0.0, EndX: 1.0, EndY: 0.5));
+        var layout = Layout(model);
+        var decoded = new DecodedRenderOutput(6, 25, [new DecodedRenderFrame(0, [1, 0, 0, 0, 1, 0])]);
+
+        var result = RenderedFrameProjector.Project(decoded, layout, SingleSpan(model.Id, 0, 2));
+
+        var frame = Assert.Single(result.Frames);
+        Assert.Equal(2, frame.Illuminated.Count);
+        Assert.All(frame.Illuminated, p => Assert.Equal(0.0, p.X)); // unchanged: every node at the same representative point.
+    }
+
+    [Fact]
     public void Project_NoPreviewPoint_FallsBackToBoundsThenOrigin()
     {
         var withBounds = new DisplayModel(

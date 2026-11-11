@@ -52,7 +52,8 @@ public sealed class SectionScriptBatchGenerator
 
     public async Task<IReadOnlyDictionary<Guid, SectionScriptGenerationReport>> GenerateAllAsync(
         string stablePrefix, IReadOnlyList<SectionScriptBatchItem> items, Guid songId, LookLibrary lookLibrary, DisplayGraph layout,
-        EffectVocabularyCatalog vocabulary, int maxOutputTokens, CancellationToken ct)
+        EffectVocabularyCatalog vocabulary, int maxOutputTokens, CancellationToken ct,
+        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
         ArgumentNullException.ThrowIfNull(items);
@@ -110,7 +111,7 @@ public sealed class SectionScriptBatchGenerator
                     });
                     violations = script is null
                         ? [new SectionScriptValidationError("transport", "Batch item's JSON deserialized to null.")]
-                        : SectionScriptValidator.Validate(script, lookLibrary, layout, vocabulary);
+                        : SectionScriptValidator.Validate(script, lookLibrary, layout, vocabulary, phraseCountBySectionId);
                 }
                 catch (Exception ex) when (ex is System.Text.Json.JsonException or AiCallRejectedException)
                 {
@@ -144,7 +145,7 @@ public sealed class SectionScriptBatchGenerator
                 await semaphore.WaitAsync(ct).ConfigureAwait(false);
                 try
                 {
-                    var report = await generator.GenerateAsync(stablePrefix, item.VolatileSuffix, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct).ConfigureAwait(false);
+                    var report = await generator.GenerateAsync(stablePrefix, item.VolatileSuffix, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct, phraseCountBySectionId).ConfigureAwait(false);
                     return (item.SectionId, report);
                 }
                 finally

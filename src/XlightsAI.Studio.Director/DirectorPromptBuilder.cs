@@ -14,15 +14,43 @@ namespace XlightsAI.Studio.Director;
 /// caller that does not yet pass one keeps compiling, but a real composition root should always load and
 /// pass the real one so the Director actually draws from it.
 /// </param>
+/// <param name="EffectVisualCharacters">
+/// Build-plan Phase 18 §6 (Phase E): the shippable, committed catalog of real AI-observed (and, for a
+/// documented few, manual.xlights.org-sourced) visual descriptions per effect
+/// (<see cref="Knowledge.EffectVisualCharacterCatalogLoader.Load"/>) -- defaults to <see langword="null"/>
+/// so every existing caller that does not yet pass one keeps compiling and renders byte-for-byte the same
+/// "## Effect vocabulary" section as before this phase; a real composition root should load and pass the
+/// real embedded catalog so the Director's effect vocabulary is actually enriched.
+/// </param>
+/// <param name="PatternLibrary">
+/// Build-plan Phase 20 §2c: the real, measured <see cref="Pipeline.PatternLibrary"/> a prior
+/// <c>CorpusMiningRunner</c> run computed and persisted (<c>DensityBySection</c>/
+/// <c>LayerCountPerModelDistribution</c> in particular) -- defaults to <see langword="null"/> so every
+/// existing caller that does not yet pass one keeps compiling; a real composition root should load and
+/// pass the real one (same <c>FileNotFoundException</c>-falls-back-to-empty convention as
+/// <see cref="CraftRules"/>/<see cref="Exemplars"/>) so the Director's own baseline guidance above is
+/// cross-checked against what real shows actually do, not left as pure hand-tuned prose.
+/// </param>
 public sealed record DirectorKnowledgeContext(
     EffectVocabularyCatalog Vocabulary,
     CraftRules CraftRules,
     ExemplarIndex Exemplars,
-    MultiLayerTemplateCatalog? Templates = null)
+    MultiLayerTemplateCatalog? Templates = null,
+    EffectVisualCharacterCatalog? EffectVisualCharacters = null,
+    PatternLibrary? PatternLibrary = null)
 {
     public MultiLayerTemplateCatalog TemplatesOrEmpty => Templates ?? EmptyCatalog;
 
+    public PatternLibrary PatternLibraryOrEmpty => PatternLibrary ?? EmptyPatternLibrary;
+
     private static readonly MultiLayerTemplateCatalog EmptyCatalog = new(0, DateTimeOffset.MinValue, []);
+
+    private static readonly PatternLibrary EmptyPatternLibrary = new(
+        GeneratedAtUtc: DateTimeOffset.MinValue, SongCount: 0, TotalEffectCount: 0,
+        EffectFrequency: new Dictionary<string, int>(), EffectFrequencyBySection: new Dictionary<SectionKind, IReadOnlyDictionary<string, int>>(),
+        DensityBySection: new Dictionary<SectionKind, double>(), LayerCountPerModelDistribution: new Dictionary<int, int>(),
+        BlendModeUsage: new Dictionary<string, int>(), PaletteActiveSlotDistribution: new Dictionary<int, int>(),
+        ModeACount: 0, ModeBCount: 0);
 }
 
 /// <summary>
@@ -115,8 +143,9 @@ public static class DirectorPromptBuilder
         sb.AppendLine(preset.EffectPool.Count > 0
             ? "This style's own preferred effect pool -- every Look layer's Effect should be one of these:"
             : "Every Look layer's Effect must be exactly one of these real xLights effect names:");
-        sb.AppendLine(string.Join(", ", effectNames));
+        sb.AppendLine(string.Join(", ", effectNames.Select(name => EnrichEffectName(name, knowledge.EffectVisualCharacters))));
         sb.AppendLine();
+        AppendAnnotationGroundingGuidance(sb);
 
         sb.AppendLine("## Show length");
         sb.AppendLine(ShowLengthGuidance.PromptText);
@@ -136,9 +165,11 @@ public static class DirectorPromptBuilder
         sb.AppendLine("- User feedback: increase the overall number of effects and layers across the whole show, not just on Tree/Matrixes. Layering is not limited to those two props -- any prop or group with enough resolution for a second layer to read as real texture (not noise) benefits from one during a Chorus/Drop/peak section: a base effect carrying color/identity plus a brighter or faster accent layer on top. Push for MORE total Looks using 2+ layers, MORE distinct Looks overall (use more of the MinLooks-MaxLooks range, not the floor), and faster composition-change rates toward the upper end of this style's own density band below -- while still respecting negative space during genuinely quiet sections. \"More layered/more frequent\" and \"everything on constantly\" are not the same goal; the first makes high-energy sections feel richer, the second just reads as noise.");
         sb.AppendLine("- A stated minimum, not just \"more\": a real hand-sequenced reference for this exact craft brief ran up to 8 concurrent EffectLayers on its richest prop and 3 on typical secondary props, against a generated show that peaked at 3 on its richest prop and 0-2 on secondary ones. Concretely: a Chorus/Drop/peak-energy Look's subject prop should carry 3 or more concurrent layers (the multi-layer template catalog below demonstrates real corpus-derived 2-layer patterns at every energy band; this floor pushes higher specifically for peak-energy sections, on top of that catalog, not instead of it); a Verse/ballad/low-energy Look's subject prop should still carry at least 2 (one steady base, one accent) -- never a bare single-layer Look outside a genuinely sparse/negative-space moment. Secondary props on a Chorus/Drop/peak section should carry 2-3 layers where their own resolution supports it, not just the subject.");
         sb.AppendLine("- Also use a genuinely wide slice of the real effect vocabulary above, not a narrow handful repeated everywhere: the same reference used 22 distinct effect names across the whole song, with its two most-used effects together covering only about half of all effects; a generated show that leans on 2 effects for well over a third of everything reads as monotone regardless of how its colors or timing vary. Spread Look design across many different effects from the vocabulary -- reserve any one effect (however good it looks) for a clear minority of this song's own Looks.");
+        sb.AppendLine("- User follow-up (2026-11-10), measured directly against a real hand-sequenced reference show: its single dominant technique for making a hit/note actually feel like emphasis was a SHORT, full-brightness \"On\" flash (median ~200ms) landing on roughly 60% of every real detected transient hit -- used 326 times across one 81-second clip, nearly three-quarters of every effect it placed. A generated show compared against it instead ran every effect on the regular bar grid (median ~1700ms, i.e. about a whole bar) with only 4-19% of placements landing anywhere near a real hit -- reacting to the regular grid, never to the actual hits. Concretely: give at least one Look's own accent (or subject) layer a SHORT-duty (0.7-1.0, since the window itself is already brief -- not the low-duty trick used for a Beats/Bars-bound layer), non-timing-track-bound effect (e.g. \"On\", or any effect not in the seven-effect timing-track-bound family) with \"Timescale\": \"Transients\" (or \"VocalNotes\" for a vocal-driven section) whenever this song's own volatile section below reports real detected hits/notes -- this is what turns \"timed to the beat\" into \"timed to THIS song's own real hits,\" and it is the single highest-leverage change available for making emphasis actually read as emphasis. One real difference between the two: a \"Transients\" mark is always a short, fixed flash (a hit is a single instant, nothing to hold); a \"VocalNotes\" mark spans that REAL sung note's own actual duration whenever one is known -- a long held note gets a correspondingly long effect, a short one a short effect -- so the same high duty cycle now means \"stay lit for as long as the note is actually sung,\" not just \"flash briefly.\"");
         sb.AppendLine();
 
         AppendMultiLayerTemplates(sb, knowledge.TemplatesOrEmpty);
+        AppendPatternLibraryDensity(sb, knowledge.PatternLibraryOrEmpty);
 
         sb.AppendLine("## Verified craft rules");
         sb.AppendLine("Rules below were induced from a real sequence corpus and mechanically re-verified; follow them.");
@@ -221,8 +252,10 @@ public static class DirectorPromptBuilder
             sb.AppendLine($"Vocal-active regions: {vocals.ActiveRegions.Count}.");
         }
 
+        AppendRepeatingKindStructure(sb, music);
         AppendEnergyTransitions(sb, music);
         AppendKeyChanges(sb, music);
+        AppendEmphasisTrackAvailability(sb, music);
 
         sb.AppendLine();
         sb.AppendLine(layout.ToPromptText());
@@ -232,6 +265,73 @@ public static class DirectorPromptBuilder
         CustomPromptBlockFormatter.AppendBlock(sb, customPrompt);
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Build-plan Phase 24 §2b: groups this song's own real section list by <see cref="SectionKind"/> and,
+    /// for any Kind with <see cref="ShowBibleValidator.MinOccurrencesForDiversityFloor"/>+ real occurrences,
+    /// names every one of that Kind's own bar ranges together as a single explicit line -- the Director's
+    /// stable prefix already carries prose telling it to "design real variation" across same-Kind repeats
+    /// (see the baseline craft guidance above), but a flat per-section bar list gives it nothing to actually
+    /// count against; this is the one piece of cross-section awareness a Director call can cheaply have (it
+    /// already sees the whole song's section list -- this just re-groups it and states what it means),
+    /// paired with <see cref="ShowBibleValidator"/>'s own hard per-Kind Look-diversity floor so the
+    /// instruction is also mechanically checked, not just asked for in prose. Also calls out any occurrence
+    /// whose own bar length differs from the Kind's typical (most common) length, so an unusually long/short
+    /// repeat (e.g. an extended final chorus) is flagged as worth a correspondingly distinct treatment.
+    /// Appends nothing when no Kind in this song repeats that many times.
+    /// </summary>
+    private static void AppendRepeatingKindStructure(StringBuilder sb, MusicModel music)
+    {
+        var groups = music.Sections.Labels
+            .GroupBy(l => l.Kind)
+            .Where(g => g.Count() >= ShowBibleValidator.MinOccurrencesForDiversityFloor)
+            .OrderBy(g => g.Key);
+
+        foreach (var group in groups)
+        {
+            var occurrences = group.OrderBy(o => o.StartBarIndex).ToList();
+            var lengths = occurrences.Select(o => o.EndBarIndexExclusive - o.StartBarIndex).ToList();
+            var typicalLength = lengths.GroupBy(l => l).OrderByDescending(g => g.Count()).First().Key;
+
+            var ranges = string.Join(", ", occurrences.Select(o => $"[{o.StartBarIndex},{o.EndBarIndexExclusive})"));
+
+            var outlierNotes = new List<string>();
+            for (var i = 0; i < occurrences.Count; i++)
+            {
+                var length = lengths[i];
+                if (length == typicalLength)
+                {
+                    continue;
+                }
+
+                var comparison = length > typicalLength ? "longer" : "shorter";
+                outlierNotes.Add($"the {Ordinal(i + 1, occurrences.Count)} one is {length} bars, {comparison} than the others");
+            }
+
+            var outlierSuffix = outlierNotes.Count > 0 ? $" (note: {string.Join("; ", outlierNotes)})" : string.Empty;
+            var requiredDistinctLooks = (int)Math.Ceiling(occurrences.Count / 2.0);
+            sb.AppendLine($"{group.Key} repeats {occurrences.Count} times: bars {ranges}{outlierSuffix} -- design at least {requiredDistinctLooks} visibly distinct Looks across these {occurrences.Count} occurrences, not one Look reused. At least {requiredDistinctLooks} Looks must stay eligible for {group.Key} (AllowedSectionKinds names '{group.Key}', or is left unrestricted) or this Show Bible will fail validation -- see the REQUIRED rule above.");
+        }
+    }
+
+    /// <summary>Renders a 1-based occurrence index as "first"/"last"/"2nd"/"3rd"/... for <see cref="AppendRepeatingKindStructure"/>'s own outlier notes.</summary>
+    private static string Ordinal(int oneBasedIndex, int total)
+    {
+        if (oneBasedIndex == 1)
+        {
+            return "first";
+        }
+
+        if (oneBasedIndex == total)
+        {
+            return "last";
+        }
+
+        var suffix = (oneBasedIndex % 100) is 11 or 12 or 13
+            ? "th"
+            : (oneBasedIndex % 10) switch { 1 => "st", 2 => "nd", 3 => "rd", _ => "th" };
+        return $"{oneBasedIndex}{suffix}";
     }
 
     /// <summary>
@@ -272,6 +372,26 @@ public static class DirectorPromptBuilder
             .OrderBy(k => k.TimeTicks)
             .Select(k => $"{TimeSpan.FromTicks(k.TimeTicks):m\\:ss} -> {k.KeyName}");
         sb.AppendLine($"Measured key/mode changes (real, from the audio -- not assumed): {string.Join(", ", rendered)}. Consider a palette or accent-color shift at each one -- a harmonic change is a natural place for the visuals to shift too.");
+    }
+
+    /// <summary>
+    /// User follow-up (2026-11-10): tells the Director, for THIS song specifically, whether the real
+    /// "Transients"/"VocalNotes" timing tracks the baseline craft guidance above names will actually exist
+    /// at compile time (<see cref="ChoreographyEngine.Compile"/> only emits either track when
+    /// <see cref="ChoreographyEngine.Input.EmphasisInstants"/> carries a real, non-empty instant of that
+    /// kind) -- so a Look is never authored to bind a layer to a track this song's own real detection
+    /// turned up nothing for. Appends nothing when this song has neither signal at all.
+    /// </summary>
+    private static void AppendEmphasisTrackAvailability(StringBuilder sb, MusicModel music)
+    {
+        var hitCount = music.TransientHits?.Count ?? 0;
+        var noteCount = music.Melody?.Notes.Count ?? 0;
+        if (hitCount == 0 && noteCount == 0)
+        {
+            return;
+        }
+
+        sb.AppendLine($"Real emphasis timing tracks available for this song: {(hitCount > 0 ? $"\"Transients\" ({hitCount} real detected hits)" : "no \"Transients\" track (0 real detected hits)")}, {(noteCount > 0 ? $"\"VocalNotes\" ({noteCount} real detected sung-note onsets)" : "no \"VocalNotes\" track (0 real detected sung-note onsets)")}.");
     }
 
     /// <summary>
@@ -322,6 +442,47 @@ public static class DirectorPromptBuilder
     }
 
     /// <summary>
+    /// Build-plan Phase 20 §2c: renders this corpus's own real, measured <see cref="PatternLibrary.DensityBySection"/>
+    /// (effect-starts-per-second, by <see cref="SectionKind"/>) and <see cref="PatternLibrary.LayerCountPerModelDistribution"/>
+    /// (how many distinct <c>EffectLayer</c>s a real model actually carries, across the whole corpus) next
+    /// to the existing hand-tuned <see cref="DefaultEnergyCeilings"/>-style guidance above -- a grounding
+    /// cross-check, never a replacement (the style preset's own density band above still drives what this
+    /// run actually compiles to). Appends nothing available-but-empty disclosure when no corpus mining has
+    /// ever been run (the same disclosed-empty convention <see cref="AppendMultiLayerTemplates"/> and the
+    /// "## Verified craft rules" section below both already use).
+    /// </summary>
+    private static void AppendPatternLibraryDensity(StringBuilder sb, PatternLibrary library)
+    {
+        sb.AppendLine("## Real corpus density/layering baseline (measured, not hand-tuned)");
+        sb.AppendLine("Cross-check only -- this song's own style preset density band above still governs what you actually author; these are real, measured corpus-wide averages, not a target to hit exactly:");
+        if (library.SongCount == 0)
+        {
+            sb.AppendLine("(None available for this run -- corpus mining has not been run yet.)");
+            sb.AppendLine();
+            return;
+        }
+
+        sb.AppendLine($"Measured across {library.SongCount} real corpus songs ({library.TotalEffectCount} total effects):");
+        if (library.DensityBySection.Count > 0)
+        {
+            var densityText = string.Join(", ", library.DensityBySection
+                .OrderByDescending(kv => kv.Value)
+                .Select(kv => $"{kv.Key}={kv.Value:0.00}/s"));
+            sb.AppendLine($"- Real section-change density (effect-starts/second, by section kind): {densityText}.");
+        }
+
+        if (library.LayerCountPerModelDistribution.Count > 0)
+        {
+            var layerText = string.Join(", ", library.LayerCountPerModelDistribution
+                .OrderBy(kv => kv.Key)
+                .Select(kv => $"{kv.Key} layer(s) on {kv.Value} real model-occurrence(s)"));
+            sb.AppendLine($"- Real per-model layer-depth distribution (how many distinct EffectLayers a real model actually carries, across the whole corpus): {layerText}.");
+        }
+
+        sb.AppendLine();
+    }
+
+    /// <summary>
     /// Confirmed against real model calls (both a local Ollama model and real Anthropic Claude): with no
     /// explicit schema, a model reasonably invents its own shape (e.g. adding a "title" field), which the
     /// deliberately-strict deserializer (<see cref="StructuredJsonAiClient{TResponse}"/>'s
@@ -341,6 +502,7 @@ public static class DirectorPromptBuilder
         sb.AppendLine("\"Subject\"/\"Props\" accept either a real individual prop name OR a real group reference from the Layout section below (e.g. \"group:Matrixes\", \"group:MiniTrees\", \"group:Outline\") -- use a group reference when every member of that group should genuinely carry the exact same effect at the same time (it compiles to one real, editable group-level effect instead of silently repeating the same effect once per member model). This is a MIX, not a default: a Look library that leans on \"group:Everything\"/a couple of broad groups for most of its Looks is exactly as wrong as one that never uses a group at all -- individual high-value props (the matrices, the tree, a hero arch) deserve their own direct moments too, especially for a peak/solo Look naming one specific subject. Vary it deliberately across the library, the same way a real designer alternates between a full-canvas moment and a single prop carrying a line.");
         sb.AppendLine("Reach across the WHOLE real prop/group list below over the course of the Look library, not just the handful of broad groups and heaviest individual props -- a prop that never appears as any Look's own Subject/Props (not even inside a group) never gets its own moment in the finished show. Spread deliberate attention across small/outline props too (an arch, a mini tree, the front door), not only the matrices and the tree.");
         sb.AppendLine("A literal \"moving from one prop to the next\" sweep (light prop A, then B, then C in turn) is NOT something a single group-targeted effect can produce -- a group effect always treats every member identically and simultaneously. For that specific traveling effect, declare \"PropDelays\" on a Look whose Props/Subject is a group with genuinely different-sized members (mass/mid/accent tiers by real pixel weight -- e.g. \"{\\\"mass\\\":\\\"+0ms\\\",\\\"mid\\\":\\\"+80ms\\\",\\\"accent\\\":\\\"+160ms\\\"}\"), which staggers each tier's own reveal instead of firing every member at once -- reserve this for Looks where that graduated, traveling reveal is the actual intent, not every Look using a group.");
+        sb.AppendLine($"REQUIRED (build-plan Phase 24 §2a -- a hard validation failure, same tier as the {ShowBibleValidator.MinLooks}-{ShowBibleValidator.MaxLooks}-Look count rule above): a Look is \"eligible\" for a SectionKind when its own \"AllowedSectionKinds\" either omits that Kind's restriction entirely (unrestricted -- eligible for every Kind) or explicitly names it. For any SectionKind that repeats {ShowBibleValidator.MinOccurrencesForDiversityFloor}+ times in this song (named below, under \"This song\", with every one of that Kind's own real bar ranges listed together), at least ceil(occurrences/2) Looks must stay eligible for it. This means: if you give a Look an explicit \"AllowedSectionKinds\" list at all, make sure you still leave enough OTHER Looks eligible for every repeating Kind -- do not restrict so many Looks away from a repeating Kind that fewer than this minimum remain. The simplest way to always satisfy this is to leave \"AllowedSectionKinds\" omitted (unrestricted) on most Looks, and only restrict the few Looks where a real creative reason calls for it.");
         sb.AppendLine("""
             {
               "Palettes": [ { "Id": "string", "Name": "string", "Colors": [ { "HexColor": "#RRGGBB", "Role": "base|key|accent" } ] } ],
@@ -363,7 +525,8 @@ public static class DirectorPromptBuilder
                         "Role": "subject|support|secondary",
                         "Blend": "Normal|Bright|Additive|Max",
                         "Duty": 0.0,
-                        "Timescale": "Beats|Bars|Phrases (optional, omit if unused -- use these exact real track names, not a paraphrase like \"beat\" or \"bar\")"
+                        "Timescale": "Beats|Bars|Phrases|Transients|VocalNotes (optional, omit if unused -- use these exact real track names, not a paraphrase like \"beat\" or \"bar\"; Transients/VocalNotes exist only when this song's own real detected hits/sung notes are available, see below)",
+                        "Annotation": "optional -- what this layer is meant to visually express; see the grounding rule below the effect vocabulary, omit entirely rather than guess"
                       }
                     ],
                     "Variations": ["optional array of strings, omit if none"],
@@ -411,6 +574,54 @@ public static class DirectorPromptBuilder
         }
 
         sb.AppendLine();
+    }
+
+    /// <summary>
+    /// Build-plan Phase 18 §6 (Phase E): enriches a bare effect name with its real, known visual character
+    /// when the shippable catalog has one -- additive only, the exact bare <paramref name="effectName"/>
+    /// token is always kept as a prefix (never replaced/renamed), so existing exact-substring assertions on
+    /// effect names keep passing unchanged. Prefers the documented manual.xlights.org behavior (what the
+    /// effect is actually FOR) over the AI-observed description when both are present, since that is more
+    /// useful to a choreographer than "no visible content" for the handful of effects this pipeline's
+    /// isolated fixture could never meaningfully exercise. Returns the bare name, undecorated, when no
+    /// catalog is available or this effect has no entry in it (including the hardware effects
+    /// <see cref="EffectVisualCharacterCatalogBuilder.HardwareOnlyEffectNames"/> deliberately excludes).
+    /// </summary>
+    /// <summary>
+    /// Build-plan Phase 18 §7 (Phase F): states the grounding rule for a <c>LookLayer</c>'s optional
+    /// <c>Annotation</c> field, in terms of the three visible markers the effect vocabulary list above
+    /// already renders via <see cref="EnrichEffectName"/> -- no separate data structure is introduced here,
+    /// the same three buckets (a real appended description, a "(not visually exercised...)" marker, or a
+    /// bare name) already distinguish confirmed/documented-only/unknown for both roles sharing this helper.
+    /// </summary>
+    private static void AppendAnnotationGroundingGuidance(StringBuilder sb)
+    {
+        sb.AppendLine("## Layer annotations (optional, grounded -- build-plan Phase 18 §7)");
+        sb.AppendLine("A Look layer may optionally carry an \"Annotation\": a short free-text note of what that specific layer is meant to visually express (e.g. \"mimics 'I get up' with an upward chase on the Mega Tree\"). This must be a GROUNDED claim, never a plausible-sounding guess:");
+        sb.AppendLine("- An effect name above followed by \" -- <description>\" (no \"(not visually exercised...)\" qualifier) has a real, AI-observed visual character -- you may write an Annotation claiming a specific shape/motion/direction for that layer ONLY if that exact description actually supports the claim (e.g. only call out \"upward motion\" for an effect whose own description says it moves upward).");
+        sb.AppendLine("- An effect name above followed by \" -- <description> (not visually exercised by this pipeline's own isolated fixture)\" is documented-behavior-only -- you know what it is FOR, not what it visually looks like. Never claim a specific visual shape/motion/direction for it; if you annotate such a layer at all, describe only its declared purpose/role, never an invented look.");
+        sb.AppendLine("- An effect name above with no appended description at all has no known visual character -- never write an Annotation claiming any specific visual behavior for it. Omitting Annotation entirely is always correct and always preferred over a guess.");
+        sb.AppendLine("Within that discipline, DO use the feature: write an Annotation for at least each Look's own subject layer whenever that layer's effect has a real, AI-observed description above (the first bullet's case) -- omitting Annotation should be reserved for a layer whose effect is documented-behavior-only or unknown, never skipped on a layer that already has a grounded description available.");
+        sb.AppendLine();
+    }
+
+    /// <summary>
+    /// Build-plan Phase 18 §7 (Phase F): shared with <see cref="SectionScriptPromptBuilder"/> so both the
+    /// Director's own Look-authoring prompt and the Choreographer's rebinding prompt enrich/ground effect
+    /// names identically -- the same catalog entry must read the same way regardless of which role sees it.
+    /// </summary>
+    internal static string EnrichEffectName(string effectName, EffectVisualCharacterCatalog? catalog)
+    {
+        var character = catalog?.Find(effectName);
+        if (character is null)
+        {
+            return effectName;
+        }
+
+        var description = character.DocumentedBehavior is { Length: > 0 } documented
+            ? $"{documented} (not visually exercised by this pipeline's own isolated fixture)"
+            : character.Description;
+        return $"{effectName} -- {description}";
     }
 
     private static double AverageBpm(MusicModel music) => music.BeatGrid.SelectedTempo?.Bpm ?? 0;

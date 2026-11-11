@@ -155,6 +155,31 @@ public sealed class EffectVocabularyBuilderTests
         Assert.Equal("E_SLIDER_EffectLayerMix", mix!.SettingKey);
     }
 
+    /// <summary>
+    /// Regression test for a real finding (manual.xlights.org + direct corpus verification against
+    /// <c>C:\xLights\*.xsq</c>): canvas-mode effects (Kaleidoscope, Warp, Adjust) need
+    /// <c>T_CHECKBOX_Canvas=1</c> paired with <c>T_LayersSelected=&lt;index&gt;</c> to sample a real layer
+    /// beneath them -- previously unmodeled (same "known hardcoded exception" class as LayerMethod), which
+    /// left all three permanently dark since <see cref="XsqExporter"/> had no way to express it at all.
+    /// </summary>
+    [Fact]
+    public void LegacyCanvasAndLayersSelected_ArePresentOnTheBlendingPanel()
+    {
+        var catalog = BuildFixtureCatalog();
+        var canvas = catalog.Blending.FindByPropertyId("Canvas");
+        var layersSelected = catalog.Blending.FindByPropertyId("LayersSelected");
+
+        Assert.NotNull(canvas);
+        Assert.NotNull(layersSelected);
+        Assert.Equal("T_CHECKBOX_Canvas", canvas!.SettingKey);
+        Assert.Equal("T_LayersSelected", layersSelected!.SettingKey);
+
+        // Available for every effect regardless of its own declared properties -- confirmed via the real
+        // shared-panel fallback TryGetProperty already provides (same mechanism LayerMethod relies on).
+        Assert.True(catalog.TryGetProperty("On", "T_CHECKBOX_Canvas", out _));
+        Assert.True(catalog.TryGetProperty("On", "T_LayersSelected", out _));
+    }
+
     [Fact]
     public void ColorPanel_Has16HardcodedPaletteSlots()
     {

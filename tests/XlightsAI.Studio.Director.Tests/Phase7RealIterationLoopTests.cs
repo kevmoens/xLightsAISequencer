@@ -148,13 +148,32 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
         var songId = Guid.NewGuid();
         var iterationCounter = 0;
 
+        // Real-run finding (2026-11-10): this test's own compile helper used the plain 2-argument
+        // SectionScriptCompiler.Compile overload, which always forwards phrasesBySectionId: null --
+        // production code (ChoreographyGenerationPipeline.CompileSectionScripts) threads this song's real
+        // phrase segmentation through instead. Whenever the real Choreographer model happened to declare
+        // PhraseVariations for a section (a real, valid, occasionally-chosen response shape), this test's
+        // own simplified helper crashed with "no phrase segmentation was supplied," even though real phrase
+        // data for that section existed all along -- confirmed reproducible twice, same root cause each
+        // time. Mirrors production's own grouping exactly.
+        var phrasesBySectionId = music.Phrases.Phrases
+            .GroupBy(p => p.SectionLabelId)
+            .ToDictionary(g => g.Key, g => (IReadOnlyList<PhraseCandidate>)g.OrderBy(p => p.StartBarIndex).ToList());
+
         async Task<(ChoreographyEngine.Result Compiled, ExportResult Export)> CompileAndExportAsync(IReadOnlyDictionary<Guid, SectionScript> scripts)
         {
-            var (effectiveLibrary, lookIdBySectionId, _) = SectionScriptCompiler.Compile(bible.Content.Looks, scripts);
+            // Real-run finding (2026-11-10): IterationLoop recompiles against the SAME scripts across
+            // several iterations, but a script that was valid when first generated can declare a
+            // PhraseIndex that a later real recompile's own phrase data no longer carries (same real
+            // data-drift ChoreographyGenerationPipeline.CompileSectionScripts's own doc comment already
+            // discloses) -- sanitize exactly the same way production does, rather than hard-crashing.
+            var sanitizedScripts = ChoreographyGenerationPipeline.SanitizeStalePhraseVariations(scripts, phrasesBySectionId);
+            var (effectiveLibrary, lookIdBySectionId, phraseLookAssignmentsBySectionId, _) = SectionScriptCompiler.Compile(bible.Content.Looks, sanitizedScripts, phrasesBySectionId);
             var fillerSchedule = ChoreographyGenerationPipeline.BuildFillerSchedule(scripts, music, layoutSummary, recipes);
             var engineInput = new ChoreographyEngine.Input(
                 layout, music.BeatGrid, music.Sections, music.Phrases, music.BandEnergy, music.VocalActivity,
-                effectiveLibrary, lookIdBySectionId, EnergyCeilingByKind, music.SongDurationTicks, compilerSettings, fillerSchedule);
+                effectiveLibrary, lookIdBySectionId, EnergyCeilingByKind, music.SongDurationTicks, compilerSettings, fillerSchedule,
+                PhraseLookAssignmentsBySectionId: phraseLookAssignmentsBySectionId);
             var compiled = ChoreographyEngine.Compile(engineInput);
 
             var exporter = new XsqExporter(recipes, vocabulary);
@@ -187,7 +206,8 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
         }
 
         var sectionIntentById = new Dictionary<Guid, string>();
-        var (_, lookIdBySectionIdForIntent, _) = SectionScriptCompiler.Compile(bible.Content.Looks, initialScripts);
+        var sanitizedInitialScripts = ChoreographyGenerationPipeline.SanitizeStalePhraseVariations(initialScripts, phrasesBySectionId);
+        var (_, lookIdBySectionIdForIntent, _, _) = SectionScriptCompiler.Compile(bible.Content.Looks, sanitizedInitialScripts, phrasesBySectionId);
         foreach (var (sectionId, lookId) in lookIdBySectionIdForIntent)
         {
             var look = bible.Content.Looks.Looks.FirstOrDefault(l => l.Id == lookId) ?? bible.Content.Looks.Looks.FirstOrDefault(l => lookId.StartsWith(l.Id, StringComparison.Ordinal));

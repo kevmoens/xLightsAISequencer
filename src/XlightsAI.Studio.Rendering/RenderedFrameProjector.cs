@@ -57,7 +57,7 @@ public static class RenderedFrameProjector
         ArgumentNullException.ThrowIfNull(channelSpansByModel);
 
         var skipped = new List<string>();
-        var plan = new List<(ModelId Id, long Offset, int NodeCount, double X, double Y)>();
+        var plan = new List<(ModelId Id, long Offset, int NodeCount, (double X, double Y)[] NodePoints)>();
 
         foreach (var model in layout.Models)
         {
@@ -72,7 +72,6 @@ public static class RenderedFrameProjector
                 continue;
             }
 
-            var (x, y) = RepresentativePoint(model);
             var outOfBoundsSpan = stringSpans.FirstOrDefault(
                 span => span.GlobalChannelOffset + ((long)span.NodeCount * RgbChannelsPerNode) > decoded.ChannelCount);
             if (outOfBoundsSpan is not null)
@@ -86,7 +85,7 @@ public static class RenderedFrameProjector
 
             foreach (var span in stringSpans)
             {
-                plan.Add((model.Id, span.GlobalChannelOffset, span.NodeCount, x, y));
+                plan.Add((model.Id, span.GlobalChannelOffset, span.NodeCount, NodePoints(model, span.NodeCount)));
             }
         }
 
@@ -94,7 +93,7 @@ public static class RenderedFrameProjector
         foreach (var frame in decoded.Frames)
         {
             var illuminated = new List<PixelPoint>();
-            foreach (var (id, offset, nodeCount, x, y) in plan)
+            foreach (var (id, offset, nodeCount, nodePoints) in plan)
             {
                 for (var node = 0; node < nodeCount; node++)
                 {
@@ -107,6 +106,7 @@ public static class RenderedFrameProjector
                         continue;
                     }
 
+                    var (x, y) = nodePoints[node];
                     illuminated.Add(new PixelPoint(id, x, y, r, g, b));
                 }
             }
@@ -115,6 +115,67 @@ public static class RenderedFrameProjector
         }
 
         return new RenderedFrameProjectionResult(frames, skipped);
+    }
+
+    /// <summary>
+    /// Real per-node positions for one model's own <paramref name="nodeCount"/> nodes -- computed once per
+    /// model (positions never change frame to frame), using <paramref name="node"/> (this loop's own real
+    /// node index, assigned before any "skip if off" filtering) so an off node never shifts where a later,
+    /// lit node is placed.
+    ///
+    /// <para>
+    /// <b>Single Line and Matrix get real per-node fan-out; every other category keeps the pre-existing
+    /// single-point behaviour unchanged.</b> xLights' own per-node geometry algorithm for the remaining
+    /// families (arcs, tree spirals, custom per-node coordinate lists) is still not reimplemented here --
+    /// that remains explicitly out of scope. Single Line uses its own already-imported
+    /// <see cref="DisplayBounds.EndX"/>/<see cref="DisplayBounds.EndY"/> (the real second endpoint xLights
+    /// itself stores for line-shaped models) to interpolate node <c>i</c> at
+    /// <c>fraction(i) = i / (nodeCount - 1)</c> of the way from <c>(Bounds.X, Bounds.Y)</c> to
+    /// <c>(Bounds.EndX, Bounds.EndY)</c>. Matrix uses the model's own already-imported
+    /// <see cref="DisplayModel.Parm1"/>/<see cref="DisplayModel.Parm2"/> (strings × pixels/string --
+    /// <see cref="ModelGeometryCalculator"/>'s own cross-checked real formula, <c>Parm1 * Parm2 ==
+    /// NodeCount</c>) and xLights' own real, verified node-numbering convention for a multi-string model
+    /// (string 0's pixels first, then string 1's, ...; confirmed via that family's own <c>StringN</c>
+    /// connection-attribute count matching <c>Parm1</c>) to place node <c>i</c> at column <c>i / Parm2</c>,
+    /// row <c>i % Parm2</c> of a real <c>Parm1</c>×<c>Parm2</c> grid. Falls back to
+    /// <see cref="RepresentativePoint"/> (used for every node) when a model's own real geometry data is not
+    /// present, or for any other category.
+    /// </para>
+    /// </summary>
+    private static (double X, double Y)[] NodePoints(DisplayModel model, int nodeCount)
+    {
+        var points = new (double X, double Y)[nodeCount];
+
+        if (model.Category == ModelCategory.SingleLine && model.Bounds is { EndX: { } endX, EndY: { } endY } bounds)
+        {
+            for (var node = 0; node < nodeCount; node++)
+            {
+                var fraction = nodeCount <= 1 ? 0.0 : (double)node / (nodeCount - 1);
+                points[node] = (bounds.X + (fraction * (endX - bounds.X)), bounds.Y + (fraction * (endY - bounds.Y)));
+            }
+
+            return points;
+        }
+
+        if (model.Category == ModelCategory.Matrix && model.Parm1 > 0 && model.Parm2 > 0 && model.Parm1 * model.Parm2 == nodeCount)
+        {
+            var columns = model.Parm1;
+            var rows = model.Parm2;
+            for (var node = 0; node < nodeCount; node++)
+            {
+                var column = node / rows;
+                var row = node % rows;
+                var x = columns <= 1 ? 0.5 : (double)column / (columns - 1);
+                var y = rows <= 1 ? 0.5 : (double)row / (rows - 1);
+                points[node] = (x, y);
+            }
+
+            return points;
+        }
+
+        var representative = RepresentativePoint(model);
+        Array.Fill(points, representative);
+        return points;
     }
 
     private static (double X, double Y) RepresentativePoint(DisplayModel model)

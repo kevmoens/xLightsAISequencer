@@ -179,7 +179,9 @@ public static class SectionScriptCompiler
                 throw new ChoreographyCompilationException($"SectionScript for section '{sectionId}' rebinds layer z={binding.LayerZ} of Look '{baseLook.Id}', which has no such layer.");
             }
 
-            layersByZ[binding.LayerZ] = layer with { Props = binding.Props };
+            layersByZ[binding.LayerZ] = string.IsNullOrWhiteSpace(binding.Annotation)
+                ? layer with { Props = binding.Props }
+                : layer with { Props = binding.Props, Annotation = binding.Annotation };
         }
 
         return baseLook with
@@ -205,7 +207,9 @@ public static class SectionScriptCompiler
                 throw new ChoreographyCompilationException($"SectionScript for section '{sectionId}' phrase {phraseIndex} layer z={binding.LayerZ} rebinding has a blank props reference.");
             }
 
-            layersByZ[binding.LayerZ] = layer with { Props = binding.Props };
+            layersByZ[binding.LayerZ] = string.IsNullOrWhiteSpace(binding.Annotation)
+                ? layer with { Props = binding.Props }
+                : layer with { Props = binding.Props, Annotation = binding.Annotation };
         }
 
         List<LookLayer> activeLayers;

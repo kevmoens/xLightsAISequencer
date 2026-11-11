@@ -278,6 +278,19 @@ public static class Program
 
         var longestEffectTicks = effects.Count > 0 ? effects.Max(e => e.EndTicks - e.StartTicks) : 0;
         Console.WriteLine($"Longest single compiled effect: {TimeSpan.FromTicks(longestEffectTicks)} ({(longestEffectTicks / (double)ticksPerSecond):0.0}s) -- pre-Phase-12 baseline measured under 7s anywhere in the song.");
+
+        // Build-plan Phase 20 §4 acceptance criteria: how many DISTINCT real multi-layer template stacks
+        // (seed + corpus-mined) this run's own Look library actually drew on, via each Look's own
+        // TemplateRef -- the real, measurable "more distinct multi-layer stacks used across Looks" this
+        // phase's own acceptance criteria asks for, not just a bigger catalog nothing ever references.
+        var distinctTemplateRefs = result.LookTemplateUsageOrEmpty
+            .Where(u => !string.IsNullOrWhiteSpace(u.TemplateId))
+            .Select(u => u.TemplateId!)
+            .Distinct(StringComparer.Ordinal)
+            .ToList();
+        Console.WriteLine();
+        Console.WriteLine($"Looks declaring a TemplateRef: {result.LookTemplateUsageOrEmpty.Count(u => !string.IsNullOrWhiteSpace(u.TemplateId))}/{result.LookTemplateUsageOrEmpty.Count} total Looks.");
+        Console.WriteLine($"Distinct multi-layer template stacks used across this run's own Looks: {distinctTemplateRefs.Count} ({string.Join(", ", distinctTemplateRefs)}).");
         Console.WriteLine("===============================================================");
 
         return 0;

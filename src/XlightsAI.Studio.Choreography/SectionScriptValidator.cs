@@ -17,7 +17,24 @@ public static class SectionScriptValidator
     /// built from -- every name in <see cref="SectionScript.FillerEffects"/>/<see cref="SectionScript.FillerEffectsByRole"/>
     /// must be a real, registered effect in it, never an invented one.
     /// </param>
-    public static IReadOnlyList<SectionScriptValidationError> Validate(SectionScript script, LookLibrary lookLibrary, DisplayGraph layout, EffectVocabularyCatalog vocabulary)
+    /// <param name="phraseCountBySectionId">
+    /// User-reported real bug (2026-11-08): a <see cref="SectionScript"/> that declares
+    /// <see cref="SectionScript.PhraseVariations"/> for a section with no real phrase segmentation (or a
+    /// PhraseIndex beyond that section's own real phrase count) previously sailed through this validator
+    /// unnoticed -- this exact cross-check was deliberately deferred to <see cref="SectionScriptCompiler"/>,
+    /// the one place with the real <c>PhraseSegmentationAnalysis</c>, per this method's own prior doc
+    /// comment. That deferral meant the defect was never retry-able: it surfaced only as a hard
+    /// <see cref="ChoreographyCompilationException"/> at compile time, well after the Choreographer call had
+    /// already been accepted and persisted, crashing the whole generation with no way to ask the model to
+    /// fix just that one section. Passing the real per-section phrase count here (keyed by
+    /// <see cref="SectionScript.SectionId"/>; 0 or absent means "no phrase segmentation exists for this
+    /// section") lets this check join the same reject-and-retry discipline every other rule already uses.
+    /// <see langword="null"/> (the default) skips this check entirely -- every existing caller/test that
+    /// predates this parameter keeps compiling and behaving identically.
+    /// </param>
+    public static IReadOnlyList<SectionScriptValidationError> Validate(
+        SectionScript script, LookLibrary lookLibrary, DisplayGraph layout, EffectVocabularyCatalog vocabulary,
+        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null)
     {
         ArgumentNullException.ThrowIfNull(script);
         ArgumentNullException.ThrowIfNull(lookLibrary);
@@ -66,6 +83,22 @@ public static class SectionScriptValidator
         }
 
         ValidatePhraseVariations(script, look, layerZSet, layout, errors);
+
+        if (script.PhraseVariationsOrEmpty.Count > 0 && phraseCountBySectionId is not null)
+        {
+            var realPhraseCount = phraseCountBySectionId.GetValueOrDefault(script.SectionId);
+            if (realPhraseCount == 0)
+            {
+                errors.Add(new SectionScriptValidationError("phrase-variation-no-phrases", $"SectionScript for section '{script.SectionId}' declares {script.PhraseVariationsOrEmpty.Count} phrase-scoped variation(s), but this section has no real phrase segmentation -- omit PhraseVariations entirely for a section whose own prompt never listed a numbered phrase list."));
+            }
+            else
+            {
+                foreach (var outOfRangeVariation in script.PhraseVariationsOrEmpty.Where(v => v.PhraseIndex > realPhraseCount))
+                {
+                    errors.Add(new SectionScriptValidationError("phrase-variation-index-range", $"SectionScript for section '{script.SectionId}' declares a phrase variation with PhraseIndex={outOfRangeVariation.PhraseIndex}, but this section only has {realPhraseCount} real phrase(s)."));
+                }
+            }
+        }
 
         return errors;
     }
@@ -134,6 +167,16 @@ public static class SectionScriptValidator
         var seenPhraseIndexes = new HashSet<int>();
         foreach (var variation in script.PhraseVariationsOrEmpty)
         {
+            // Real-run finding (2026-11-10, Phase 24 real-run test): a model's JSON response can include a
+            // literal `null` array element inside "PhraseVariations" (a valid shape the deserializer never
+            // rejects, since SectionPhraseVariation is a reference type) -- previously crashed this whole
+            // validator with a raw NullReferenceException instead of a real, retryable validation error.
+            if (variation is null)
+            {
+                errors.Add(new SectionScriptValidationError("phrase-variation-null", $"SectionScript for section '{script.SectionId}' declares a null phrase-variation entry -- every entry in PhraseVariations must be a real object, never null."));
+                continue;
+            }
+
             if (variation.PhraseIndex < 1)
             {
                 errors.Add(new SectionScriptValidationError("phrase-variation-index", $"SectionScript for section '{script.SectionId}' declares a phrase variation with PhraseIndex={variation.PhraseIndex}; PhraseIndex is 1-based and must be >= 1."));

@@ -1,0 +1,18 @@
+[2026-11-10T15:51:54.2351697-06:00] Corpus root: C:\xLights
+[2026-11-10T15:51:54.2361134-06:00] Knowledge directory: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\corpus-knowledge
+[2026-11-10T15:51:54.2362270-06:00] Per-song timeout: 45.0 minute(s)
+[2026-11-10T15:51:54.2362477-06:00] Max song concurrency: 2
+[2026-11-10T15:51:54.2362606-06:00] Log file: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\corpus-knowledge\corpus-mining-20261110-155154.log
+[2026-11-10T15:51:54.2364493-06:00] XLAI_SKIP_EXEMPLAR_DESCRIPTIONS=1 -- skipping exemplar description generation for this run (temporary, Phase 20 verification only).
+[2026-11-10T15:51:54.6222090-06:00] Manifest built: 32 entries, 4484 excluded paths.
+[2026-11-10T15:51:54.7947309-06:00] [1/32] START 'All i want for christmas 2' at 2026-11-10T21:51:54.7946699+00:00
+[2026-11-10T15:51:55.1003132-06:00] [2/32] START 'Carrie Underwood - Away In A Manger Lite' at 2026-11-10T21:51:55.1003047+00:00
+[2026-11-10T15:51:55.1072511-06:00] [15/32] SKIPPED 'Dubstep Christmas Light Show' (ExternalReference provenance -- excluded from every downstream consumer, never analyzed).
+[2026-11-10T15:57:59.3344072-06:00] [2/32] DONE  'Carrie Underwood - Away In A Manger Lite' in 364.2s
+[2026-11-10T15:57:59.3348090-06:00] [3/32] START 'Chuck Berry - Run Rudolph  Run' at 2026-11-10T21:57:59.3347995+00:00
+[2026-11-10T16:01:35.7969214-06:00] [1/32] DONE  'All i want for christmas 2' in 581.0s
+[2026-11-10T16:01:35.7970153-06:00] [4/32] START 'Dance Of The Sugar Plum Fairy (JayKode Trap Remix) HD Layout' at 2026-11-10T22:01:35.7970135+00:00
+[2026-11-10T16:06:41.8531758-06:00] [3/32] DONE  'Chuck Berry - Run Rudolph  Run' in 522.5s
+[2026-11-10T16:06:41.8532531-06:00] [5/32] START 'homealone' at 2026-11-10T22:06:41.8532507+00:00
+[2026-11-10T16:17:22.1867414-06:00] [4/32] DONE  'Dance Of The Sugar Plum Fairy (JayKode Trap Remix) HD Layout' in 946.4s
+[2026-11-10T16:17:22.1869594-06:00] [6/32] START 'Joe Bygraves - Stand As One Lite' at 2026-11-10T22:17:22.1869251+00:00

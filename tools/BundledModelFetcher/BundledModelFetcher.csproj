@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- User-requested real feature (2026-11-08): "all models should ship with our app." Run at
+         build/release time (never committed to source control) to download, hash-verify, and place the
+         two real pinned model archives into the app's own publish output under a "models" folder,
+         reusing the exact same ModelAssetManager/HttpModelAssetDownloader/naming convention the shipped
+         app itself uses, so a bundled hit here is byte-identical to what a consent-gated runtime download
+         would have produced. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Stems\XlightsAI.Studio.Stems.csproj" />
+  </ItemGroup>
+
+</Project>

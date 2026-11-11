@@ -60,6 +60,66 @@ public sealed class MultiLayerTemplateCatalogLoaderTests
         Assert.Null(catalog.Find("does-not-exist"));
     }
 
+    [Fact]
+    public void LoadWithDirectory_NullDirectory_ReturnsSameSeedCatalogAsParameterlessLoad()
+    {
+        var catalog = MultiLayerTemplateCatalogLoader.Load(knowledgeDirectory: null);
+
+        Assert.Equal(3, catalog.Templates.Count);
+    }
+
+    [Fact]
+    public void LoadWithDirectory_NoMinedFileOnDisk_ReturnsSameSeedCatalog()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "xlai-multilayer-catalog-loader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var catalog = MultiLayerTemplateCatalogLoader.Load(directory);
+            Assert.Equal(3, catalog.Templates.Count);
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
+    [Fact]
+    public void LoadWithDirectory_RealMinedFile_MergesAdditiveMinedTemplatesOntoTheSeedCatalog()
+    {
+        var directory = Path.Combine(Path.GetTempPath(), "xlai-multilayer-catalog-loader-" + Guid.NewGuid().ToString("N"));
+        Directory.CreateDirectory(directory);
+        try
+        {
+            var minedTemplate = new MultiLayerTemplate(
+                Id: "mined-high-twinkle-shockwave-0",
+                Name: "Mined high-energy Twinkle + Shockwave",
+                EnergyBand: "high",
+                Props: ["Tree", "Matrixes", "Mega Tree"],
+                Motion: "chase",
+                Layers:
+                [
+                    new MultiLayerTemplateLayer("subject", "Twinkle", 0.5, 0.9, "beat", "note"),
+                    new MultiLayerTemplateLayer("secondary", "Shockwave", 0.1, 0.3, "beat", "note"),
+                ],
+                SourceNote: "test fixture");
+            var minedCatalog = new MultiLayerTemplateCatalog(1, DateTimeOffset.UtcNow, [minedTemplate]);
+            File.WriteAllText(
+                Path.Combine(directory, "multilayer-templates-mined.json"),
+                System.Text.Json.JsonSerializer.Serialize(minedCatalog));
+
+            var merged = MultiLayerTemplateCatalogLoader.Load(directory);
+
+            Assert.Equal(4, merged.Templates.Count);
+            Assert.Contains(merged.Templates, t => t.Id == "edm-dense-canvas-tree-matrix");
+            Assert.Contains(merged.Templates, t => t.Id == "mined-high-twinkle-shockwave-0");
+        }
+        finally
+        {
+            Directory.Delete(directory, recursive: true);
+        }
+    }
+
     private const string RealMetadataRoot = @"C:\Program Files\xLights\effectmetadata";
 
     [Fact]

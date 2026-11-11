@@ -37,7 +37,8 @@ public static class TargetedSectionRegenerator
         DisplayGraph layout,
         EffectVocabularyCatalog vocabulary,
         int maxOutputTokens,
-        CancellationToken ct)
+        CancellationToken ct,
+        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null)
     {
         ArgumentNullException.ThrowIfNull(batchGenerator);
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
@@ -92,7 +93,7 @@ public static class TargetedSectionRegenerator
             items.Add(new SectionScriptBatchItem(sectionId, directedSuffix));
         }
 
-        var regenerated = await batchGenerator.GenerateAllAsync(stablePrefix, items, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct).ConfigureAwait(false);
+        var regenerated = await batchGenerator.GenerateAllAsync(stablePrefix, items, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct, phraseCountBySectionId).ConfigureAwait(false);
 
         // Start from the untouched existing dictionary (same instances, never re-created) and overwrite
         // only the sections that actually regenerated successfully -- a section whose regeneration never

@@ -29,6 +29,38 @@ public sealed class CustomPromptTimedCueParserTests
         Assert.Equal(new TimeSpan(0, 2, 55), last.End);
     }
 
+    /// <summary>
+    /// User-reported real bug (2026-11-08): a real post-processing prompt --
+    /// "at 00:22 - 00:23 do a build up by reducing effects to twinkle, then at 00:24-00:25 build up and
+    /// do 'On' to blue one matrix at a time to each time it says 'Bang'" -- came back with BOTH the 0:22
+    /// and the 0:24 cue carrying the entire undivided sentence as their instruction (confirmed via the
+    /// real persisted log line), so the section at 0:24 was told to do the twinkle reduction too. Each
+    /// cue's own trailing text (up to the next timestamp) must now be specific to it.
+    /// </summary>
+    [Fact]
+    public void Parse_CompoundSequentialLine_EachCueGetsItsOwnTrailingInstruction_NotTheWholeLine()
+    {
+        const string prompt = "at 00:22 - 00:23 do a build up by reducing effects to twinkle, then at 00:24-00:25 build up and do \"On\" to blue one matrix at a time to each time it says \"Bang\"";
+
+        var cues = CustomPromptTimedCueParser.Parse(prompt);
+
+        Assert.Equal(2, cues.Count);
+        var first = cues[0];
+        var second = cues[1];
+
+        Assert.Equal(new TimeSpan(0, 0, 22), first.Start);
+        Assert.Equal(new TimeSpan(0, 0, 23), first.End);
+        Assert.Equal(new TimeSpan(0, 0, 24), second.Start);
+        Assert.Equal(new TimeSpan(0, 0, 25), second.End);
+
+        Assert.Contains("twinkle", first.Instruction, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("bang", first.Instruction, StringComparison.OrdinalIgnoreCase);
+
+        Assert.Contains("bang", second.Instruction, StringComparison.OrdinalIgnoreCase);
+        Assert.Contains("blue", second.Instruction, StringComparison.OrdinalIgnoreCase);
+        Assert.DoesNotContain("twinkle", second.Instruction, StringComparison.OrdinalIgnoreCase);
+    }
+
     [Fact]
     public void Parse_LineWithNoTimestamp_ProducesNoCue()
     {

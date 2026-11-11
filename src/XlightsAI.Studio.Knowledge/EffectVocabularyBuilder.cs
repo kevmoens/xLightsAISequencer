@@ -73,8 +73,31 @@ public static class EffectVocabularyBuilder
             .SelectMany(p => ConvertProperty(p, prefix))
             .ToList();
 
+        if (string.Equals(raw.EffectName, "SingleStrand", StringComparison.Ordinal))
+        {
+            properties.Add(BuildSingleStrandEffectTypeOverride());
+        }
+
         return new EffectVocabulary(raw.EffectName, prefix, properties);
     }
+
+    /// <summary>
+    /// Build-plan Phase 18 §5 follow-up (effect characterization): <c>E_NOTEBOOK_SSEFFECT_TYPE</c> --
+    /// which of SingleStrand's own Chase/Skips/FX tabs is actually active -- does not appear anywhere in
+    /// the shipped <c>SingleStrand.json</c> at all (not even as a filtered "custom" row; it is generated
+    /// directly by xLights' own notebook-tab UI control, same undocumented-but-real class as
+    /// <see cref="BuildLegacyBlendingProperties"/>'s LayerMethod/Canvas). Confirmed real directly against
+    /// this machine's own real sequence corpus: every real SingleStrand instance found there carries this
+    /// key set to "Chase", "Skips" or "FX" alongside its own tab's settings. Modeled here because it is
+    /// real, not because setting it alone was confirmed sufficient -- a real render with
+    /// <c>E_NOTEBOOK_SSEFFECT_TYPE="Chase"</c> set still produced zero illuminated frames, so SingleStrand's
+    /// own real blocker remains unidentified; this property is kept available for a future attempt.
+    /// </summary>
+    private static EffectPropertyVocabulary BuildSingleStrandEffectTypeOverride() =>
+        new(
+            PropertyId: "SSEFFECT_TYPE", SettingKey: "E_NOTEBOOK_SSEFFECT_TYPE", ValueCurveSettingKey: null,
+            ControlType: "choice", SemanticType: "enum", DefaultValue: null,
+            Min: null, Max: null, Divisor: 1, SupportsValueCurve: false, Options: ["Chase", "Skips", "FX"], Lockable: false);
 
     /// <summary>
     /// Build-plan Phase 8 task 3 (singing-face support). The real shipped <c>Faces.json</c> declares
@@ -265,6 +288,28 @@ public static class EffectVocabularyBuilder
         yield return new EffectPropertyVocabulary(
             PropertyId: "LayerMethod", SettingKey: "T_CHOICE_LayerMethod", ValueCurveSettingKey: null,
             ControlType: "choice", SemanticType: "enum", DefaultValue: null,
+            Min: null, Max: null, Divisor: 1, SupportsValueCurve: false, Options: null, Lockable: false);
+
+        // Build-plan Phase 18 §5 follow-up (effect characterization): same "known hardcoded exception"
+        // discipline as LayerMorph/EffectLayerMix/LayerMethod above -- also undocumented in the shipped
+        // JSON (Blending.json's own "Canvas Mode" checkbox + layer-selector row are prose-only, same as
+        // the others), but real and verified directly against this machine's own real sequence corpus
+        // (C:\xLights\*.xsq): `T_CHECKBOX_Canvas=1` paired with `T_LayersSelected=0` (or a pipe-delimited
+        // list like `0|1`) is exactly how a real exported sequence enables "Canvas Mode" and names which
+        // layer index(es) a canvas-mode effect (Kaleidoscope, Warp, Adjust) samples -- the real mechanism
+        // several effects' own manual.xlights.org documentation describes as required ("by itself it does
+        // nothing... requires another effect beneath it"), which this exporter previously had no way to
+        // express at all (XsqExporter's own doc comment disclosed BlendMode/LayerMethod as IR-only).
+        yield return new EffectPropertyVocabulary(
+            PropertyId: "Canvas", SettingKey: "T_CHECKBOX_Canvas", ValueCurveSettingKey: null,
+            ControlType: "checkbox", SemanticType: "bool", DefaultValue: "0",
+            Min: null, Max: null, Divisor: 1, SupportsValueCurve: false, Options: null, Lockable: false);
+
+        // Pipe-delimited 0-based layer indices (e.g. "0" or "0|1") -- no declared format exists in the
+        // shipped metadata; the exact syntax above is taken directly from the real corpus, not guessed.
+        yield return new EffectPropertyVocabulary(
+            PropertyId: "LayersSelected", SettingKey: "T_LayersSelected", ValueCurveSettingKey: null,
+            ControlType: "custom", SemanticType: "string", DefaultValue: null,
             Min: null, Max: null, Divisor: 1, SupportsValueCurve: false, Options: null, Lockable: false);
     }
 

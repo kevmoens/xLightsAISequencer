@@ -17,13 +17,17 @@ namespace XlightsAI.Studio.Stems;
 /// own built-in resampling) and processed in independent, non-overlapping 30-second chunks (Whisper's own
 /// fixed encoder window -- <see cref="WhisperLogMelSpectrogram.ChunkSamples"/>). Each chunk: log-mel
 /// spectrogram -&gt; one encoder forward pass (cross-attention key/value tensors) -&gt; a greedy,
-/// KV-cached autoregressive decode loop, with the very first generated token forced away from
-/// <see cref="WhisperSpecialTokens.NoTimestamps"/> so the model emits real timestamp tokens bounding each
-/// recognized phrase (Whisper's own native segment-timing mechanism -- no separate forced-alignment model
-/// needed). A segment's own words are recovered by splitting its decoded text on whitespace and
-/// distributing its measured timestamp-pair span across them proportionally to character length -- a
-/// disclosed approximation (see <see cref="TranscribedWord"/>'s own doc comment), not a true per-word
-/// forced alignment.
+/// KV-cached autoregressive decode loop. The prompt forces an explicit <see cref="WhisperSpecialTokens.TimestampBegin"/>
+/// (this chunk's own <c>t=0.00</c>) as the second token, right after <see cref="WhisperSpecialTokens.StartOfTranscript"/>
+/// -- never merely excluding <see cref="WhisperSpecialTokens.NoTimestamps"/> from the first free argmax
+/// choice and hoping the model's own next-best guess happens to be a timestamp (user-reported real bug,
+/// 2026-11-08: that weaker approach reliably produced a timestamp for clean narrated speech, but silently
+/// produced neither a timestamp nor useful text for sung lyrics, discarding the one real token decoded).
+/// Forcing the anchor directly means every chunk's first segment always has a known, real start -- Whisper's
+/// own native segment-timing mechanism, no separate forced-alignment model needed. A segment's own words
+/// are recovered by splitting its decoded text on whitespace and distributing its measured timestamp-pair
+/// span across them proportionally to character length -- a disclosed approximation (see
+/// <see cref="TranscribedWord"/>'s own doc comment), not a true per-word forced alignment.
 /// </para>
 /// <para>
 /// Verified end-to-end (this exact algorithm, ported from a Python prototype run against the real ONNX
@@ -86,7 +90,7 @@ public sealed class WhisperOnnxTranscriber : ILyricTranscriber
             var chunkStartTicks = (long)chunkStart * TicksPerSecond / WhisperLogMelSpectrogram.SampleRate;
             var chunkDurationTicks = (long)chunkLength * TicksPerSecond / WhisperLogMelSpectrogram.SampleRate;
 
-            var segments = TranscribeChunk(encoderSession, decoderSession, samples.AsSpan(chunkStart, chunkLength), chunkDurationTicks, ct);
+            var segments = TranscribeChunk(encoderSession, decoderSession, samples.AsSpan(chunkStart, chunkLength), chunkDurationTicks, _modelBundle.MelBins, _modelBundle.TimestampBeginTokenId, ct);
             foreach (var segment in segments)
             {
                 var text = vocabulary.Decode(segment.TextTokenIds);
@@ -100,12 +104,12 @@ public sealed class WhisperOnnxTranscriber : ILyricTranscriber
     private sealed record ChunkSegment(long StartTicks, long EndTicks, IReadOnlyList<int> TextTokenIds, float Confidence);
 
     private static List<ChunkSegment> TranscribeChunk(
-        InferenceSession encoderSession, InferenceSession decoderSession, ReadOnlySpan<float> chunkSamples, long chunkDurationTicks, CancellationToken ct)
+        InferenceSession encoderSession, InferenceSession decoderSession, ReadOnlySpan<float> chunkSamples, long chunkDurationTicks, int melBins, int timestampBeginTokenId, CancellationToken ct)
     {
-        var mel = WhisperLogMelSpectrogram.Compute(chunkSamples);
+        var mel = WhisperLogMelSpectrogram.Compute(chunkSamples, melBins);
         var melFrames = mel.GetLength(1);
-        var melTensor = new DenseTensor<float>(new[] { 1, WhisperLogMelSpectrogram.MelBins, melFrames });
-        for (var m = 0; m < WhisperLogMelSpectrogram.MelBins; m++)
+        var melTensor = new DenseTensor<float>(new[] { 1, melBins, melFrames });
+        for (var m = 0; m < melBins; m++)
         {
             for (var t = 0; t < melFrames; t++)
             {
@@ -126,9 +130,21 @@ public sealed class WhisperOnnxTranscriber : ILyricTranscriber
         var selfK = new DenseTensor<float>(new[] { nLayer, 1, MaxSelfAttentionCacheLength, nState });
         var selfV = new DenseTensor<float>(new[] { nLayer, 1, MaxSelfAttentionCacheLength, nState });
 
-        var tokens = new List<int> { WhisperSpecialTokens.StartOfTranscript };
+        // User-reported real bug (2026-11-08): every chunk of a real sung song produced exactly one
+        // content token then immediately EndOfText, with no segment ever recorded -- across BOTH
+        // tiny.en and base.en, ruling out model capacity. Root cause: merely EXCLUDING NoTimestamps from
+        // the step-0 argmax (the prior approach) only reliably yields a real TimestampBegin-relative
+        // token when the model's own natural second choice happens to be one -- true for the clean
+        // narrated-speech clips this was verified against, but not guaranteed for harder/different audio
+        // (sung lyrics): the model's actual second choice there was neither EndOfText nor a timestamp,
+        // so no segment ever had a start anchor and the lone decoded token was silently discarded. The
+        // standard, correct Whisper-with-timestamps decoding scheme FORCES the first post-prompt token to
+        // be an explicit <|0.00|> timestamp (this chunk's own t=0) rather than leaving it to compete in
+        // the argmax at all -- this chunk's first segment's start is therefore always known up front,
+        // never dependent on what the model would have freely chosen.
+        var tokens = new List<int> { WhisperSpecialTokens.StartOfTranscript, timestampBeginTokenId };
         var segments = new List<ChunkSegment>();
-        long? openSegmentStartTicks = null;
+        long? openSegmentStartTicks = 0L;
         var openSegmentTokens = new List<int>();
         var openSegmentConfidences = new List<float>();
         long offset = 0;
@@ -173,14 +189,6 @@ public sealed class WhisperOnnxTranscriber : ILyricTranscriber
             var bestLogit = float.NegativeInfinity;
             for (var v = 0; v < vocabSize; v++)
             {
-                // The very first generated token is forced away from NoTimestamps (step == 0 is always a
-                // single-token-context first call) so this model emits a real segment-timing anchor
-                // instead of opting out of timestamps entirely -- see this type's own doc comment.
-                if (step == 0 && v == WhisperSpecialTokens.NoTimestamps)
-                {
-                    continue;
-                }
-
                 if (logitsRow[v] > bestLogit)
                 {
                     bestLogit = logitsRow[v];
@@ -203,9 +211,9 @@ public sealed class WhisperOnnxTranscriber : ILyricTranscriber
 
             tokens.Add(bestId);
 
-            if (bestId >= WhisperSpecialTokens.TimestampBegin)
+            if (bestId >= timestampBeginTokenId)
             {
-                var ticks = (long)((bestId - WhisperSpecialTokens.TimestampBegin) * WhisperSpecialTokens.TimestampSecondsPerToken * TicksPerSecond);
+                var ticks = (long)((bestId - timestampBeginTokenId) * WhisperSpecialTokens.TimestampSecondsPerToken * TicksPerSecond);
                 if (openSegmentStartTicks is { } startTicks)
                 {
                     if (openSegmentTokens.Count > 0)

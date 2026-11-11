@@ -1,3 +1,4 @@
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Stems;
 using XlightsAI.Studio.Structure;
@@ -62,13 +63,22 @@ public static class ChoreographyEngine
         int CoverageLadderRungCount = 7,
         IReadOnlyList<VisemeMark>? VisemeMarks = null,
         IReadOnlyDictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>>? PhraseLookAssignmentsBySectionId = null,
-        EnergyEnvelope? AudioEnergy = null);
+        EnergyEnvelope? AudioEnergy = null,
+        IReadOnlyList<EmphasisInstant>? EmphasisInstants = null,
+        EffectVisualCharacterCatalog? BrightnessCatalog = null,
+        Random? EmphasisTravelRandom = null);
 
+    /// <param name="EmphasisContrast">
+    /// Build-plan Phase 22 §2a/§2d: non-null exactly when both <see cref="Input.EmphasisInstants"/> and
+    /// <see cref="Input.BrightnessCatalog"/> were supplied -- <see langword="null"/> (the default, and
+    /// every pre-existing caller's own behavior) otherwise, never a fabricated empty report.
+    /// </param>
     public sealed record Result(
         ChoreographyIR IR,
         IReadOnlyList<LegalityViolation> Violations,
         IReadOnlyList<PixelCoverageLadder.Rung> CoverageLadder,
-        BarGrid BarGrid);
+        BarGrid BarGrid,
+        EmphasisContrastReport? EmphasisContrast = null);
 
     public static Result Compile(Input input)
     {
@@ -86,6 +96,27 @@ public static class ChoreographyEngine
         if (input.BandEnergy is not null)
         {
             tracks["Percussion"] = TimingTrackEmitter.Percussion(input.BandEnergy);
+        }
+
+        // User follow-up (2026-11-10): expose the same real detected transient hits/vocal-note onsets
+        // this phase already carries (for EmphasisContrastPlanner's own later pass below) as real, named
+        // timing tracks too -- a Look layer can now declare "Timescale": "Transients"/"VocalNotes" and
+        // get LookCompiler's existing, unmodified Mode B discrete-emission machinery to react to them
+        // directly, the same way it already reacts to Beats/Bars. No new compiler mechanism; only new
+        // input data these generic lookups were always capable of consuming.
+        if (input.EmphasisInstants is { Count: > 0 } emphasisInstantsForTracks)
+        {
+            var transientTrack = TimingTrackEmitter.Transients(emphasisInstantsForTracks, input.BeatGrid, input.SongEndTicks);
+            if (transientTrack.Marks.Count > 0)
+            {
+                tracks["Transients"] = transientTrack;
+            }
+
+            var vocalNoteTrack = TimingTrackEmitter.VocalNotes(emphasisInstantsForTracks, input.BeatGrid, input.SongEndTicks);
+            if (vocalNoteTrack.Marks.Count > 0)
+            {
+                tracks["VocalNotes"] = vocalNoteTrack;
+            }
         }
 
         foreach (var (name, track) in LyricTimingTrackBuilder.BuildAll(input.Phrases, input.VocalActivity, input.VisemeMarks))
@@ -169,10 +200,31 @@ public static class ChoreographyEngine
 
         mergedIR = mergedIR with { Effects = gapFilledEffects };
 
+        // Build-plan Phase 22 (contrast-driven emphasis): §2b (strong Choreographer prompt guidance) is
+        // the primary mechanism and is never re-implemented here -- this is purely the §2c measurement +
+        // §2d bounded, deterministic repair of whatever real emphasis instants still measure flat after
+        // the section scripts have already compiled. Both are no-ops (and EmphasisContrast stays null)
+        // when the caller supplies neither real instants nor a real brightness catalog, so every
+        // pre-existing caller/test compiles and behaves identically.
+        EmphasisContrastReport? emphasisContrastReport = null;
+        if (input.EmphasisInstants is { Count: > 0 } instants && input.BrightnessCatalog is { } brightnessCatalog)
+        {
+            var sectionWindows = sectionAssignments.Where(s => s.Window is not null).Select(s => s.Window!.Value).ToList();
+            var (patchedIr, report) = EmphasisContrastPlanner.ApplyContrastFallback(
+                mergedIR, instants, sectionWindows, input.BeatGrid, input.Layout, input.CompilerSettings.RecipeCatalog,
+                brightnessCatalog, input.CompilerSettings.RecipeRegistry, input.EmphasisTravelRandom ?? new Random());
+
+            mergedIR = patchedIr;
+            emphasisContrastReport = report;
+
+            violations.AddRange(ChoreographyLegalityValidator.ValidateEmphasisContrast(
+                mergedIR, instants, input.BeatGrid, input.CompilerSettings.RecipeCatalog, brightnessCatalog));
+        }
+
         var coverageLadder = PixelCoverageLadder.Build(input.Layout, input.CoverageLadderRungCount);
         violations.AddRange(ChoreographyLegalityValidator.ValidateShow(sectionAssignments, input.Layout, coverageLadder, input.AudioEnergy));
 
-        return new Result(mergedIR, violations, coverageLadder, barGrid);
+        return new Result(mergedIR, violations, coverageLadder, barGrid, emphasisContrastReport);
     }
 
     private static SectionKind SectionKindOf(SectionLabelAnalysis sections, string sectionId) =>

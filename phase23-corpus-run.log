@@ -1,0 +1,60 @@
+[2026-11-10T16:24:18.5925099-06:00] Corpus root: C:/xLights
+[2026-11-10T16:24:18.6697011-06:00] Knowledge directory: C:/xLights/knowledge
+[2026-11-10T16:24:18.6700279-06:00] Per-song timeout: 10.0 minute(s)
+[2026-11-10T16:24:18.6700912-06:00] Max song concurrency: every available processor (20)
+[2026-11-10T16:24:18.6701301-06:00] Log file: C:/xLights/knowledge\corpus-mining-20261110-162418.log
+[2026-11-10T16:24:18.6706027-06:00] XLAI_SKIP_EXEMPLAR_DESCRIPTIONS=1 -- skipping exemplar description generation for this run (temporary, Phase 20 verification only).
+[2026-11-10T16:24:20.3146529-06:00] Manifest built: 32 entries, 4484 excluded paths.
+[2026-11-10T16:24:20.3395287-06:00] [1/32] START 'All i want for christmas 2' at 2026-11-10T22:24:20.3392475+00:00
+[2026-11-10T16:24:20.3672379-06:00] [2/32] START 'Carrie Underwood - Away In A Manger Lite' at 2026-11-10T22:24:20.3672201+00:00
+[2026-11-10T16:24:20.3678194-06:00] [3/32] START 'Chuck Berry - Run Rudolph  Run' at 2026-11-10T22:24:20.3678033+00:00
+[2026-11-10T16:24:20.3680362-06:00] [4/32] START 'Dance Of The Sugar Plum Fairy (JayKode Trap Remix) HD Layout' at 2026-11-10T22:24:20.3680339+00:00
+[2026-11-10T16:24:20.3682142-06:00] [5/32] START 'homealone' at 2026-11-10T22:24:20.3682124+00:00
+[2026-11-10T16:24:20.3683669-06:00] [6/32] START 'Joe Bygraves - Stand As One Lite' at 2026-11-10T22:24:20.3683631+00:00
+[2026-11-10T16:24:20.3685278-06:00] [7/32] START 'LalalaGirl - Christmas Mashup 2016-short' at 2026-11-10T22:24:20.3685259+00:00
+[2026-11-10T16:24:20.3687332-06:00] [8/32] START 'Nutcracker Dubstep' at 2026-11-10T22:24:20.3687290+00:00
+[2026-11-10T16:24:20.3688978-06:00] [9/32] START 'Ode to Joy remix - Epic' at 2026-11-10T22:24:20.3688961+00:00
+[2026-11-10T16:24:20.3693289-06:00] [10/32] START 'Rockin' Around the Christmas Tree' at 2026-11-10T22:24:20.3693238+00:00
+[2026-11-10T16:24:20.4222388-06:00] [11/32] START 'Sleigh Ride' at 2026-11-10T22:24:20.4222277+00:00
+[2026-11-10T16:24:20.4769379-06:00] [12/32] START 'The Weeknd & Ariana Grande - Save Your Tears Remix HD' at 2026-11-10T22:24:20.4768974+00:00
+[2026-11-10T16:24:20.4808015-06:00] [13/32] START 'The Weeknd - Blinding Lights Lite' at 2026-11-10T22:24:20.4807845+00:00
+[2026-11-10T16:24:20.4811668-06:00] [14/32] START 'TSO - Christmas Sarajevo' at 2026-11-10T22:24:20.4811615+00:00
+[2026-11-10T16:24:20.4813942-06:00] [15/32] SKIPPED 'Dubstep Christmas Light Show' (ExternalReference provenance -- excluded from every downstream consumer, never analyzed).
+[2026-11-10T16:24:20.4814379-06:00] [16/32] START 'Cher-DJ Play a Christmas Song' at 2026-11-10T22:24:20.4814365+00:00
+[2026-11-10T16:24:20.4816171-06:00] [17/32] START 'Christmas Tree Hot to Go - Chappell Roan' at 2026-11-10T22:24:20.4816154+00:00
+[2026-11-10T16:24:20.4820187-06:00] [18/32] START 'PinkPonyClub' at 2026-11-10T22:24:20.4820152+00:00
+[2026-11-10T16:24:20.4832176-06:00] [19/32] START 'Ronettes - Sleigh Bells (PhatCap! Trap Remix)' at 2026-11-10T22:24:20.4832075+00:00
+[2026-11-10T16:24:20.4836964-06:00] [20/32] START 'WISCANTHEM' at 2026-11-10T22:24:20.4836880+00:00
+[2026-11-10T16:24:20.4839165-06:00] [21/32] START 'Existence (VIP) - Shortened' at 2026-11-10T22:24:20.4839144+00:00
+[2026-11-10T16:34:20.8829645-06:00] [21/32] TIMEOUT 'Existence (VIP) - Shortened': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:34:20.8835791-06:00] [22/32] START 'Dubstep 2019' at 2026-11-10T22:34:20.8835733+00:00
+[2026-11-10T16:36:07.8920608-06:00] [17/32] TIMEOUT 'Christmas Tree Hot to Go - Chappell Roan': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:36:08.7982936-06:00] [23/32] START 'Eye of the Tiger DubStep' at 2026-11-10T22:36:08.7982640+00:00
+[2026-11-10T16:37:02.2562584-06:00] [19/32] TIMEOUT 'Ronettes - Sleigh Bells (PhatCap! Trap Remix)': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:37:02.2564109-06:00] [24/32] START 'AC_DC - Thunderstruck (Official Video)' at 2026-11-10T22:37:02.2564076+00:00
+[2026-11-10T16:39:22.4851570-06:00] [2/32] TIMEOUT 'Carrie Underwood - Away In A Manger Lite': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:39:22.4858308-06:00] [25/32] START 'E1 - Eye of the Tiger' at 2026-11-10T22:39:22.4858177+00:00
+[2026-11-10T16:39:54.1616927-06:00] [3/32] TIMEOUT 'Chuck Berry - Run Rudolph  Run': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:39:54.1669506-06:00] [26/32] START 'Mr Grinch2018final' at 2026-11-10T22:39:54.1669305+00:00
+[2026-11-10T16:40:31.2197761-06:00] [8/32] TIMEOUT 'Nutcracker Dubstep': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:40:31.5406602-06:00] [27/32] START 'Thriller' at 2026-11-10T22:40:31.5406329+00:00
+[2026-11-10T16:42:53.4482649-06:00] [6/32] TIMEOUT 'Joe Bygraves - Stand As One Lite': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:42:53.4967323-06:00] [28/32] START '7 song medley updated' at 2026-11-10T22:42:53.4967198+00:00
+[2026-11-10T16:44:02.7322918-06:00] [1/32] TIMEOUT 'All i want for christmas 2': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:44:02.7324360-06:00] [29/32] START 'Into the Unknown' at 2026-11-10T22:44:02.7324333+00:00
+[2026-11-10T16:44:04.1459072-06:00] [5/32] TIMEOUT 'homealone': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:44:04.1460455-06:00] [30/32] START 'First 7 songs Christmas' at 2026-11-10T22:44:04.1460333+00:00
+[2026-11-10T16:44:20.9360156-06:00] [22/32] TIMEOUT 'Dubstep 2019': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:44:20.9361213-06:00] [31/32] START 'Memories - Maroon 5' at 2026-11-10T22:44:20.9361183+00:00
+[2026-11-10T16:45:04.3287253-06:00] [10/32] TIMEOUT 'Rockin' Around the Christmas Tree': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:45:04.3288498-06:00] [32/32] START 'Run Run Rudolph' at 2026-11-10T22:45:04.3288481+00:00
+[2026-11-10T16:46:24.6168552-06:00] [11/32] TIMEOUT 'Sleigh Ride': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:46:52.4818102-06:00] [7/32] TIMEOUT 'LalalaGirl - Christmas Mashup 2016-short': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:46:56.8070425-06:00] [12/32] TIMEOUT 'The Weeknd & Ariana Grande - Save Your Tears Remix HD': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:48:19.6714648-06:00] [13/32] TIMEOUT 'The Weeknd - Blinding Lights Lite': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:49:18.5483534-06:00] [16/32] TIMEOUT 'Cher-DJ Play a Christmas Song': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:49:55.6748220-06:00] [9/32] TIMEOUT 'Ode to Joy remix - Epic': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:50:10.1068023-06:00] [20/32] TIMEOUT 'WISCANTHEM': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:50:33.2754977-06:00] [26/32] TIMEOUT 'Mr Grinch2018final': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:51:07.6311378-06:00] [14/32] TIMEOUT 'TSO - Christmas Sarajevo': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).
+[2026-11-10T16:51:29.7552746-06:00] [4/32] TIMEOUT 'Dance Of The Sugar Plum Fairy (JayKode Trap Remix) HD Layout': Timed out after 10.0 minute(s) (song analysis made no progress within the bound).

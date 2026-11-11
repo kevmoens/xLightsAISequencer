@@ -269,14 +269,48 @@ public static class CorpusManifestBuilder
             Notes: "Recovered from git history commit cfc240e (\"2024 halloween show\"); deleted from the working tree by a later season.",
             SourceCommit: "cfc240e"),
 
-        // Five of the 12 user-selected historical titles (7 song medley updated, Into the Unknown,
-        // First 7 songs Christmas, Memories - Maroon 5, Run Run Rudolph) are still NOT registered here.
-        // They originally failed real XsqStructuralReader parsing with the same zero-width-timing-mark
-        // bug class as the Phase 16 §1c findings above; XsqStructuralReader now tolerates a zero-width
-        // mark by skipping it (see that type's own doc comment), so these may now parse cleanly -- they
-        // have not been re-extracted/re-verified against the real git history blobs yet (this table only
-        // records resolutions this audit has actually confirmed against real files, never a guess), so
-        // they remain unregistered until that re-check happens.
+        // Build-plan Phase 19 §2a: the remaining 5 of the 12 user-selected historical titles,
+        // re-verified 2026-11-09 -- each now parses cleanly via EffectAlignmentParser (confirmed real
+        // effect counts below), so the "may now parse cleanly" uncertainty the comment this replaces
+        // recorded is resolved.
+        new(
+            SequenceRelativePath: "7 song medley updated.xsq",
+            AudioRelativePath: "7 song medley updated.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 372e9b9 (\"macair\", 2022); deleted from the working tree by a later season. Re-verified 2026-11-09: parses cleanly (166 effects).",
+            SourceCommit: "372e9b9"),
+        new(
+            SequenceRelativePath: "Into the Unknown.xsq",
+            AudioRelativePath: "Into the Unknown.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 372e9b9 (\"macair\", 2022); deleted from the working tree by a later season. Re-verified 2026-11-09: parses cleanly (751 effects).",
+            SourceCommit: "372e9b9"),
+        new(
+            SequenceRelativePath: "First 7 songs Christmas.xsq",
+            AudioRelativePath: "First 7 songs Christmas.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 8932a18 (\"2022 and prior shows from kevin15\"); deleted from the working tree by a later season. Re-verified 2026-11-09: parses cleanly (272 effects).",
+            SourceCommit: "8932a18"),
+        new(
+            SequenceRelativePath: "Memories - Maroon 5.xsq",
+            AudioRelativePath: "Memories - Maroon 5.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 372e9b9 (\"macair\", 2022); deleted from the working tree by a later season. Re-verified 2026-11-09: parses cleanly (261 effects).",
+            SourceCommit: "372e9b9"),
+        new(
+            SequenceRelativePath: "Run Run Rudolph.xsq",
+            AudioRelativePath: "Run Run Rudolph.mp3",
+            Provenance: CorpusProvenanceTag.UserAuthored,
+            DuplicateRelativePaths: [],
+            Notes: "Recovered from git history commit 372e9b9 (\"macair\", 2022), original nested path " +
+                   "'Christmas Shows/Run Run Rudolph.xsq' paired with 'Audio/Kelly Clarkson - Run Run " +
+                   "Rudolph.mp3' in that commit -- both copied flat to the corpus root; deleted from the " +
+                   "working tree by a later season. Re-verified 2026-11-09: parses cleanly (115 effects).",
+            SourceCommit: "372e9b9"),
     ];
 
     /// <summary>

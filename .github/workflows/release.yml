@@ -51,6 +51,16 @@ jobs:
           -c Release -r ${{ matrix.rid }} --self-contained true
           -p:Version=$VERSION -o publish
 
+      # User-requested real feature (2026-11-08): "all models should ship with our app." Downloads and
+      # hash-verifies the two real pinned model archives (never committed to source control -- see
+      # tools/BundledModelFetcher's own doc comment) into publish/models, where the app's own
+      # ModelAssetManager instances are wired to look for them before ever touching the network at
+      # runtime. Spleeter's pretrained-weight redistribution license risk is a formally recorded,
+      # explicit user/maintainer waiver -- see implementation-evidence/PHASE-06A/STEP-044G.md.
+      - name: Fetch bundled models
+        shell: bash
+        run: dotnet run --project tools/BundledModelFetcher/BundledModelFetcher.csproj -c Release -- publish/models
+
       - name: Pack with Velopack
         shell: bash
         run: >

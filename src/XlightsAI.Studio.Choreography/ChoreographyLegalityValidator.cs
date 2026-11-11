@@ -34,6 +34,14 @@ public static class ChoreographyLegalityValidator
     private const string RuleSilenceCrossValidation = "declared-darkness-vs-measured-audio-silence";
 
     /// <summary>
+    /// Build-plan Phase 22 §2c: public (same reason as <see cref="RuleModelCoverage"/>) so a caller can
+    /// filter <see cref="LegalityViolation"/>s for diagnostics/reporting -- permanently advisory, confirmed
+    /// by the user never to escalate into a blocking/retrying rule in this phase, unlike
+    /// <see cref="RuleModelCoverage"/>'s own self-healing use.
+    /// </summary>
+    public const string RuleContrastAtEmphasis = "contrast-at-emphasis";
+
+    /// <summary>
     /// Public (unlike every other rule id here) because <see cref="XlightsAI.Studio.Director.RevisionDirectiveDeriver"/>
     /// filters <see cref="ValidateShow"/>'s output by this id to derive a self-healing targeted
     /// regeneration directive for each uncovered model (see <see cref="LegalityViolation.AffectedModelId"/>)
@@ -462,6 +470,34 @@ public static class ChoreographyLegalityValidator
         {
             return 0;
         }
+    }
+
+    /// <summary>
+    /// Build-plan Phase 22 §2c: permanently-advisory report of every real emphasis instant (transient hit,
+    /// vocal-note onset, timed cue) whose own real compiled brightness contrast (<see cref="EmphasisContrastPlanner.Measure"/>)
+    /// still does not clear a real tier step -- even AFTER <see cref="EmphasisContrastPlanner.ApplyContrastFallback"/>
+    /// has already run its own deterministic repair pass (the caller, <see cref="ChoreographyEngine.Compile"/>,
+    /// runs this against the FINAL compiled IR). Confirmed by the user: this never blocks a generation or
+    /// triggers a retry -- a non-empty result here is purely a visibility/measurement finding, forever.
+    /// </summary>
+    public static IReadOnlyList<LegalityViolation> ValidateEmphasisContrast(
+        ChoreographyIR ir, IReadOnlyList<EmphasisInstant> instants, Rhythm.BeatGrid beatGrid,
+        EffectRecipeCatalog recipeCatalog, EffectVisualCharacterCatalog brightnessCatalog)
+    {
+        ArgumentNullException.ThrowIfNull(ir);
+        ArgumentNullException.ThrowIfNull(instants);
+        ArgumentNullException.ThrowIfNull(beatGrid);
+        ArgumentNullException.ThrowIfNull(recipeCatalog);
+        ArgumentNullException.ThrowIfNull(brightnessCatalog);
+
+        var findings = EmphasisContrastPlanner.Measure(ir, instants, beatGrid, recipeCatalog, brightnessCatalog);
+
+        return findings
+            .Where(f => !f.HasContrast)
+            .Select(f => new LegalityViolation(RuleContrastAtEmphasis,
+                $"Emphasis instant ({f.Kind}) at {TimeSpan.FromTicks(f.TimeTicks):mm\\:ss} on '{f.Target.Value}' does not show a real brightness-tier step -- preceding={f.PrecedingTier?.ToString() ?? "unresolved"}, following={f.FollowingTier?.ToString() ?? "unresolved"}.",
+                f.Target.Value))
+            .ToList();
     }
 
     /// <summary>

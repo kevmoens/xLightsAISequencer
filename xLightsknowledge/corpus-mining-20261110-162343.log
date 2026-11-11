@@ -1,0 +1,10 @@
+[2026-11-10T16:23:43.6753522-06:00] Corpus root: C:xLights
+[2026-11-10T16:23:43.6778662-06:00] Knowledge directory: C:xLightsknowledge
+[2026-11-10T16:23:43.6784411-06:00] Per-song timeout: 10.0 minute(s)
+[2026-11-10T16:23:43.6785188-06:00] Max song concurrency: every available processor (20)
+[2026-11-10T16:23:43.6785457-06:00] Log file: C:xLightsknowledge\corpus-mining-20261110-162343.log
+[2026-11-10T16:23:43.6791213-06:00] XLAI_SKIP_EXEMPLAR_DESCRIPTIONS=1 -- skipping exemplar description generation for this run (temporary, Phase 20 verification only).
+[2026-11-10T16:23:43.7844818-06:00] FATAL: System.IO.DirectoryNotFoundException: Corpus root directory not found: 'C:xLights'.
+   at XlightsAI.Studio.Knowledge.CorpusManifestBuilder.Build(String rootDirectory, IReadOnlyList`1 excludedProjectRootDirectories) in C:\code\xLightsAISequencer\src\XlightsAI.Studio.Knowledge\CorpusManifestBuilder.cs:line 337
+   at XlightsAI.Studio.Pipeline.CorpusMiningRunner.RunAsync(String corpusRootDirectory, String knowledgeDirectory, TimeSpan perSongTimeout, Action`1 progress, CancellationToken ct, IExemplarDescriptionClient descriptionClient, Int32 maxSongConcurrency, IReadOnlyList`1 excludedProjectRootDirectories, Int32 favoriteSongWeightMultiplier) in C:\code\xLightsAISequencer\src\XlightsAI.Studio.Pipeline\CorpusMiningRunner.cs:line 85
+   at Program.<Main>$(String[] args) in C:\code\xLightsAISequencer\tools\CorpusMiner\Program.cs:line 100

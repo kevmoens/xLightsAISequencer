@@ -43,7 +43,8 @@ public sealed class SectionScriptGenerator
 
     public async Task<SectionScriptGenerationReport> GenerateAsync(
         string stablePrefix, string volatileSuffix, Guid songId, LookLibrary lookLibrary, DisplayGraph layout,
-        EffectVocabularyCatalog vocabulary, int maxOutputTokens, CancellationToken ct)
+        EffectVocabularyCatalog vocabulary, int maxOutputTokens, CancellationToken ct,
+        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
         ArgumentException.ThrowIfNullOrWhiteSpace(volatileSuffix);
@@ -78,7 +79,7 @@ public sealed class SectionScriptGenerator
             }
 
             usages.Add(result.Usage);
-            violations = SectionScriptValidator.Validate(result.Value, lookLibrary, layout, vocabulary);
+            violations = SectionScriptValidator.Validate(result.Value, lookLibrary, layout, vocabulary, phraseCountBySectionId);
             await LogAsync(songId, result.Usage, $"attempt {attempt}/{_maxAttempts}: {(violations.Count == 0 ? "validated" : $"{violations.Count} violation(s)")}", result.Diagnostics, ct).ConfigureAwait(false);
 
             if (violations.Count == 0)

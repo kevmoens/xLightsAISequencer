@@ -14,6 +14,10 @@
          into this assembly so a normal dotnet build/publish of any referencing project carries it with
          no separate manual-copy step; see MultiLayerTemplateCatalogLoader's own doc comment. -->
     <EmbeddedResource Include="SeedData\multilayer-tree-matrix-templates.json" />
+    <!-- Build-plan Phase 18 §6 (Phase E): the shippable effect visual-character catalog, same rationale:
+         baked into this assembly so a normal dotnet build/publish of any referencing project carries it
+         with no separate manual-copy step; see EffectVisualCharacterCatalogLoader's own doc comment. -->
+    <EmbeddedResource Include="SeedData\effect-visual-characters.json" />
   </ItemGroup>
 
 </Project>

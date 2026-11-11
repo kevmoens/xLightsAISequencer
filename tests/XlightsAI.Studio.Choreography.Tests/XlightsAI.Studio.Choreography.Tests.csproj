@@ -23,6 +23,10 @@
     <!-- Real-track acceptance test only: reuses the real analysis/corpus pipeline (CorpusSongAnalyzer,
          AudioAnalysisSettingsBundle, StructureAnalysisSettingsBundle) rather than re-deriving it. -->
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Pipeline\XlightsAI.Studio.Pipeline.csproj" />
+    <!-- Build-plan Phase 18 §5 (Phase D): EffectVisualCharacterizer lives in XlightsAI.Studio.Director
+         (the real vision-capable AI client plumbing's own home). No cycle, since this is a test project,
+         not the Choreography library itself (which Director already depends on). -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Director\XlightsAI.Studio.Director.csproj" />
   </ItemGroup>
 
   <ItemGroup>

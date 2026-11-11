@@ -1,0 +1,360 @@
+[2026-11-07T13:07:06.1947703-06:00] Effect metadata directory: C:\Program Files\xLights\effectmetadata
+[2026-11-07T13:07:06.1965039-06:00] Output directory: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization
+[2026-11-07T13:07:06.1966803-06:00] Fixture duration: 6.0s
+[2026-11-07T13:07:06.1966983-06:00] xLights executable: C:\Program Files\xLights\xlights.exe
+[2026-11-07T13:07:06.1967064-06:00] Log file: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-characterizer-20261107-130706.log
+[2026-11-07T13:07:06.2494803-06:00] Loaded real effect vocabulary: 56 effect(s).
+[2026-11-07T13:07:06.2823287-06:00] Phase A: built 112 fixture plan(s) (112 compiled, 0 failed).
+[2026-11-07T13:07:06.3054948-06:00] Phase A artifact: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-fixture-manifest.json
+[2026-11-07T13:07:06.3055947-06:00] Phase B: starting real headless render per fixture. This launches real xLights once per successfully-compiled fixture (112 expected) -- expect minutes-to-hours depending on machine.
+[2026-11-07T13:07:07.8923885-06:00] [1/112] Adjust (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:09.3187778-06:00] [2/112] Adjust (High): OK -- 240 frame(s) in 1.4s
+[2026-11-07T13:07:10.3814759-06:00] [3/112] Bars (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:11.5419835-06:00] [4/112] Bars (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:07:12.7328611-06:00] [5/112] Butterfly (Low): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:07:13.8651732-06:00] [6/112] Butterfly (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:14.9227554-06:00] [7/112] Candle (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:16.0704376-06:00] [8/112] Candle (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:17.1089329-06:00] [9/112] Circles (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:18.1696162-06:00] [10/112] Circles (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:19.2008780-06:00] [11/112] Color Wash (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:20.3488805-06:00] [12/112] Color Wash (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:21.3771669-06:00] [13/112] Curtain (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:22.5869363-06:00] [14/112] Curtain (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:07:23.6304301-06:00] [15/112] DMX (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:24.6872475-06:00] [16/112] DMX (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:25.7341923-06:00] [17/112] Duplicate (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:26.7748671-06:00] [18/112] Duplicate (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:27.8708072-06:00] [19/112] Faces (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:28.9774808-06:00] [20/112] Faces (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:30.0090335-06:00] [21/112] Fan (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:31.0648973-06:00] [22/112] Fan (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:32.0999966-06:00] [23/112] Fill (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:33.2513444-06:00] [24/112] Fill (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:07:34.3080073-06:00] [25/112] Fire (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:35.4589530-06:00] [26/112] Fire (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:07:36.5965824-06:00] [27/112] Fireworks (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:37.6682272-06:00] [28/112] Fireworks (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:38.6865645-06:00] [29/112] Galaxy (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:39.7297299-06:00] [30/112] Galaxy (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:40.7583015-06:00] [31/112] Garlands (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:41.9580435-06:00] [32/112] Garlands (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:07:42.9877947-06:00] [33/112] Glediator (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:44.0313803-06:00] [34/112] Glediator (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:45.0851227-06:00] [35/112] Guitar (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:46.1264646-06:00] [36/112] Guitar (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:47.1685861-06:00] [37/112] Kaleidoscope (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:48.3161971-06:00] [38/112] Kaleidoscope (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:49.3996179-06:00] [39/112] Life (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:50.4614998-06:00] [40/112] Life (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:51.6390632-06:00] [41/112] Lightning (Low): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:07:52.6874087-06:00] [42/112] Lightning (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:53.7378841-06:00] [43/112] Lines (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:54.7752697-06:00] [44/112] Lines (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:55.8965868-06:00] [45/112] Liquid (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:56.9756086-06:00] [46/112] Liquid (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:07:58.0187478-06:00] [47/112] Marquee (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:07:59.0893412-06:00] [48/112] Marquee (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:00.1253111-06:00] [49/112] Meteors (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:01.1865118-06:00] [50/112] Meteors (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:02.2322121-06:00] [51/112] Morph (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:03.3362708-06:00] [52/112] Morph (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:04.3708675-06:00] [53/112] Moving Head (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:05.4198193-06:00] [54/112] Moving Head (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:06.4965106-06:00] [55/112] Music (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:07.5353326-06:00] [56/112] Music (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:08.5879626-06:00] [57/112] Off (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:09.6298459-06:00] [58/112] Off (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:10.6625087-06:00] [59/112] On (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:11.7996978-06:00] [60/112] On (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:12.9812727-06:00] [61/112] Piano (Low): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:08:14.1552945-06:00] [62/112] Piano (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:08:15.1943185-06:00] [63/112] Pictures (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:16.3398656-06:00] [64/112] Pictures (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:17.3788385-06:00] [65/112] Pinwheel (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:18.5445510-06:00] [66/112] Pinwheel (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:08:19.5697652-06:00] [67/112] Plasma (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:20.7448685-06:00] [68/112] Plasma (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:08:21.7798335-06:00] [69/112] Ripple (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:22.8479973-06:00] [70/112] Ripple (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:23.9076862-06:00] [71/112] Servo (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:24.9387000-06:00] [72/112] Servo (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:25.9891819-06:00] [73/112] Shader (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:27.1331523-06:00] [74/112] Shader (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:28.1699484-06:00] [75/112] Shape (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:29.2768332-06:00] [76/112] Shape (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:30.3495159-06:00] [77/112] Shimmer (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:31.4356103-06:00] [78/112] Shimmer (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:32.4896714-06:00] [79/112] Shockwave (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:33.5223352-06:00] [80/112] Shockwave (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:34.5568171-06:00] [81/112] SingleStrand (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:35.6272534-06:00] [82/112] SingleStrand (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:36.6874672-06:00] [83/112] Sketch (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:37.7199872-06:00] [84/112] Sketch (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:38.7875844-06:00] [85/112] Snowflakes (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:39.8378610-06:00] [86/112] Snowflakes (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:40.8719941-06:00] [87/112] Snowstorm (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:42.0122392-06:00] [88/112] Snowstorm (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:43.0480831-06:00] [89/112] Spirals (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:44.1242672-06:00] [90/112] Spirals (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:45.2682968-06:00] [91/112] Spirograph (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:46.3210359-06:00] [92/112] Spirograph (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:47.3682676-06:00] [93/112] State (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:48.3890935-06:00] [94/112] State (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:49.4308751-06:00] [95/112] Strobe (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:50.4615852-06:00] [96/112] Strobe (High): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:51.4999758-06:00] [97/112] Tendril (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:52.5698852-06:00] [98/112] Tendril (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:53.6309296-06:00] [99/112] Text (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:54.6854309-06:00] [100/112] Text (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:55.7352286-06:00] [101/112] Tree (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:08:56.8730129-06:00] [102/112] Tree (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:57.9285042-06:00] [103/112] Twinkle (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:08:59.0107958-06:00] [104/112] Twinkle (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:09:00.0482061-06:00] [105/112] VU Meter (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:09:01.1739139-06:00] [106/112] VU Meter (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:09:02.2230079-06:00] [107/112] Video (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:09:03.3827746-06:00] [108/112] Video (High): OK -- 240 frame(s) in 1.2s
+[2026-11-07T13:09:04.4966931-06:00] [109/112] Warp (Low): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:09:05.6367943-06:00] [110/112] Warp (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:09:06.6757054-06:00] [111/112] Wave (Low): OK -- 240 frame(s) in 1.0s
+[2026-11-07T13:09:07.7279222-06:00] [112/112] Wave (High): OK -- 240 frame(s) in 1.1s
+[2026-11-07T13:09:07.7285363-06:00] Phase B: 112 rendered, 0 failed, out of 112 fixture(s), in 121.4s (avg 1.1s/fixture).
+[2026-11-07T13:09:07.7395863-06:00] Phase B artifact: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-fixture-render-manifest.json
+[2026-11-07T13:09:07.7396087-06:00] Phase C: starting GIF encoding for every Rendered fixture (112 expected).
+[2026-11-07T13:09:08.4364074-06:00] [1/112] Adjust (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.7s
+[2026-11-07T13:09:09.2078671-06:00] [2/112] Adjust (High): OK -- 240 frame(s), 384,525 byte GIF in 0.8s
+[2026-11-07T13:09:09.5737580-06:00] [3/112] Bars (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.4s
+[2026-11-07T13:09:10.1454709-06:00] [4/112] Bars (High): OK -- 240 frame(s), 511,893 byte GIF in 0.6s
+[2026-11-07T13:09:10.9220424-06:00] [5/112] Butterfly (Low): OK -- 240 frame(s), 171,261 byte GIF in 0.8s
+[2026-11-07T13:09:11.9842179-06:00] [6/112] Butterfly (High): OK -- 240 frame(s), 2,051,082 byte GIF in 1.1s
+[2026-11-07T13:09:12.3406254-06:00] [7/112] Candle (Low): OK -- 240 frame(s), 163,761 byte GIF in 0.4s
+[2026-11-07T13:09:12.9060474-06:00] [8/112] Candle (High): OK -- 240 frame(s), 414,561 byte GIF in 0.6s
+[2026-11-07T13:09:13.2672382-06:00] [9/112] Circles (Low): OK -- 240 frame(s), 140,626 byte GIF in 0.4s
+[2026-11-07T13:09:13.6823389-06:00] [10/112] Circles (High): OK -- 240 frame(s), 306,534 byte GIF in 0.4s
+[2026-11-07T13:09:14.0789795-06:00] [11/112] Color Wash (Low): OK -- 240 frame(s), 155,697 byte GIF in 0.4s
+[2026-11-07T13:09:14.6879296-06:00] [12/112] Color Wash (High): OK -- 240 frame(s), 402,657 byte GIF in 0.6s
+[2026-11-07T13:09:15.0280999-06:00] [13/112] Curtain (Low): OK -- 240 frame(s), 132,261 byte GIF in 0.3s
+[2026-11-07T13:09:15.5574637-06:00] [14/112] Curtain (High): OK -- 240 frame(s), 869,421 byte GIF in 0.5s
+[2026-11-07T13:09:15.8978251-06:00] [15/112] DMX (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:16.2463567-06:00] [16/112] DMX (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:16.5813875-06:00] [17/112] Duplicate (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:16.9220428-06:00] [18/112] Duplicate (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:17.2598206-06:00] [19/112] Faces (Low): OK -- 240 frame(s), 125,565 byte GIF in 0.3s
+[2026-11-07T13:09:17.6162946-06:00] [20/112] Faces (High): OK -- 240 frame(s), 192,495 byte GIF in 0.4s
+[2026-11-07T13:09:17.9965565-06:00] [21/112] Fan (Low): OK -- 240 frame(s), 132,357 byte GIF in 0.4s
+[2026-11-07T13:09:18.7934764-06:00] [22/112] Fan (High): OK -- 240 frame(s), 300,975 byte GIF in 0.8s
+[2026-11-07T13:09:19.1241459-06:00] [23/112] Fill (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.3s
+[2026-11-07T13:09:19.7068805-06:00] [24/112] Fill (High): OK -- 240 frame(s), 1,687,809 byte GIF in 0.6s
+[2026-11-07T13:09:20.0777085-06:00] [25/112] Fire (Low): OK -- 240 frame(s), 177,745 byte GIF in 0.4s
+[2026-11-07T13:09:20.6286915-06:00] [26/112] Fire (High): OK -- 240 frame(s), 2,292,426 byte GIF in 0.6s
+[2026-11-07T13:09:20.9702868-06:00] [27/112] Fireworks (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:21.3127001-06:00] [28/112] Fireworks (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:21.6539053-06:00] [29/112] Galaxy (Low): OK -- 240 frame(s), 115,422 byte GIF in 0.3s
+[2026-11-07T13:09:22.5185790-06:00] [30/112] Galaxy (High): OK -- 240 frame(s), 127,581 byte GIF in 0.9s
+[2026-11-07T13:09:22.8638519-06:00] [31/112] Garlands (Low): OK -- 240 frame(s), 140,619 byte GIF in 0.3s
+[2026-11-07T13:09:23.3849317-06:00] [32/112] Garlands (High): OK -- 240 frame(s), 1,178,808 byte GIF in 0.5s
+[2026-11-07T13:09:23.7164291-06:00] [33/112] Glediator (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:24.0521282-06:00] [34/112] Glediator (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:24.3903937-06:00] [35/112] Guitar (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:24.7342632-06:00] [36/112] Guitar (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:25.0762167-06:00] [37/112] Kaleidoscope (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.3s
+[2026-11-07T13:09:25.6335125-06:00] [38/112] Kaleidoscope (High): OK -- 240 frame(s), 384,525 byte GIF in 0.6s
+[2026-11-07T13:09:26.0034992-06:00] [39/112] Life (Low): OK -- 240 frame(s), 144,549 byte GIF in 0.4s
+[2026-11-07T13:09:27.0844194-06:00] [40/112] Life (High): OK -- 240 frame(s), 495,869 byte GIF in 1.1s
+[2026-11-07T13:09:27.4223959-06:00] [41/112] Lightning (Low): OK -- 240 frame(s), 136,207 byte GIF in 0.3s
+[2026-11-07T13:09:27.7919999-06:00] [42/112] Lightning (High): OK -- 240 frame(s), 204,160 byte GIF in 0.4s
+[2026-11-07T13:09:28.1636754-06:00] [43/112] Lines (Low): OK -- 240 frame(s), 133,424 byte GIF in 0.4s
+[2026-11-07T13:09:28.5534968-06:00] [44/112] Lines (High): OK -- 240 frame(s), 230,976 byte GIF in 0.4s
+[2026-11-07T13:09:28.8912841-06:00] [45/112] Liquid (Low): OK -- 240 frame(s), 134,833 byte GIF in 0.3s
+[2026-11-07T13:09:29.2459083-06:00] [46/112] Liquid (High): OK -- 240 frame(s), 205,203 byte GIF in 0.4s
+[2026-11-07T13:09:29.6156603-06:00] [47/112] Marquee (Low): OK -- 240 frame(s), 147,597 byte GIF in 0.4s
+[2026-11-07T13:09:30.0009490-06:00] [48/112] Marquee (High): OK -- 240 frame(s), 249,309 byte GIF in 0.4s
+[2026-11-07T13:09:30.8903418-06:00] [49/112] Meteors (Low): OK -- 240 frame(s), 109,707 byte GIF in 0.9s
+[2026-11-07T13:09:31.8482860-06:00] [50/112] Meteors (High): OK -- 240 frame(s), 739,570 byte GIF in 1.0s
+[2026-11-07T13:09:32.2411742-06:00] [51/112] Morph (Low): OK -- 240 frame(s), 139,149 byte GIF in 0.4s
+[2026-11-07T13:09:33.4438974-06:00] [52/112] Morph (High): OK -- 240 frame(s), 476,901 byte GIF in 1.2s
+[2026-11-07T13:09:33.7800181-06:00] [53/112] Moving Head (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:34.1190495-06:00] [54/112] Moving Head (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:34.4565698-06:00] [55/112] Music (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:34.8027560-06:00] [56/112] Music (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:35.1476982-06:00] [57/112] Off (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:35.4874036-06:00] [58/112] Off (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:35.8508297-06:00] [59/112] On (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.4s
+[2026-11-07T13:09:36.4388092-06:00] [60/112] On (High): OK -- 240 frame(s), 384,525 byte GIF in 0.6s
+[2026-11-07T13:09:36.8072229-06:00] [61/112] Piano (Low): OK -- 240 frame(s), 144,045 byte GIF in 0.4s
+[2026-11-07T13:09:37.4157883-06:00] [62/112] Piano (High): OK -- 240 frame(s), 749,805 byte GIF in 0.6s
+[2026-11-07T13:09:37.7918133-06:00] [63/112] Pictures (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.4s
+[2026-11-07T13:09:38.3759299-06:00] [64/112] Pictures (High): OK -- 240 frame(s), 384,525 byte GIF in 0.6s
+[2026-11-07T13:09:38.7495974-06:00] [65/112] Pinwheel (Low): OK -- 240 frame(s), 115,071 byte GIF in 0.4s
+[2026-11-07T13:09:39.1484056-06:00] [66/112] Pinwheel (High): OK -- 240 frame(s), 192,564 byte GIF in 0.4s
+[2026-11-07T13:09:40.2265492-06:00] [67/112] Plasma (Low): OK -- 240 frame(s), 157,875 byte GIF in 1.1s
+[2026-11-07T13:09:41.5455285-06:00] [68/112] Plasma (High): OK -- 240 frame(s), 1,111,290 byte GIF in 1.3s
+[2026-11-07T13:09:41.9070248-06:00] [69/112] Ripple (Low): OK -- 240 frame(s), 118,284 byte GIF in 0.4s
+[2026-11-07T13:09:42.3342601-06:00] [70/112] Ripple (High): OK -- 240 frame(s), 283,347 byte GIF in 0.4s
+[2026-11-07T13:09:42.6790178-06:00] [71/112] Servo (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:43.0219159-06:00] [72/112] Servo (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:43.3932988-06:00] [73/112] Shader (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.4s
+[2026-11-07T13:09:43.9707448-06:00] [74/112] Shader (High): OK -- 240 frame(s), 384,525 byte GIF in 0.6s
+[2026-11-07T13:09:44.3125440-06:00] [75/112] Shape (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:44.6577063-06:00] [76/112] Shape (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:45.0211359-06:00] [77/112] Shimmer (Low): OK -- 240 frame(s), 119,325 byte GIF in 0.4s
+[2026-11-07T13:09:45.4813648-06:00] [78/112] Shimmer (High): OK -- 240 frame(s), 241,005 byte GIF in 0.5s
+[2026-11-07T13:09:46.5848627-06:00] [79/112] Shockwave (Low): OK -- 240 frame(s), 107,998 byte GIF in 1.1s
+[2026-11-07T13:09:47.5345584-06:00] [80/112] Shockwave (High): OK -- 240 frame(s), 128,145 byte GIF in 0.9s
+[2026-11-07T13:09:47.8812222-06:00] [81/112] SingleStrand (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:48.2228040-06:00] [82/112] SingleStrand (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:48.5702188-06:00] [83/112] Sketch (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:48.9139940-06:00] [84/112] Sketch (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:49.2621924-06:00] [85/112] Snowflakes (Low): OK -- 240 frame(s), 118,593 byte GIF in 0.3s
+[2026-11-07T13:09:49.6057789-06:00] [86/112] Snowflakes (High): OK -- 240 frame(s), 119,267 byte GIF in 0.3s
+[2026-11-07T13:09:50.4762085-06:00] [87/112] Snowstorm (Low): OK -- 240 frame(s), 167,695 byte GIF in 0.9s
+[2026-11-07T13:09:51.6042056-06:00] [88/112] Snowstorm (High): OK -- 240 frame(s), 2,000,151 byte GIF in 1.1s
+[2026-11-07T13:09:51.9783355-06:00] [89/112] Spirals (Low): OK -- 240 frame(s), 130,134 byte GIF in 0.4s
+[2026-11-07T13:09:52.4881102-06:00] [90/112] Spirals (High): OK -- 240 frame(s), 503,850 byte GIF in 0.5s
+[2026-11-07T13:09:52.8606537-06:00] [91/112] Spirograph (Low): OK -- 240 frame(s), 105,645 byte GIF in 0.4s
+[2026-11-07T13:09:53.2450608-06:00] [92/112] Spirograph (High): OK -- 240 frame(s), 176,685 byte GIF in 0.4s
+[2026-11-07T13:09:53.5931226-06:00] [93/112] State (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:53.9385723-06:00] [94/112] State (High): OK -- 240 frame(s), 97,485 byte GIF in 0.3s
+[2026-11-07T13:09:54.3046404-06:00] [95/112] Strobe (Low): OK -- 240 frame(s), 138,985 byte GIF in 0.4s
+[2026-11-07T13:09:54.6887200-06:00] [96/112] Strobe (High): OK -- 240 frame(s), 166,075 byte GIF in 0.4s
+[2026-11-07T13:09:55.0489030-06:00] [97/112] Tendril (Low): OK -- 240 frame(s), 134,001 byte GIF in 0.4s
+[2026-11-07T13:09:56.0074658-06:00] [98/112] Tendril (High): OK -- 240 frame(s), 527,488 byte GIF in 1.0s
+[2026-11-07T13:09:56.3739148-06:00] [99/112] Text (Low): OK -- 240 frame(s), 122,925 byte GIF in 0.4s
+[2026-11-07T13:09:56.7591533-06:00] [100/112] Text (High): OK -- 240 frame(s), 221,805 byte GIF in 0.4s
+[2026-11-07T13:09:57.1001171-06:00] [101/112] Tree (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.3s
+[2026-11-07T13:09:57.7121219-06:00] [102/112] Tree (High): OK -- 240 frame(s), 1,067,121 byte GIF in 0.6s
+[2026-11-07T13:09:58.0860050-06:00] [103/112] Twinkle (Low): OK -- 240 frame(s), 104,205 byte GIF in 0.4s
+[2026-11-07T13:09:58.4804880-06:00] [104/112] Twinkle (High): OK -- 240 frame(s), 184,477 byte GIF in 0.4s
+[2026-11-07T13:09:58.8408429-06:00] [105/112] VU Meter (Low): OK -- 240 frame(s), 97,485 byte GIF in 0.4s
+[2026-11-07T13:09:59.3403989-06:00] [106/112] VU Meter (High): OK -- 240 frame(s), 1,153,539 byte GIF in 0.5s
+[2026-11-07T13:09:59.7170542-06:00] [107/112] Video (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.4s
+[2026-11-07T13:10:00.3122472-06:00] [108/112] Video (High): OK -- 240 frame(s), 384,525 byte GIF in 0.6s
+[2026-11-07T13:10:00.6544047-06:00] [109/112] Warp (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.3s
+[2026-11-07T13:10:01.2301946-06:00] [110/112] Warp (High): OK -- 240 frame(s), 384,525 byte GIF in 0.6s
+[2026-11-07T13:10:01.5679152-06:00] [111/112] Wave (Low): OK -- 240 frame(s), 141,165 byte GIF in 0.3s
+[2026-11-07T13:10:01.9339919-06:00] [112/112] Wave (High): OK -- 240 frame(s), 225,924 byte GIF in 0.4s
+[2026-11-07T13:10:01.9346130-06:00] Phase C: 112 encoded, 0 failed, out of 112 fixture(s), in 54.2s (avg 0.5s/fixture).
+[2026-11-07T13:10:01.9442510-06:00] Phase C artifact: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-fixture-video-manifest.json
+[2026-11-07T13:10:01.9741770-06:00] Phase D: starting AI visual characterization for every Rendered fixture in scope (112 expected), using Critic role model 'gpt-6-luna'.
+[2026-11-07T13:10:04.9114251-06:00] [1/112] Adjust (Low): OK -- "All 20 pixels remain steadily lit in an evenly spaced warm-orange row, with no visible motion or variation." in 2.9s
+[2026-11-07T13:10:08.3451403-06:00] [2/112] Adjust (High): OK -- "A dense, uniform amber grid holds steady with no visible movement or change across the stills." in 3.4s
+[2026-11-07T13:10:13.5955869-06:00] [3/112] Bars (Low): OK -- "All 20 pixels stay lit in a uniform row while the entire row alternates between orange and blue, with no spatial movement." in 5.3s
+[2026-11-07T13:10:17.7377368-06:00] [4/112] Bars (High): OK -- "Broad blue and orange horizontal bands slide vertically across the fully lit matrix at a moderate pace." in 4.1s
+[2026-11-07T13:10:23.2535220-06:00] [5/112] Butterfly (Low): OK -- "The full row stays lit while pixel colours change rapidly without a clear direction or travelling pattern." in 5.5s
+[2026-11-07T13:10:29.8781050-06:00] [6/112] Butterfly (High): OK -- "Dense, smoothly shifting rainbow bands form a butterfly-like pattern that changes shape over time rather than moving as a simple directional chase." in 6.6s
+[2026-11-07T13:10:33.0721687-06:00] [7/112] Candle (Low): OK -- "All pixels glow together in a gentle, slow candle-like brightness flicker with no directional movement." in 3.2s
+[2026-11-07T13:10:36.0811941-06:00] [8/112] Candle (High): OK -- "The entire line flickers together through warm amber and orange tones, with no directional travel and a dense, uniform appearance." in 3.0s
+[2026-11-07T13:10:41.3870194-06:00] [9/112] Circles (Low): OK -- "A blue segment chases left-to-right around the string, briefly interrupting the otherwise steady orange dots with a few dark gaps." in 5.3s
+[2026-11-07T13:10:46.7623592-06:00] [10/112] Circles (High): OK -- "Separated, pixelated circular patches of blue and amber shift and pulse in size across the line, with no consistent travel direction." in 5.4s
+[2026-11-07T13:10:49.5769476-06:00] [11/112] Color Wash (Low): OK -- "All 20 pixels stay lit uniformly as the whole string shifts through colors, with no movement along the prop." in 2.8s
+[2026-11-07T13:10:53.5506937-06:00] [12/112] Color Wash (High): OK -- "The entire matrix shifts uniformly through broad colors with no directional travel, creating a medium-paced full-field wash." in 4.0s
+[2026-11-07T13:11:02.0766923-06:00] [13/112] Curtain (Low): OK -- "A smooth blue-to-warm band of lit pixels repeatedly changes width along the string, appearing to sweep leftward before fading to black." in 8.5s
+[2026-11-07T13:11:06.7786390-06:00] [14/112] Curtain (High): OK -- "Dense vertical color bands sweep back and forth across the line as a curtain-like wipe, alternately revealing and obscuring the pixels." in 4.7s
+[2026-11-07T13:11:08.2457586-06:00] [15/112] DMX (Low): OK -- "The prop remains completely dark throughout, with no visible motion or illuminated pixels." in 1.5s
+[2026-11-07T13:11:10.7833187-06:00] [16/112] DMX (High): OK -- "The effect remains completely dark across all stills, with no visible motion or texture." in 2.5s
+[2026-11-07T13:11:13.4284694-06:00] [17/112] Duplicate (Low): OK -- "The prop remains completely dark across all six stills, with no visible motion or texture." in 2.6s
+[2026-11-07T13:11:18.7147246-06:00] [18/112] Duplicate (High): OK -- "The effect remains completely dark across all six stills, with no visible motion or texture." in 5.3s
+[2026-11-07T13:11:21.6351276-06:00] [19/112] Faces (Low): OK -- "A sparse, steady row of warm-colored pixels holds in place with no apparent motion or change across the sampled frames." in 2.9s
+[2026-11-07T13:11:27.1677992-06:00] [20/112] Faces (High): OK -- "The mostly fixed pixel pattern briefly drops some lower segments, creating a sparse, slow flicker with no directional travel." in 5.5s
+[2026-11-07T13:11:31.9264580-06:00] [21/112] Fan (Low): OK -- "Scattered blue and occasional warm pixels flicker on and off without a consistent travel direction, creating a sparse, gently changing pattern." in 4.8s
+[2026-11-07T13:11:36.0083455-06:00] [22/112] Fan (High): OK -- "Colored blue-and-gold pixel clusters rotate through changing fan-like arrangements, with no simple left-to-right travel." in 4.1s
+[2026-11-07T13:11:37.7318804-06:00] [23/112] Fill (Low): OK -- "All 20 pixels hold a steady, evenly spaced warm-orange fill with no visible motion." in 1.7s
+[2026-11-07T13:11:42.5372244-06:00] [24/112] Fill (High): OK -- "The entire matrix holds a dense, stationary vertical gradient from warm orange at the top through gray to blue at the bottom." in 4.8s
+[2026-11-07T13:11:45.9358195-06:00] [25/112] Fire (Low): OK -- "All pixels stay lit in a dense row while their warm yellow-orange colors flicker irregularly, with no clear travel direction." in 3.4s
+[2026-11-07T13:11:49.4992050-06:00] [26/112] Fire (High): OK -- "A dense red-orange fire field flickers irregularly, with a steady bright upper glow and scattered ember-like pixels changing along its lower edge." in 3.6s
+[2026-11-07T13:11:52.0840097-06:00] [27/112] Fireworks (Low): OK -- "The prop remains completely dark in all six stills, with no visible motion or illuminated pixels." in 2.6s
+[2026-11-07T13:11:54.9298142-06:00] [28/112] Fireworks (High): OK -- "The line remains completely dark with no visible motion or texture." in 2.8s
+[2026-11-07T13:11:57.7312622-06:00] [29/112] Galaxy (Low): OK -- "A few isolated points flicker through muted blue, gray, and warm tones, appearing and disappearing without traveling across the prop." in 2.8s
+[2026-11-07T13:12:01.4073911-06:00] [30/112] Galaxy (High): OK -- "A sparse, stationary cluster of cool-toned points flickers in and out without traveling along the line." in 3.7s
+[2026-11-07T13:12:05.3813900-06:00] [31/112] Garlands (Low): OK -- "A steady row of evenly spaced warm amber points holds in place, with no apparent travel or flicker." in 4.0s
+[2026-11-07T13:12:10.5008133-06:00] [32/112] Garlands (High): OK -- "A dense blue-to-warm garland pattern alternates between sparse horizontal rows and a fuller grid, with the filled area sweeping vertically rather than moving left or right." in 5.1s
+[2026-11-07T13:12:12.8179042-06:00] [33/112] Glediator (Low): OK -- "The prop remains completely dark across all six stills, with no visible motion or texture." in 2.3s
+[2026-11-07T13:12:15.4297810-06:00] [34/112] Glediator (High): OK -- "The line appears completely unlit in every still, with no visible motion or texture." in 2.6s
+[2026-11-07T13:12:18.2276602-06:00] [35/112] Guitar (Low): OK -- "The effect shows no illuminated pixels in any still, so there is no visible motion or texture." in 2.8s
+[2026-11-07T13:12:20.8158565-06:00] [36/112] Guitar (High): OK -- "No illuminated pixels are visible in these stills, so the effect appears static and dark." in 2.6s
+[2026-11-07T13:12:23.0793812-06:00] [37/112] Kaleidoscope (Low): OK -- "All 20 pixels hold a steady, evenly spaced warm-orange line with no visible motion or change." in 2.3s
+[2026-11-07T13:12:26.6502979-06:00] [38/112] Kaleidoscope (High): OK -- "A steady, densely packed field of uniformly lit amber dots with no discernible movement or change." in 3.6s
+[2026-11-07T13:12:29.8977264-06:00] [39/112] Life (Low): OK -- "Sparse, scattered pixels appear and change in place without a clear directional chase or sweep." in 3.2s
+[2026-11-07T13:12:33.0209380-06:00] [40/112] Life (High): OK -- "Scattered colored cells evolve in place with no directional travel, creating a sparse, changing cellular texture." in 3.1s
+[2026-11-07T13:12:36.6744636-06:00] [41/112] Lightning (Low): OK -- "A compact central cluster rapidly expands into a nearly continuous line of lights, then contracts slightly, with no clear directional travel." in 3.7s
+[2026-11-07T13:12:41.2870127-06:00] [42/112] Lightning (High): OK -- "A sparse, jagged lightning bolt flickers and reshapes rapidly without a consistent direction of travel." in 4.6s
+[2026-11-07T13:12:45.9970782-06:00] [43/112] Lines (Low): OK -- "A dense row of blue pixels is chased by an orange segment that moves right-to-left and wraps around the string." in 4.7s
+[2026-11-07T13:12:50.7823813-06:00] [44/112] Lines (High): OK -- "Scattered blue and amber line segments shift and change orientation between stills, with no consistent left-to-right or right-to-left travel." in 4.8s
+[2026-11-07T13:12:55.2287801-06:00] [45/112] Liquid (Low): OK -- "A short central cluster rapidly spreads across the string, then breaks into shifting gaps while most pixels remain lit." in 4.4s
+[2026-11-07T13:12:59.6604390-06:00] [46/112] Liquid (High): OK -- "Scattered warm pixels flicker in changing positions across the line, with no consistent direction or flowing pattern." in 4.4s
+[2026-11-07T13:13:08.1785082-06:00] [47/112] Marquee (Low): OK -- "Alternating orange and blue pixel groups chase left to right at a medium pace, keeping the full string illuminated in a dense repeating pattern." in 8.5s
+[2026-11-07T13:13:17.1383624-06:00] [48/112] Marquee (High): OK -- "Alternating blue and warm-orange dots chase around the rectangular perimeter at a steady pace, creating a regularly spaced marquee pattern." in 9.0s
+[2026-11-07T13:13:22.2870046-06:00] [49/112] Meteors (Low): OK -- "Sparse meteor-like points move downward across the prop, with no clear left-to-right or right-to-left travel." in 5.1s
+[2026-11-07T13:13:26.9916243-06:00] [50/112] Meteors (High): OK -- "Multiple bright meteor heads move downward with short, fading vertical trails, creating a shifting shower of moderately spaced streaks." in 4.7s
+[2026-11-07T13:13:29.6581192-06:00] [51/112] Morph (Low): OK -- "The entire string shifts together through changing colors and brightness, with no directional travel." in 2.7s
+[2026-11-07T13:13:33.5768791-06:00] [52/112] Morph (High): OK -- "A dense blue grid morphs through vertical brightness gradients, with a thin orange edge shifting from the top to the bottom before the field fades out." in 3.9s
+[2026-11-07T13:13:36.1933903-06:00] [53/112] Moving Head (Low): OK -- "The prop remains completely dark across all six stills, with no visible motion or texture." in 2.6s
+[2026-11-07T13:13:39.2769270-06:00] [54/112] Moving Head (High): OK -- "The line remains completely dark throughout, with no visible motion or illuminated pixels." in 3.1s
+[2026-11-07T13:13:41.8546775-06:00] [55/112] Music (Low): OK -- "The string remains completely unlit throughout the sampled stills, with no visible motion or texture." in 2.6s
+[2026-11-07T13:13:44.4165658-06:00] [56/112] Music (High): OK -- "The line remains completely dark in all six stills, with no visible motion or illuminated pixels." in 2.6s
+[2026-11-07T13:13:47.0187488-06:00] [57/112] Off (Low): OK -- "The effect holds all 20 pixels off throughout, with no motion or visible texture." in 2.6s
+[2026-11-07T13:13:49.6954062-06:00] [58/112] Off (High): OK -- "The effect remains completely off across all stills, with no illuminated pixels or motion." in 2.7s
+[2026-11-07T13:13:57.4210193-06:00] [59/112] On (Low): OK -- "All 20 pixels remain steadily lit in a uniform amber line with no visible motion or variation." in 7.7s
+[2026-11-07T13:14:00.3460897-06:00] [60/112] On (High): OK -- "The effect holds the entire line steadily illuminated in a uniform, dense field with no visible motion." in 2.9s
+[2026-11-07T13:14:02.9062160-06:00] [61/112] Piano (Low): OK -- "A steady horizontal row of mostly blue pixels with a few warm amber pixels, showing no apparent motion." in 2.6s
+[2026-11-07T13:14:05.2340589-06:00] [62/112] Piano (High): OK -- "A dense, stationary piano-key pattern holds in place, with orange bars above and blue bars below." in 2.3s
+[2026-11-07T13:14:07.9094370-06:00] [63/112] Pictures (Low): OK -- "A steady, evenly spaced row of red pixels remains lit with no visible motion or change." in 2.7s
+[2026-11-07T13:14:11.4565948-06:00] [64/112] Pictures (High): OK -- "A dense, uniform red pixel field holds steady with no visible motion or change across the sampled frames." in 3.5s
+[2026-11-07T13:14:18.0110676-06:00] [65/112] Pinwheel (Low): OK -- "A sparse band of warm pixels moves quickly right-to-left through the blue string." in 6.6s
+[2026-11-07T13:14:22.8162653-06:00] [66/112] Pinwheel (High): OK -- "Sparse blue and orange spokes rotate around a central point, changing orientation noticeably between stills." in 4.8s
+[2026-11-07T13:14:27.1533255-06:00] [67/112] Plasma (Low): OK -- "The full string stays lit while smooth blue-to-warm color patches subtly shift and fluctuate, with no consistent travel direction." in 4.3s
+[2026-11-07T13:14:30.1205011-06:00] [68/112] Plasma (High): OK -- "Dense, softly shifting plasma-like colour regions drift and morph in place without a clear directional sweep." in 3.0s
+[2026-11-07T13:14:33.2625859-06:00] [69/112] Ripple (Low): OK -- "A ripple expands outward from the center along the string, lighting increasingly distant pixels on both sides in a moderately spaced wave." in 3.1s
+[2026-11-07T13:14:35.6730378-06:00] [70/112] Ripple (High): OK -- "A small warm center expands radially outward into broad blue concentric ripple rings, growing steadily with a dense but broken pixel texture." in 2.4s
+[2026-11-07T13:14:40.7824309-06:00] [71/112] Servo (Low): OK -- "The effect remains completely dark with no visible motion or illuminated pixels across the sampled frames." in 5.1s
+[2026-11-07T13:14:43.3870695-06:00] [72/112] Servo (High): OK -- "The render remains completely dark across all six stills, with no visible motion or illuminated pixels." in 2.6s
+[2026-11-07T13:14:45.7701759-06:00] [73/112] Shader (Low): OK -- "A steady, evenly spaced line of red pixels holds unchanged across the sequence, with no visible motion." in 2.4s
+[2026-11-07T13:14:54.0479024-06:00] [74/112] Shader (High): OK -- "A dense, uniform red field has a subtle dark horizontal band drifting downward slowly." in 8.3s
+[2026-11-07T13:14:56.7107286-06:00] [75/112] Shape (Low): OK -- "The prop remains completely dark in all six stills, with no visible motion or texture." in 2.7s
+[2026-11-07T13:14:58.3026965-06:00] [76/112] Shape (High): OK -- "The effect remains completely dark across all six stills, with no visible motion or texture." in 1.6s
+[2026-11-07T13:15:01.1756341-06:00] [77/112] Shimmer (Low): OK -- "The full string rapidly flickers on and off in a uniform amber line, with no directional travel." in 2.9s
+[2026-11-07T13:15:03.8816681-06:00] [78/112] Shimmer (High): OK -- "The entire dense matrix flashes uniformly between bright orange and black, with no directional travel." in 2.7s
+[2026-11-07T13:15:07.2230915-06:00] [79/112] Shockwave (Low): OK -- "A small central flash spreads symmetrically outward into two brighter blue dots, creating a sparse, medium-speed shockwave." in 3.3s
+[2026-11-07T13:15:10.6287772-06:00] [80/112] Shockwave (High): OK -- "A compact cluster expands symmetrically from the center and brightens into a small blue shockwave, with no directional travel." in 3.4s
+[2026-11-07T13:15:13.4955481-06:00] [81/112] SingleStrand (Low): OK -- "No pixels are visibly illuminated in any still, so the strand appears dark and unchanged throughout." in 2.9s
+[2026-11-07T13:15:15.5597632-06:00] [82/112] SingleStrand (High): OK -- "The line remains completely dark across all six stills, with no visible motion or illuminated pixels." in 2.1s
+[2026-11-07T13:15:17.8046437-06:00] [83/112] Sketch (Low): OK -- "The effect remains completely dark across all six stills, with no visible motion or illuminated pixels." in 2.2s
+[2026-11-07T13:15:20.9195483-06:00] [84/112] Sketch (High): OK -- "The line remains completely dark across all six stills, with no visible motion or texture." in 3.1s
+[2026-11-07T13:15:23.9571480-06:00] [85/112] Snowflakes (Low): OK -- "Scattered pixels flicker on and off along the string with no consistent travel direction, creating a moderately sparse snow-like texture." in 3.0s
+[2026-11-07T13:15:29.2549349-06:00] [86/112] Snowflakes (High): OK -- "Sparse, scattered snowflake dots drift downward at a moderate pace, with flakes reappearing in new positions as the loop continues." in 5.3s
+[2026-11-07T13:15:32.2874127-06:00] [87/112] Snowstorm (Low): OK -- "The string flickers with irregular green and blue brightness, occasional brighter warm-colored flashes, and no consistent direction of travel." in 3.0s
+[2026-11-07T13:15:38.2968824-06:00] [88/112] Snowstorm (High): OK -- "A dense field of colored snow-like points continually reshuffles with a moderate, generally downward drift rather than a left-to-right sweep." in 6.0s
+[2026-11-07T13:15:44.0262488-06:00] [89/112] Spirals (Low): OK -- "Alternating short orange and blue bands chase steadily left-to-right around the prop, with gaps between the lit groups." in 5.7s
+[2026-11-07T13:15:48.6379779-06:00] [90/112] Spirals (High): OK -- "Dense bands of orange and blue sweep and wrap across the matrix in a fast, repeating spiral-like motion." in 4.6s
+[2026-11-07T13:16:00.6517969-06:00] [91/112] Spirograph (Low): OK -- "Three isolated blue pixels hold in the same positions across the samples, with no visible motion." in 12.0s
+[2026-11-07T13:16:03.1195278-06:00] [92/112] Spirograph (High): OK -- "A sparse blue ring of separated dots holds in place with no visible movement or change across the sampled stills." in 2.5s
+[2026-11-07T13:16:05.2579812-06:00] [93/112] State (Low): OK -- "The prop remains completely dark throughout, with no visible motion or illuminated pixels." in 2.1s
+[2026-11-07T13:16:07.9947066-06:00] [94/112] State (High): OK -- "The line remains completely dark with no visible motion or illuminated pixels." in 2.7s
+[2026-11-07T13:16:11.5580683-06:00] [95/112] Strobe (Low): OK -- "Fast, scattered strobing flickers across the string with no directional travel and a moderately dense mix of blue and warm-colored pixels." in 3.6s
+[2026-11-07T13:16:14.1386610-06:00] [96/112] Strobe (High): OK -- "Sparse amber and blue points flash at changing positions with no directional travel, creating a fast, scattered strobe." in 2.6s
+[2026-11-07T13:16:18.1385601-06:00] [97/112] Tendril (Low): OK -- "Five fixed dots change colour together across the samples, with no directional motion and a sparse, evenly spaced appearance." in 4.0s
+[2026-11-07T13:16:23.4764039-06:00] [98/112] Tendril (High): OK -- "A thick spiral tendril grows and shifts across the matrix while its color changes, with clear black gaps separating the lit bands." in 5.3s
+[2026-11-07T13:16:26.4345681-06:00] [99/112] Text (Low): OK -- "A sparse, fixed pattern of blue and amber pixels holds unchanged across the sampled frames." in 3.0s
+[2026-11-07T13:16:29.3737368-06:00] [100/112] Text (High): OK -- "The text holds completely still across all six samples, with sparse, separated colored pixels and no apparent motion." in 2.9s
+[2026-11-07T13:16:31.9588401-06:00] [101/112] Tree (Low): OK -- "All 20 pixels hold a steady, dim amber-brown glow with no visible movement or change." in 2.6s
+[2026-11-07T13:16:37.3372874-06:00] [102/112] Tree (High): OK -- "Dense amber horizontal bands hold nearly still across the matrix, with no discernible travel or pulsing." in 5.4s
+[2026-11-07T13:16:41.3806214-06:00] [103/112] Twinkle (Low): OK -- "A single fixed-position pixel subtly changes colour and brightness without travelling, creating a very sparse twinkle." in 4.0s
+[2026-11-07T13:16:43.9937048-06:00] [104/112] Twinkle (High): OK -- "Scattered pixels twinkle independently, changing brightness and color without traveling in a consistent direction, with a sparse texture and moderate variation over time." in 2.6s
+[2026-11-07T13:16:45.7416783-06:00] [105/112] VU Meter (Low): OK -- "The prop remains completely dark across all six stills, with no visible motion or illuminated pixels." in 1.7s
+[2026-11-07T13:16:48.8334517-06:00] [106/112] VU Meter (High): OK -- "Dense colored meter bars rise and fall at varying heights across the line without traveling in a consistent direction." in 3.1s
+[2026-11-07T13:16:51.4371701-06:00] [107/112] Video (Low): OK -- "A steady, evenly spaced row of red pixels holds at constant brightness with no visible motion." in 2.6s
+[2026-11-07T13:16:55.5051764-06:00] [108/112] Video (High): OK -- "A dense, steady field of red pixels holds nearly uniformly across the sequence with no discernible motion." in 4.1s
+[2026-11-07T13:16:58.1072129-06:00] [109/112] Warp (Low): OK -- "All 20 pixels remain steadily lit in an evenly spaced warm-orange row, with no visible motion or change across the stills." in 2.6s
+[2026-11-07T13:17:03.8538690-06:00] [110/112] Warp (High): OK -- "The matrix holds a dense, uniform orange grid with no discernible movement across the sampled stills." in 5.7s
+[2026-11-07T13:17:08.4222104-06:00] [111/112] Wave (Low): OK -- "All pixels hold a steady, even warm-orange glow with no visible movement or change." in 4.6s
+[2026-11-07T13:17:12.4844238-06:00] [112/112] Wave (High): OK -- "A sparse repeating wave pattern travels steadily from left to right at a fast apparent pace." in 4.1s
+[2026-11-07T13:17:12.4850002-06:00] Phase D: 112 characterized, 0 failed, out of 112 fixture(s), in 430.5s (avg 3.8s/fixture).
+[2026-11-07T13:17:12.4960667-06:00] Phase D artifact: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-visual-characterization-manifest.json
+[2026-11-07T13:17:12.4962019-06:00] Total wall-clock time: 606.2s.
+[2026-11-07T13:17:12.4962113-06:00] Artifacts written:
+[2026-11-07T13:17:12.4962148-06:00]   - C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-fixture-manifest.json
+[2026-11-07T13:17:12.4962182-06:00]   - C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-fixture-render-manifest.json
+[2026-11-07T13:17:12.4962214-06:00]   - C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-fixture-video-manifest.json
+[2026-11-07T13:17:12.4962246-06:00]   - C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-characterizer-20261107-130706.log
+[2026-11-07T13:17:12.4962275-06:00]   - C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\effect-characterization\effect-visual-characterization-manifest.json

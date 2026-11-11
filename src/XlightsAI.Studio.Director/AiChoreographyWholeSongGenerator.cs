@@ -191,12 +191,14 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         // Build-plan Phase 10 §6b task 3: the shippable multi-layer Tree/Matrix template catalog (manual
         // first pass over real §6a research) IS wired in here -- loaded once from this assembly's own
         // embedded seed data, no offline step required.
-        var (craftRules, exemplarIndex) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
+        var (craftRules, exemplarIndex, patternLibrary) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
         var knowledge = new DirectorKnowledgeContext(
             catalogs.Vocabulary,
             craftRules,
             exemplarIndex,
-            MultiLayerTemplateCatalogLoader.Load());
+            MultiLayerTemplateCatalogLoader.Load(_knowledgeDirectory),
+            EffectVisualCharacterCatalogLoader.Load(),
+            patternLibrary);
 
         var registry = new EffectRecipeRegistry(catalogs.Recipes);
 
@@ -302,11 +304,12 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
                 $"No Show Bible is persisted for generation run '{generationRunId:N}' -- generate the whole-song plan first.");
         var existingScripts = await ChoreographyGenerationPipeline.LoadPersistedScriptsAsync(scriptsDir, generationRunId, ct).ConfigureAwait(false);
 
-        var (craftRules, exemplarIndex) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
-        var knowledge = new DirectorKnowledgeContext(catalogs.Vocabulary, craftRules, exemplarIndex, MultiLayerTemplateCatalogLoader.Load());
+        var (craftRules, exemplarIndex, patternLibrary) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
+        var knowledge = new DirectorKnowledgeContext(catalogs.Vocabulary, craftRules, exemplarIndex, MultiLayerTemplateCatalogLoader.Load(_knowledgeDirectory), EffectVisualCharacterCatalogLoader.Load(), patternLibrary);
 
         var pipeline = new ChoreographyGenerationPipeline(
-            knowledge, _style, directorClient: null, directorModelName: null, choreographerClient, choreographerModel, _maxOutputTokens);
+            knowledge, _style, directorClient: null, directorModelName: null, choreographerClient, choreographerModel, _maxOutputTokens,
+            logger: _loggerFactory.CreateLogger<ChoreographyGenerationPipeline>());
 
         var report = await pipeline.ApplyPostProcessingPromptAsync(
             music, layoutSummary, settings, generationRunId, existingBible, existingScripts, postProcessingPromptText, ct).ConfigureAwait(false);
@@ -360,14 +363,20 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         }
     }
 
-    public static async Task<(CraftRules CraftRules, ExemplarIndex ExemplarIndex)> LoadCorpusKnowledgeAsync(string? knowledgeDirectory, CancellationToken ct)
+    public static async Task<(CraftRules CraftRules, ExemplarIndex ExemplarIndex, PatternLibrary PatternLibrary)> LoadCorpusKnowledgeAsync(string? knowledgeDirectory, CancellationToken ct)
     {
         var emptyCraftRules = new CraftRules(DateTimeOffset.UtcNow, MinConfidenceThreshold: 0.7, MinSongCountThreshold: 3, Promoted: [], RejectedCandidates: []);
         var emptyExemplarIndex = new ExemplarIndex(DateTimeOffset.UtcNow, []);
+        var emptyPatternLibrary = new PatternLibrary(
+            GeneratedAtUtc: DateTimeOffset.UtcNow, SongCount: 0, TotalEffectCount: 0,
+            EffectFrequency: new Dictionary<string, int>(), EffectFrequencyBySection: new Dictionary<SectionKind, IReadOnlyDictionary<string, int>>(),
+            DensityBySection: new Dictionary<SectionKind, double>(), LayerCountPerModelDistribution: new Dictionary<int, int>(),
+            BlendModeUsage: new Dictionary<string, int>(), PaletteActiveSlotDistribution: new Dictionary<int, int>(),
+            ModeACount: 0, ModeBCount: 0);
 
         if (knowledgeDirectory is null)
         {
-            return (emptyCraftRules, emptyExemplarIndex);
+            return (emptyCraftRules, emptyExemplarIndex, emptyPatternLibrary);
         }
 
         CraftRules craftRules;
@@ -397,7 +406,17 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
             exemplarIndex = emptyExemplarIndex;
         }
 
-        return (craftRules, exemplarIndex);
+        PatternLibrary patternLibrary;
+        try
+        {
+            patternLibrary = await new JsonPatternLibraryStore(knowledgeDirectory).LoadAsync(ct).ConfigureAwait(false);
+        }
+        catch (FileNotFoundException)
+        {
+            patternLibrary = emptyPatternLibrary;
+        }
+
+        return (craftRules, exemplarIndex, patternLibrary);
     }
 
     /// <summary>

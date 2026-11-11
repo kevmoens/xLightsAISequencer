@@ -23,6 +23,18 @@
     <ProjectReference Include="..\XlightsAI.Studio.Rhythm\XlightsAI.Studio.Rhythm.csproj" />
     <ProjectReference Include="..\XlightsAI.Studio.Structure\XlightsAI.Studio.Structure.csproj" />
     <ProjectReference Include="..\XlightsAI.Studio.Stems\XlightsAI.Studio.Stems.csproj" />
+    <!-- Build-plan Phase 18 §3 (Phase B): the real headless render pipeline (RenderPipeline,
+         XlightsRenderAdapter, XlightsRenderCapabilityProbe, FseqRenderedFrameDecoder) EffectFixtureRenderer
+         reuses verbatim, never a second render implementation. Rendering itself depends only on
+         Contracts, Xlights, and Display, so this does not introduce a cycle. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Rendering\XlightsAI.Studio.Rendering.csproj" />
+    <!-- Build-plan Phase 18 §4/5 follow-up: audio-reactive effects (Music/VU Meter/Guitar) rendered
+         completely dark because the synthetic show never carried a real media file for xLights' own
+         real-time audio analysis to read. DeterministicSyntheticAudioGenerator (a pure, license-free sine
+         synthesizer, no copyrighted recording involved) already exists for exactly this "real but
+         synthetic audio fixture" need; this is a leaf project (no references of its own), so depending on
+         it here cannot introduce a cycle. -->
+    <ProjectReference Include="..\XlightsAI.Studio.Reference\XlightsAI.Studio.Reference.csproj" />
   </ItemGroup>
 
   <ItemGroup>

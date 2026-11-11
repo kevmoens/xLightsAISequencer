@@ -117,6 +117,104 @@ public static class TimingTrackEmitter
         return new TimingTrack("Percussion", CoalesceAdjacentSameLabel(EnforceMinimumMarkDuration(marks, FrameClock.FrameIntervalTicks)));
     }
 
+    /// <summary>
+    /// User follow-up (2026-11-10): a real hand-sequenced reference show's own dominant technique for
+    /// "emphasis on notes/hits" turned out to be almost embarrassingly simple when measured directly --
+    /// a short (median ~200ms), full-brightness "On" flash landing on ~60% of every real detected
+    /// transient hit, used 326 times across one 81s clip. Nothing in this compiler let a Look layer
+    /// react to a REAL detected hit directly before this -- only the regular Beats/Bars grid. One mark
+    /// per real <see cref="EmphasisSignalKind.TransientHit"/> instant, each a short, FIXED-width window
+    /// (a quarter beat, floored at one real frame -- never reaching all the way to the next hit the way
+    /// <see cref="Beats"/>'s own marks do, since real hits are sparse and irregular, not evenly spaced) --
+    /// so a Look layer declaring <c>Timescale: "Transients"</c> on a short-duty, non-timing-track-bound
+    /// effect (e.g. "On") gets <see cref="LookCompiler"/>'s existing Mode B discrete-emission machinery to
+    /// produce exactly that short flash, with no new compiler mechanism required. Marks are NOT contiguous
+    /// across <c>[0, songEndTicks)</c> -- unlike every other track above, a real hit list is sparse by
+    /// nature; <see cref="XsqExporter"/>'s own real requirement is only sorted/non-overlapping marks, never
+    /// full coverage (confirmed by inspection, not assumed). Appends nothing (empty track) when <paramref name="instants"/>
+    /// carries no <see cref="EmphasisSignalKind.TransientHit"/> entries.
+    /// </summary>
+    public static TimingTrack Transients(IReadOnlyList<EmphasisInstant> instants, BeatGrid beatGrid, long songEndTicks) =>
+        FromEmphasisInstants("Transients", instants, EmphasisSignalKind.TransientHit, beatGrid, songEndTicks);
+
+    /// <summary>
+    /// Same real mechanism as <see cref="Transients"/> above, for <see cref="EmphasisSignalKind.VocalNoteOnset"/>
+    /// instants instead -- a Look layer can declare <c>Timescale: "VocalNotes"</c> to react to a real sung
+    /// note directly. User follow-up (2026-11-10: "will any effects last as long as the note?"): when the
+    /// real note genuinely has its own end tick (<see cref="EmphasisInstant.EndTimeTicks"/>, populated from
+    /// a real <see cref="XlightsAI.Studio.Melody.NoteEvent"/>'s own sung duration), this mark spans that
+    /// REAL duration -- a long held note gets a correspondingly long mark, a short one a short mark --
+    /// rather than the same fixed quarter-beat snap <see cref="Transients"/> always uses (a transient hit
+    /// is a single instant with no real duration of its own to use instead). Falls back to that same
+    /// fixed-width snap only when no real end tick was supplied for a given instant -- never invents one.
+    /// </summary>
+    public static TimingTrack VocalNotes(IReadOnlyList<EmphasisInstant> instants, BeatGrid beatGrid, long songEndTicks) =>
+        FromEmphasisInstants("VocalNotes", instants, EmphasisSignalKind.VocalNoteOnset, beatGrid, songEndTicks);
+
+    /// <summary>A plausible single-beat duration (120 BPM) used only when the real beat grid has fewer than two beats to measure a real interval from near a given instant -- never fabricated as a "detected" tempo.</summary>
+    private const long FallbackBeatTicks = TicksPerSecond / 2;
+
+    private const double MarkWidthBeatFraction = 0.25;
+
+    private static TimingTrack FromEmphasisInstants(string trackName, IReadOnlyList<EmphasisInstant> instants, EmphasisSignalKind kind, BeatGrid beatGrid, long songEndTicks)
+    {
+        ArgumentNullException.ThrowIfNull(instants);
+        ArgumentNullException.ThrowIfNull(beatGrid);
+
+        var ordered = instants.Where(i => i.Kind == kind).DistinctBy(i => i.TimeTicks).OrderBy(i => i.TimeTicks).ToList();
+        var marks = new List<TimingMark>();
+        for (var i = 0; i < ordered.Count; i++)
+        {
+            var start = ordered[i].TimeTicks;
+            var nextInstantStart = i + 1 < ordered.Count ? ordered[i + 1].TimeTicks : songEndTicks;
+
+            // Real sung duration, when this instant actually carries one AND this is the VocalNotes track
+            // -- a TransientHit is a single instant with no real duration of its own to honor, so it always
+            // gets the same fixed quarter-beat snap regardless of whatever EndTimeTicks a caller supplied.
+            var desiredEnd = kind == EmphasisSignalKind.VocalNoteOnset && ordered[i].EndTimeTicks is { } realEnd && realEnd > start
+                ? realEnd
+                : start + (long)Math.Round(BeatDurationTicksNear(start, beatGrid) * MarkWidthBeatFraction);
+
+            var end = Math.Min(Math.Max(desiredEnd, start + 1), nextInstantStart);
+            if (end <= start || end > songEndTicks)
+            {
+                continue;
+            }
+
+            marks.Add(new TimingMark("", start, end));
+        }
+
+        return new TimingTrack(trackName, marks);
+    }
+
+    /// <summary>
+    /// Independent, intentionally-duplicated copy of the same real beat-duration lookup
+    /// <see cref="EmphasisContrastPlanner"/> already has its own private copy of -- both are small (a
+    /// dozen lines) and each phase's own code stays self-contained rather than introducing a cross-phase
+    /// dependency for one shared helper.
+    /// </summary>
+    private static long BeatDurationTicksNear(long tick, BeatGrid beatGrid)
+    {
+        var beats = beatGrid.Beats;
+        if (beats.Length < 2)
+        {
+            return FallbackBeatTicks;
+        }
+
+        var ordered = beats.OrderBy(b => b.TimeTicks).ToArray();
+        for (var i = 0; i < ordered.Length - 1; i++)
+        {
+            if (ordered[i].TimeTicks <= tick && tick < ordered[i + 1].TimeTicks)
+            {
+                return Math.Max(1, ordered[i + 1].TimeTicks - ordered[i].TimeTicks);
+            }
+        }
+
+        return tick < ordered[0].TimeTicks
+            ? Math.Max(1, ordered[1].TimeTicks - ordered[0].TimeTicks)
+            : Math.Max(1, ordered[^1].TimeTicks - ordered[^2].TimeTicks);
+    }
+
     private static string PickLabel(BandEnergyFrame[] frames, int index, double sensitivityMultiplier, int radius)
     {
         var (bassMean, bassStdDev) = LocalStatistics(frames, index, radius, f => f.Bass);

@@ -1,6 +1,7 @@
 using System.Globalization;
 using XlightsAI.Studio.Choreography;
 using XlightsAI.Studio.Knowledge;
+using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Director;
@@ -24,9 +25,15 @@ public static class ShowBibleValidator
     private static readonly HashSet<string> ValidMusicalRoles = new(StringComparer.Ordinal) { MusicalRole.Bass, MusicalRole.Melody, MusicalRole.Highs };
     private static readonly HashSet<string> ValidLookRoles = new(StringComparer.Ordinal) { LookLayer.RoleSubject, LookLayer.RoleSupport, LookLayer.RoleSecondary };
 
+    /// <summary>
+    /// Build-plan Phase 24 §2a: a <see cref="SectionKind"/> with fewer than this many real occurrences in
+    /// a song has nothing real to diversify -- exempt from the per-Kind Look-diversity floor below.
+    /// </summary>
+    public const int MinOccurrencesForDiversityFloor = 3;
+
     public static IReadOnlyList<ShowBibleValidationError> Validate(
         ShowBibleContent content, DisplayGraph layout, EffectVocabularyCatalog vocabulary, EffectRecipeCatalog recipeCatalog,
-        MultiLayerTemplateCatalog? templates = null)
+        MultiLayerTemplateCatalog? templates = null, IReadOnlyDictionary<SectionKind, int>? sectionKindOccurrenceCounts = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(layout);
@@ -47,7 +54,43 @@ public static class ShowBibleValidator
         ValidateSignatureGestures(content.SignatureGestures, errors);
         ValidateWithholding(content.Withholding, lookIds, errors);
 
+        if (sectionKindOccurrenceCounts is not null)
+        {
+            ValidateLookDiversityPerKind(content.Looks.Looks, sectionKindOccurrenceCounts, errors);
+        }
+
         return errors;
+    }
+
+    /// <summary>
+    /// Build-plan Phase 24 §2a: for any <see cref="SectionKind"/> with
+    /// <see cref="MinOccurrencesForDiversityFloor"/>+ real occurrences in the song, at least
+    /// <c>ceil(N/2)</c> distinct Looks must be eligible for that Kind -- a Look is eligible either because
+    /// its <see cref="Look.AllowedSectionKindsOrEmpty"/> names the Kind explicitly, or because it is left
+    /// unrestricted (empty), the same eligibility rule <see cref="XlightsAI.Studio.Director.SectionScriptPromptBuilder"/>
+    /// already uses at generation time -- a hard validation failure, same tier as <see cref="MinLooks"/>/
+    /// <see cref="MaxLooks"/>, because nothing previously checked that the existing "spread Look design"
+    /// prose guidance was ever actually followed.
+    /// </summary>
+    private static void ValidateLookDiversityPerKind(
+        IReadOnlyList<Look> looks, IReadOnlyDictionary<SectionKind, int> sectionKindOccurrenceCounts, List<ShowBibleValidationError> errors)
+    {
+        foreach (var (kind, occurrenceCount) in sectionKindOccurrenceCounts)
+        {
+            if (occurrenceCount < MinOccurrencesForDiversityFloor)
+            {
+                continue;
+            }
+
+            var requiredDistinctLooks = (int)Math.Ceiling(occurrenceCount / 2.0);
+            var eligibleLooks = looks.Count(l => l.AllowedSectionKindsOrEmpty.Count == 0 || l.AllowedSectionKindsOrEmpty.Contains(kind));
+            if (eligibleLooks < requiredDistinctLooks)
+            {
+                errors.Add(new ShowBibleValidationError(
+                    "look-diversity-per-kind",
+                    $"SectionKind '{kind}' occurs {occurrenceCount} times in this song, but only {eligibleLooks} Look(s) are eligible for it (AllowedSectionKinds names '{kind}', or is left unrestricted) -- need at least {requiredDistinctLooks} (ceil({occurrenceCount}/2)) distinct eligible Looks so repeats of this Kind are not forced to reuse the same one or two Looks."));
+            }
+        }
     }
 
     private static void ValidatePalettes(IReadOnlyList<ShowBiblePalette> palettes, List<ShowBibleValidationError> errors)
@@ -190,8 +233,15 @@ public static class ShowBibleValidator
     private static bool HasTreeOrMatrixProp(DisplayGraph layout) =>
         layout.Models.Any(m => IsTreeOrMatrixName(m.XlightsName)) || layout.Groups.Any(g => IsTreeOrMatrixName(g.Name));
 
-    private static bool IsTreeOrMatrixName(string name) =>
-        name.Contains("Tree", StringComparison.OrdinalIgnoreCase) || name.Contains("Matrix", StringComparison.OrdinalIgnoreCase);
+    /// <summary>
+    /// Shared with <see cref="ChoreographyGenerationPipeline"/>'s own layer-density diagnostic logging and
+    /// (build-plan Phase 19 §2c) <see cref="XlightsAI.Studio.Pipeline.CraftRuleInducer"/>'s corpus-mined
+    /// layer-floor rule -- a thin forwarding alias kept here for existing Director call sites; the real,
+    /// single definition now lives in <see cref="XlightsAI.Studio.Knowledge.TreeMatrixPropNameConvention"/>,
+    /// which Pipeline can also reference (Director cannot be referenced the other way around).
+    /// </summary>
+    internal static bool IsTreeOrMatrixName(string name) =>
+        XlightsAI.Studio.Knowledge.TreeMatrixPropNameConvention.IsTreeOrMatrixName(name);
 
     private static void ValidateReference(string reference, DisplayGraph layout, string rule, string context, List<ShowBibleValidationError> errors)
     {

@@ -52,6 +52,14 @@ public sealed class CorpusSongAnalyzerTests : IDisposable
         // A real beat grid was built from real audio -- not every alignment field is necessarily
         // resolvable from a short synthetic click track, but the beat grid itself must be real.
         Assert.NotNull(analysis.BeatGrid.SelectedTempo);
+
+        // Build-plan Phase 19 §2b: KeyChanges/Melody are real, measured outputs of inputs this analyzer
+        // already computes for BarFingerprintBuilder -- never null for a real AnalyzeAsync run (a silent
+        // tone-free click track may legitimately detect zero actual key CHANGES, but the list itself, and
+        // the melody track, must be real, non-null objects, not left permanently unset as they were
+        // before this phase).
+        Assert.NotNull(analysis.KeyChanges);
+        Assert.NotNull(analysis.Melody);
     }
 
     private static string BuildXsq(double durationSeconds)

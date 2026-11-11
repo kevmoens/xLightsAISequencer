@@ -1,0 +1,78 @@
+[2026-11-10T14:00:43.5234842-06:00] Corpus root: C:\xLights
+[2026-11-10T14:00:43.5245002-06:00] Knowledge directory: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\corpus-knowledge
+[2026-11-10T14:00:43.5245957-06:00] Per-song timeout: 45.0 minute(s)
+[2026-11-10T14:00:43.5246099-06:00] Max song concurrency: 2
+[2026-11-10T14:00:43.5246184-06:00] Log file: C:\Users\kevmo\AppData\Roaming\XlightsAI.Studio\corpus-knowledge\corpus-mining-20261110-140043.log
+[2026-11-10T14:00:43.5247981-06:00] XLAI_SKIP_EXEMPLAR_DESCRIPTIONS=1 -- skipping exemplar description generation for this run (temporary, Phase 20 verification only).
+[2026-11-10T14:00:43.8296347-06:00] Manifest built: 32 entries, 4484 excluded paths.
+[2026-11-10T14:00:43.8321729-06:00] [1/32] START 'All i want for christmas 2' at 2026-11-10T20:00:43.8321223+00:00
+[2026-11-10T14:00:43.8399798-06:00] [2/32] START 'Carrie Underwood - Away In A Manger Lite' at 2026-11-10T20:00:43.8399747+00:00
+[2026-11-10T14:00:43.8407105-06:00] [15/32] SKIPPED 'Dubstep Christmas Light Show' (ExternalReference provenance -- excluded from every downstream consumer, never analyzed).
+[2026-11-10T14:06:15.0036426-06:00] [2/32] DONE  'Carrie Underwood - Away In A Manger Lite' in 331.2s
+[2026-11-10T14:06:15.0038776-06:00] [3/32] START 'Chuck Berry - Run Rudolph  Run' at 2026-11-10T20:06:15.0038666+00:00
+[2026-11-10T14:08:46.6310823-06:00] [1/32] DONE  'All i want for christmas 2' in 482.8s
+[2026-11-10T14:08:46.6311909-06:00] [4/32] START 'Dance Of The Sugar Plum Fairy (JayKode Trap Remix) HD Layout' at 2026-11-10T20:08:46.6311884+00:00
+[2026-11-10T14:11:59.3557821-06:00] [3/32] DONE  'Chuck Berry - Run Rudolph  Run' in 344.4s
+[2026-11-10T14:11:59.3558471-06:00] [5/32] START 'homealone' at 2026-11-10T20:11:59.3558457+00:00
+[2026-11-10T14:16:00.7595561-06:00] [4/32] DONE  'Dance Of The Sugar Plum Fairy (JayKode Trap Remix) HD Layout' in 434.1s
+[2026-11-10T14:16:00.7596203-06:00] [6/32] START 'Joe Bygraves - Stand As One Lite' at 2026-11-10T20:16:00.7596191+00:00
+[2026-11-10T14:20:04.4270512-06:00] [5/32] DONE  'homealone' in 485.1s
+[2026-11-10T14:20:04.4271160-06:00] [7/32] START 'LalalaGirl - Christmas Mashup 2016-short' at 2026-11-10T20:20:04.4271148+00:00
+[2026-11-10T14:23:32.4909238-06:00] [6/32] DONE  'Joe Bygraves - Stand As One Lite' in 451.7s
+[2026-11-10T14:23:32.4910015-06:00] [8/32] START 'Nutcracker Dubstep' at 2026-11-10T20:23:32.4909999+00:00
+[2026-11-10T14:25:21.7770621-06:00] [7/32] DONE  'LalalaGirl - Christmas Mashup 2016-short' in 317.3s
+[2026-11-10T14:25:21.7771504-06:00] [9/32] START 'Ode to Joy remix - Epic' at 2026-11-10T20:25:21.7771490+00:00
+[2026-11-10T14:29:41.9499767-06:00] [8/32] DONE  'Nutcracker Dubstep' in 369.5s
+[2026-11-10T14:29:41.9500893-06:00] [10/32] START 'Rockin' Around the Christmas Tree' at 2026-11-10T20:29:41.9500858+00:00
+[2026-11-10T14:31:37.5168312-06:00] [9/32] DONE  'Ode to Joy remix - Epic' in 375.7s
+[2026-11-10T14:31:37.5169102-06:00] [11/32] START 'Sleigh Ride' at 2026-11-10T20:31:37.5169090+00:00
+[2026-11-10T14:34:39.0806520-06:00] [10/32] DONE  'Rockin' Around the Christmas Tree' in 297.1s
+[2026-11-10T14:34:39.0807243-06:00] [12/32] START 'The Weeknd & Ariana Grande - Save Your Tears Remix HD' at 2026-11-10T20:34:39.0807231+00:00
+[2026-11-10T14:38:53.6966110-06:00] [11/32] DONE  'Sleigh Ride' in 436.2s
+[2026-11-10T14:38:53.6966830-06:00] [13/32] START 'The Weeknd - Blinding Lights Lite' at 2026-11-10T20:38:53.6966782+00:00
+[2026-11-10T14:41:39.0230326-06:00] [12/32] DONE  'The Weeknd & Ariana Grande - Save Your Tears Remix HD' in 419.9s
+[2026-11-10T14:41:39.0231566-06:00] [14/32] START 'TSO - Christmas Sarajevo' at 2026-11-10T20:41:39.0231547+00:00
+[2026-11-10T14:45:55.6000346-06:00] [13/32] DONE  'The Weeknd - Blinding Lights Lite' in 421.9s
+[2026-11-10T14:45:55.6001515-06:00] [16/32] START 'Cher-DJ Play a Christmas Song' at 2026-11-10T20:45:55.6000985+00:00
+[2026-11-10T14:48:50.7996871-06:00] [14/32] DONE  'TSO - Christmas Sarajevo' in 431.8s
+[2026-11-10T14:48:50.7997556-06:00] [17/32] START 'Christmas Tree Hot to Go - Chappell Roan' at 2026-11-10T20:48:50.7997542+00:00
+[2026-11-10T14:53:07.4995988-06:00] [17/32] DONE  'Christmas Tree Hot to Go - Chappell Roan' in 256.7s
+[2026-11-10T14:53:07.4996810-06:00] [18/32] START 'PinkPonyClub' at 2026-11-10T20:53:07.4996784+00:00
+[2026-11-10T14:53:17.6405401-06:00] [16/32] DONE  'Cher-DJ Play a Christmas Song' in 442.0s
+[2026-11-10T14:53:17.6405910-06:00] [19/32] START 'Ronettes - Sleigh Bells (PhatCap! Trap Remix)' at 2026-11-10T20:53:17.6405900+00:00
+[2026-11-10T14:57:52.9482177-06:00] [19/32] DONE  'Ronettes - Sleigh Bells (PhatCap! Trap Remix)' in 275.3s
+[2026-11-10T14:57:52.9483053-06:00] [20/32] START 'WISCANTHEM' at 2026-11-10T20:57:52.9483042+00:00
+[2026-11-10T15:02:01.5404072-06:00] [18/32] DONE  'PinkPonyClub' in 534.0s
+[2026-11-10T15:02:01.5405120-06:00] [21/32] START 'Existence (VIP) - Shortened' at 2026-11-10T21:02:01.5405099+00:00
+[2026-11-10T15:04:13.1787123-06:00] [20/32] DONE  'WISCANTHEM' in 380.2s
+[2026-11-10T15:04:13.1788432-06:00] [22/32] START 'Dubstep 2019' at 2026-11-10T21:04:13.1788419+00:00
+[2026-11-10T15:04:51.2047865-06:00] [21/32] DONE  'Existence (VIP) - Shortened' in 169.7s
+[2026-11-10T15:04:51.2048347-06:00] [23/32] START 'Eye of the Tiger DubStep' at 2026-11-10T21:04:51.2048340+00:00
+[2026-11-10T15:08:22.7901638-06:00] [22/32] DONE  'Dubstep 2019' in 249.6s
+[2026-11-10T15:08:22.7902322-06:00] [24/32] START 'AC_DC - Thunderstruck (Official Video)' at 2026-11-10T21:08:22.7902297+00:00
+[2026-11-10T15:13:50.6629164-06:00] [23/32] DONE  'Eye of the Tiger DubStep' in 539.5s
+[2026-11-10T15:13:50.6629905-06:00] [25/32] START 'E1 - Eye of the Tiger' at 2026-11-10T21:13:50.6629896+00:00
+[2026-11-10T15:18:24.9298025-06:00] [24/32] DONE  'AC_DC - Thunderstruck (Official Video)' in 602.1s
+[2026-11-10T15:18:24.9298613-06:00] [26/32] START 'Mr Grinch2018final' at 2026-11-10T21:18:24.9298596+00:00
+[2026-11-10T15:22:49.3074017-06:00] [25/32] DONE  'E1 - Eye of the Tiger' in 538.6s
+[2026-11-10T15:22:49.3074537-06:00] [27/32] START 'Thriller' at 2026-11-10T21:22:49.3074529+00:00
+[2026-11-10T15:24:13.2167928-06:00] [26/32] DONE  'Mr Grinch2018final' in 348.3s
+[2026-11-10T15:24:13.2168393-06:00] [28/32] START '7 song medley updated' at 2026-11-10T21:24:13.2168386+00:00
+[2026-11-10T15:33:42.5034006-06:00] [27/32] DONE  'Thriller' in 653.2s
+[2026-11-10T15:33:42.5034490-06:00] [29/32] START 'Into the Unknown' at 2026-11-10T21:33:42.5034480+00:00
+[2026-11-10T15:34:34.9810236-06:00] [28/32] DONE  '7 song medley updated' in 621.8s
+[2026-11-10T15:34:34.9811363-06:00] [30/32] START 'First 7 songs Christmas' at 2026-11-10T21:34:34.9811353+00:00
+[2026-11-10T15:40:47.0018237-06:00] [29/32] DONE  'Into the Unknown' in 424.5s
+[2026-11-10T15:40:47.0019794-06:00] [31/32] START 'Memories - Maroon 5' at 2026-11-10T21:40:47.0019201+00:00
+[2026-11-10T15:45:45.7841447-06:00] [30/32] DONE  'First 7 songs Christmas' in 670.8s
+[2026-11-10T15:45:45.7841950-06:00] [32/32] START 'Run Run Rudolph' at 2026-11-10T21:45:45.7841941+00:00
+[2026-11-10T15:48:26.2275813-06:00] [31/32] DONE  'Memories - Maroon 5' in 459.2s
+[2026-11-10T15:51:20.0804497-06:00] [32/32] DONE  'Run Run Rudolph' in 334.3s
+[2026-11-10T15:51:20.0815712-06:00] All songs processed: 31 analyzed, 0 failed/timed out. Building PatternLibrary/ExemplarIndex/CraftRules...
+[2026-11-10T15:51:20.0929730-06:00] FATAL: System.IO.FileNotFoundException: 
+File name: 'System.Text.RegularExpressions, Version=10.0.0.0, Culture=neutral, PublicKeyToken=b03f5f7f11d50a3a'
+   at XlightsAI.Studio.Pipeline.PatternLibraryBuilder.Build(IReadOnlyList`1 songs)
+   at XlightsAI.Studio.Pipeline.PatternLibraryBuilder.Build(IReadOnlyList`1 songs)
+   at XlightsAI.Studio.Pipeline.CorpusMiningRunner.RunAsync(CorpusManifest manifest, String knowledgeDirectory, TimeSpan perSongTimeout, Action`1 progress, CancellationToken ct, IExemplarDescriptionClient descriptionClient, Int32 maxSongConcurrency, Int32 favoriteSongWeightMultiplier)
+   at XlightsAI.Studio.Pipeline.CorpusMiningRunner.RunAsync(String corpusRootDirectory, String knowledgeDirectory, TimeSpan perSongTimeout, Action`1 progress, CancellationToken ct, IExemplarDescriptionClient descriptionClient, Int32 maxSongConcurrency, IReadOnlyList`1 excludedProjectRootDirectories, Int32 favoriteSongWeightMultiplier)
+   at Program.<Main>$(String[] args)

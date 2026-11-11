@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Knowledge;
+using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Director;
@@ -54,7 +55,8 @@ public sealed class ShowBibleGenerator
 
     public async Task<ShowBibleGenerationReport> GenerateAsync(
         DirectorPrompt prompt, Guid songId, DisplayGraph layout, EffectVocabularyCatalog vocabulary, EffectRecipeCatalog recipeCatalog,
-        int maxOutputTokens, CancellationToken ct, MultiLayerTemplateCatalog? templates = null)
+        int maxOutputTokens, CancellationToken ct, MultiLayerTemplateCatalog? templates = null,
+        IReadOnlyDictionary<SectionKind, int>? sectionKindOccurrenceCounts = null)
     {
         ArgumentNullException.ThrowIfNull(prompt);
         ArgumentNullException.ThrowIfNull(layout);
@@ -88,7 +90,7 @@ public sealed class ShowBibleGenerator
             }
 
             usages.Add(result.Usage);
-            violations = ShowBibleValidator.Validate(result.Value, layout, vocabulary, recipeCatalog, templates);
+            violations = ShowBibleValidator.Validate(result.Value, layout, vocabulary, recipeCatalog, templates, sectionKindOccurrenceCounts);
             await LogAsync(songId, result.Usage, $"attempt {attempt}/{_maxAttempts}: {(violations.Count == 0 ? "validated" : $"{violations.Count} violation(s)")}", result.Diagnostics, ct).ConfigureAwait(false);
 
             if (violations.Count == 0)

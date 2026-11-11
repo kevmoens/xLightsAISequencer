@@ -18,10 +18,69 @@ public static class MultiLayerTemplateCatalogLoader
 {
     private const string ResourceName = "XlightsAI.Studio.Knowledge.SeedData.multilayer-tree-matrix-templates.json";
 
+    /// <summary>Build-plan Phase 20 §2b: the file name <c>XlightsAI.Studio.Pipeline.JsonMultiLayerTemplateCatalogStore</c> writes a real, corpus-mined catalog under -- read directly here (plain file + JSON, no project reference) since <c>Knowledge</c> cannot reference <c>Pipeline</c> (the dependency runs the other way).</summary>
+    private const string MinedFileName = "multilayer-templates-mined.json";
+
+    private static readonly JsonSerializerOptions JsonOptions = new() { PropertyNameCaseInsensitive = true };
+
     private static readonly Lazy<MultiLayerTemplateCatalog> Cached = new(LoadFromEmbeddedResource);
 
-    /// <summary>The shippable catalog, parsed once and cached for the process lifetime -- it is immutable seed data, never regenerated per call.</summary>
+    /// <summary>The shippable, hand-curated seed catalog alone, parsed once and cached for the process lifetime -- it is immutable seed data, never regenerated per call.</summary>
     public static MultiLayerTemplateCatalog Load() => Cached.Value;
+
+    /// <summary>
+    /// Build-plan Phase 20 §2b: the same hand-curated seed catalog as <see cref="Load()"/>, merged with
+    /// whatever real, corpus-mined templates a prior <c>CorpusMiningRunner</c> run wrote under
+    /// <paramref name="knowledgeDirectory"/> (<c>multilayer-templates-mined.json</c>) -- additive only, so
+    /// a knowledge directory with no mined file yet (or <paramref name="knowledgeDirectory"/> itself
+    /// <see langword="null"/>) returns exactly the same 3-template seed catalog <see cref="Load()"/> does,
+    /// never an error. Not cached (unlike <see cref="Load()"/>) since the mined file can change between
+    /// corpus-mining runs within the same process.
+    /// </summary>
+    public static MultiLayerTemplateCatalog Load(string? knowledgeDirectory)
+    {
+        var seed = Load();
+        if (knowledgeDirectory is null)
+        {
+            return seed;
+        }
+
+        var minedPath = System.IO.Path.Combine(knowledgeDirectory, MinedFileName);
+        if (!File.Exists(minedPath))
+        {
+            return seed;
+        }
+
+        MultiLayerTemplateCatalog? mined;
+        try
+        {
+            mined = JsonSerializer.Deserialize<MultiLayerTemplateCatalog>(File.ReadAllText(minedPath), JsonOptions);
+        }
+        catch (JsonException)
+        {
+            // A corrupt/partially-written mined file must never break a real generation -- fall back to
+            // the seed catalog alone, same disclosed-fallback discipline as a missing CraftRules/
+            // ExemplarIndex file in AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync.
+            return seed;
+        }
+
+        if (mined is null || mined.Templates.Count == 0)
+        {
+            return seed;
+        }
+
+        var seedIds = new HashSet<string>(seed.Templates.Select(t => t.Id), StringComparer.Ordinal);
+        var additiveMined = mined.Templates.Where(t => !seedIds.Contains(t.Id)).ToList();
+        if (additiveMined.Count == 0)
+        {
+            return seed;
+        }
+
+        return new MultiLayerTemplateCatalog(
+            Version: seed.Version + 1,
+            GeneratedAtUtc: mined.GeneratedAtUtc > seed.GeneratedAtUtc ? mined.GeneratedAtUtc : seed.GeneratedAtUtc,
+            Templates: seed.Templates.Concat(additiveMined).ToList());
+    }
 
     private static MultiLayerTemplateCatalog LoadFromEmbeddedResource()
     {

@@ -3,49 +3,59 @@
 Song: Dubstep Christmas Light Show (90s clip). Real house: `C:\xLights`. Choreographer: `qwen2.5-coder:7b-instruct` (local Ollama, free).
 Critic (vision): `llava:7b` (local Ollama, free).
 
-Iterations run: 4. Sections detected in this 30s clip: 7. SectionScripts validated on initial pass: 7.
+Iterations run: 4. Sections detected in this 30s clip: 10. SectionScripts validated on initial pass: 10.
 
 | Iteration | Sections | Hard-gate violations | Numeric findings | Visual critiques | Regressions vs previous | Metrics |
 |---|---:|---:|---:|---:|---|---|
-| 0 | 7 | 1 | 2 | 0 | (none) | RmsCorrelation=0.50, LongestNoChangeStretch=0.50, UndeclaredBlackFrames=0.00, LargestPixelPlateau=0.74, MeanHueFamilies=1.00, ActivePaletteSlots=0.50, ChangeRateWithinStyleBand=0.50, PixelHeavyDutyCycle=0.50, RepeatedCompositionShare=0.07, EffectBeatDeviation=0.50, BeatHitRate=0.50, PeakSimilarity=0.50, SectionEnergyCeiling=0.50 |
-| 1 | 7 | 0 | 1 | 7 | (none) | RmsCorrelation=0.50, LongestNoChangeStretch=0.50, UndeclaredBlackFrames=1.00, LargestPixelPlateau=0.72, MeanHueFamilies=1.00, ActivePaletteSlots=0.50, ChangeRateWithinStyleBand=0.50, PixelHeavyDutyCycle=0.50, RepeatedCompositionShare=0.27, EffectBeatDeviation=0.50, BeatHitRate=0.50, PeakSimilarity=0.50, SectionEnergyCeiling=0.50 |
-| 2 | 7 | 0 | 1 | 6 | (none) | RmsCorrelation=0.50, LongestNoChangeStretch=0.50, UndeclaredBlackFrames=1.00, LargestPixelPlateau=0.90, MeanHueFamilies=1.00, ActivePaletteSlots=0.50, ChangeRateWithinStyleBand=0.50, PixelHeavyDutyCycle=0.50, RepeatedCompositionShare=0.32, EffectBeatDeviation=0.50, BeatHitRate=0.50, PeakSimilarity=0.50, SectionEnergyCeiling=0.50 |
-| 3 | 7 | 1 | 2 | 7 | UndeclaredBlackFrames 1.00->0.00 | RmsCorrelation=0.50, LongestNoChangeStretch=0.50, UndeclaredBlackFrames=0.00, LargestPixelPlateau=0.88, MeanHueFamilies=1.00, ActivePaletteSlots=0.50, ChangeRateWithinStyleBand=0.50, PixelHeavyDutyCycle=0.50, RepeatedCompositionShare=0.38, EffectBeatDeviation=0.50, BeatHitRate=0.50, PeakSimilarity=0.50, SectionEnergyCeiling=0.50 |
+| 0 | 10 | 0 | 1 | 0 | (none) | RmsCorrelation=0.50, LongestNoChangeStretch=0.50, UndeclaredBlackFrames=1.00, LargestPixelPlateau=0.59, MeanHueFamilies=0.98, ActivePaletteSlots=0.50, ChangeRateWithinStyleBand=0.50, PixelHeavyDutyCycle=0.50, RepeatedCompositionShare=0.25, EffectBeatDeviation=0.50, BeatHitRate=0.50, PeakSimilarity=0.50, SectionEnergyCeiling=0.50 |
+| 1 | 10 | 0 | 1 | 10 | (none) | RmsCorrelation=0.50, LongestNoChangeStretch=0.50, UndeclaredBlackFrames=1.00, LargestPixelPlateau=0.63, MeanHueFamilies=1.00, ActivePaletteSlots=0.50, ChangeRateWithinStyleBand=0.50, PixelHeavyDutyCycle=0.50, RepeatedCompositionShare=0.32, EffectBeatDeviation=0.50, BeatHitRate=0.50, PeakSimilarity=0.50, SectionEnergyCeiling=0.50 |
+| 2 | 10 | 0 | 1 | 10 | (none) | RmsCorrelation=0.50, LongestNoChangeStretch=0.50, UndeclaredBlackFrames=1.00, LargestPixelPlateau=0.63, MeanHueFamilies=1.00, ActivePaletteSlots=0.50, ChangeRateWithinStyleBand=0.50, PixelHeavyDutyCycle=0.50, RepeatedCompositionShare=0.32, EffectBeatDeviation=0.50, BeatHitRate=0.50, PeakSimilarity=0.50, SectionEnergyCeiling=0.50 |
+| 3 | 10 | 0 | 1 | 10 | (none) | RmsCorrelation=0.50, LongestNoChangeStretch=0.50, UndeclaredBlackFrames=1.00, LargestPixelPlateau=0.63, MeanHueFamilies=1.00, ActivePaletteSlots=0.50, ChangeRateWithinStyleBand=0.50, PixelHeavyDutyCycle=0.50, RepeatedCompositionShare=0.37, EffectBeatDeviation=0.50, BeatHitRate=0.50, PeakSimilarity=0.50, SectionEnergyCeiling=0.50 |
 
 ## Convergence-discipline evidence (acceptance criterion: diff must catch a real regression)
 
-CAUGHT -- at least one metric regressed vs. its immediately previous iteration during this real run (see table above).
+NOT OBSERVED in this real run -- no iteration produced a monitored regression; the mechanism itself is independently proven by QualityReportDiffTests' own synthetic EXPORT_AUDIT.md-incident reproduction.
 
 ## Visual critique evidence (acceptance criterion: catches something numeric alone misses)
 
-- section 44808913-e1bc-48ca-a7cf-7dc8b45ac6f6: first=Candidate(1.00) second=Candidate(0.50) flipped=False agreed=Candidate
-- section 943f39d6-4fe1-4bc7-bd42-9f8f07aac3d0: first=Reference(0.90) second=Candidate(1.00) flipped=True agreed=
-- section c93dc54e-2e54-427e-b0a4-fcf4b553b68f: first=Candidate(0.90) second=Reference(0.00) flipped=True agreed=
-- section 3d79c6bc-cc3d-4272-99e7-7db98930255f: first=Reference(0.00) second=Reference(1.00) flipped=False agreed=Reference
-- section 14a6fa3e-f4bc-4509-96f5-e21b67c3c05c: first=Reference(0.90) second=Candidate(0.00) flipped=True agreed=
-- section 9284671a-682f-48a1-8ff9-ef77337f0c08: first=Candidate(0.90) second=Candidate(1.00) flipped=False agreed=Candidate
-- section e686e1df-463f-4ceb-8103-7620d222b8c6: first=Candidate(0.10) second=Candidate(0.80) flipped=False agreed=Candidate
-- section 44808913-e1bc-48ca-a7cf-7dc8b45ac6f6: first=Candidate(0.80) second=Reference(0.10) flipped=True agreed=
-- section 943f39d6-4fe1-4bc7-bd42-9f8f07aac3d0: first=Reference(0.99) second=Candidate(1.00) flipped=True agreed=
-- section c93dc54e-2e54-427e-b0a4-fcf4b553b68f: first=Reference(1.00) second=Reference(0.80) flipped=False agreed=Reference
-- section 3d79c6bc-cc3d-4272-99e7-7db98930255f: first=Reference(0.30) second=Reference(1.00) flipped=False agreed=Reference
-- section 14a6fa3e-f4bc-4509-96f5-e21b67c3c05c: first=Candidate(0.80) second=Reference(0.70) flipped=True agreed=
-- section 9284671a-682f-48a1-8ff9-ef77337f0c08: first=Reference(0.95) second=Candidate(1.00) flipped=True agreed=
-- section 44808913-e1bc-48ca-a7cf-7dc8b45ac6f6: first=Reference(1.00) second=Candidate(0.90) flipped=True agreed=
-- section 943f39d6-4fe1-4bc7-bd42-9f8f07aac3d0: first=Candidate(0.00) second=Reference(1.00) flipped=True agreed=
-- section c93dc54e-2e54-427e-b0a4-fcf4b553b68f: first=Reference(1.00) second=Candidate(0.85) flipped=True agreed=
-- section 3d79c6bc-cc3d-4272-99e7-7db98930255f: first=Reference(0.20) second=Candidate(0.50) flipped=True agreed=
-- section 14a6fa3e-f4bc-4509-96f5-e21b67c3c05c: first=Candidate(1.00) second=Candidate(1.00) flipped=False agreed=Candidate
-- section 9284671a-682f-48a1-8ff9-ef77337f0c08: first=Reference(0.10) second=Reference(0.50) flipped=False agreed=Reference
-- section e686e1df-463f-4ceb-8103-7620d222b8c6: first=Candidate(0.85) second=Reference(0.50) flipped=True agreed=
+- section 2f8e10c5-551f-438a-8591-9a433c806a55: first=Candidate(0.80) second=Candidate(0.36) flipped=False agreed=Candidate
+- section e7fdad50-c29e-4d37-bbf3-c7650cb7ab5e: first=Candidate(0.99) second=Reference(0.90) flipped=True agreed=
+- section 4d49def5-9fe7-428a-8db3-6ea7bccd34d1: first=Reference(0.50) second=Candidate(0.50) flipped=True agreed=
+- section 3938a87a-0343-4dcf-ab53-398abc7960ea: first=Candidate(1.00) second=Candidate(0.50) flipped=False agreed=Candidate
+- section 38d31b8c-1573-47c6-8e3c-1670dac52fa6: first=Reference(0.70) second=Reference(0.80) flipped=False agreed=Reference
+- section 38b76d64-3b46-46e9-89f5-8e066179a749: first=Reference(1.00) second=Candidate(0.50) flipped=True agreed=
+- section 7a89e9e0-acd2-4bbf-b03d-69374b12bc96: first=Reference(0.99) second=Reference(0.80) flipped=False agreed=Reference
+- section 1e4d4c93-f35a-4105-833e-7504538211df: first=Reference(0.75) second=Reference(1.00) flipped=False agreed=Reference
+- section 67fccd99-8d91-40f2-bf57-8a88e23f19f8: first=Reference(0.50) second=Candidate(0.90) flipped=True agreed=
+- section bbc74ab6-7c59-46f8-b053-bbb4374d6e31: first=Candidate(0.90) second=Reference(0.50) flipped=True agreed=
+- section 2f8e10c5-551f-438a-8591-9a433c806a55: first=Reference(0.50) second=Candidate(1.00) flipped=True agreed=
+- section e7fdad50-c29e-4d37-bbf3-c7650cb7ab5e: first=Candidate(0.50) second=Reference(0.80) flipped=True agreed=
+- section 4d49def5-9fe7-428a-8db3-6ea7bccd34d1: first=Reference(1.00) second=Candidate(0.90) flipped=True agreed=
+- section 3938a87a-0343-4dcf-ab53-398abc7960ea: first=Reference(0.98) second=Candidate(0.70) flipped=True agreed=
+- section 38d31b8c-1573-47c6-8e3c-1670dac52fa6: first=Reference(0.70) second=Reference(0.90) flipped=False agreed=Reference
+- section 38b76d64-3b46-46e9-89f5-8e066179a749: first=Reference(1.00) second=Candidate(0.50) flipped=True agreed=
+- section 7a89e9e0-acd2-4bbf-b03d-69374b12bc96: first=Candidate(0.90) second=Candidate(0.75) flipped=False agreed=Candidate
+- section 1e4d4c93-f35a-4105-833e-7504538211df: first=Reference(1.00) second=Candidate(0.50) flipped=True agreed=
+- section 67fccd99-8d91-40f2-bf57-8a88e23f19f8: first=Reference(0.91) second=Candidate(0.80) flipped=True agreed=
+- section bbc74ab6-7c59-46f8-b053-bbb4374d6e31: first=Reference(0.70) second=Reference(0.60) flipped=False agreed=Reference
+- section 2f8e10c5-551f-438a-8591-9a433c806a55: first=Candidate(0.30) second=Candidate(0.80) flipped=False agreed=Candidate
+- section e7fdad50-c29e-4d37-bbf3-c7650cb7ab5e: first=Candidate(1.00) second=Reference(0.50) flipped=True agreed=
+- section 4d49def5-9fe7-428a-8db3-6ea7bccd34d1: first=Candidate(0.50) second=Reference(0.90) flipped=True agreed=
+- section 3938a87a-0343-4dcf-ab53-398abc7960ea: first=Candidate(0.50) second=Reference(0.09) flipped=True agreed=
+- section 38d31b8c-1573-47c6-8e3c-1670dac52fa6: first=Reference(0.90) second=Candidate(0.00) flipped=True agreed=
+- section 38b76d64-3b46-46e9-89f5-8e066179a749: first=Candidate(0.80) second=Reference(0.10) flipped=True agreed=
+- section 7a89e9e0-acd2-4bbf-b03d-69374b12bc96: first=Reference(0.50) second=Candidate(0.50) flipped=True agreed=
+- section 1e4d4c93-f35a-4105-833e-7504538211df: first=Candidate(0.90) second=Reference(0.00) flipped=True agreed=
+- section 67fccd99-8d91-40f2-bf57-8a88e23f19f8: first=Reference(0.20) second=Reference(0.50) flipped=False agreed=Reference
+- section bbc74ab6-7c59-46f8-b053-bbb4374d6e31: first=Reference(1.00) second=Reference(1.00) flipped=False agreed=Reference
 
 ## Cost/time evidence (acceptance criterion: iteration cost bounded and logged)
 
-Real LLM call log entries for this song: 8. All calls were against local Ollama (`qwen2.5-coder:7b-instruct`, `llava:7b`), so dollar cost is $0 -- see test duration (Fact Timeout budget 1,700s).
+Real LLM call log entries for this song: 6. All calls were against local Ollama (`qwen2.5-coder:7b-instruct`, `llava:7b`), so dollar cost is $0 -- see test duration (Fact Timeout budget 1,700s).
 
 ## Acceptance criteria verdict
 
 1. Loop ran 3+ iterations on a real song, full battery re-run each time: PASS.
-2. Convergence diff catches a real regression: PASS (real).
+2. Convergence diff catches a real regression: PARTIAL -- not observed in this specific real run; mechanism proven synthetically elsewhere.
 3. Visual critique catches a defect numeric alone misses: PASS (mechanism exercised for real; see VisualCriticTests for the controlled red-snap proof).
-4. Iteration cost bounded/logged: PASS (8 real call-log entries, $0 local-model cost).
+4. Iteration cost bounded/logged: PASS (6 real call-log entries, $0 local-model cost).

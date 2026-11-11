@@ -188,6 +188,92 @@ public sealed class ShowBibleValidatorTests
     }
 
     [Fact]
+    public async Task Validate_RepeatingKindWithTooFewEligibleLooks_FlagsLookDiversityViolation()
+    {
+        // Build-plan Phase 24 §2a: a Kind with 5 real occurrences needs at least ceil(5/2)=3 distinct
+        // eligible Looks; restricting every Look's AllowedSectionKinds away from Chorus except one leaves
+        // only 1 eligible, which must be a hard validation failure.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var restrictedLooks = content.Looks.Looks
+            .Select((look, i) => i == 0 ? look with { AllowedSectionKinds = [SectionKind.Chorus] } : look with { AllowedSectionKinds = [SectionKind.Verse] })
+            .ToList();
+        var restricted = content with { Looks = new Choreography.LookLibrary(restrictedLooks) };
+        var sectionKindCounts = new Dictionary<SectionKind, int> { [SectionKind.Chorus] = 5 };
+
+        var violations = ShowBibleValidator.Validate(restricted, layout, vocabulary, recipes, sectionKindOccurrenceCounts: sectionKindCounts);
+
+        Assert.Contains(violations, v => v.Rule == "look-diversity-per-kind");
+    }
+
+    [Fact]
+    public async Task Validate_RepeatingKindWithEnoughEligibleLooks_HasNoDiversityViolation()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid(); // every Look left unrestricted (null AllowedSectionKinds)
+        var sectionKindCounts = new Dictionary<SectionKind, int> { [SectionKind.Chorus] = 5 };
+
+        var violations = ShowBibleValidator.Validate(content, layout, vocabulary, recipes, sectionKindOccurrenceCounts: sectionKindCounts);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "look-diversity-per-kind");
+    }
+
+    [Fact]
+    public async Task Validate_KindWithFewerThanThreeOccurrences_IsExemptFromDiversityFloor()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var restrictedLooks = content.Looks.Looks
+            .Select(look => look with { AllowedSectionKinds = [SectionKind.Verse] })
+            .ToList();
+        var restricted = content with { Looks = new Choreography.LookLibrary(restrictedLooks) };
+        var sectionKindCounts = new Dictionary<SectionKind, int> { [SectionKind.Bridge] = 2 }; // N=2, exempt
+
+        var violations = ShowBibleValidator.Validate(restricted, layout, vocabulary, recipes, sectionKindOccurrenceCounts: sectionKindCounts);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "look-diversity-per-kind");
+    }
+
+    [Fact]
+    public async Task Validate_WithNoSectionKindCountsSupplied_NeverFlagsTheDiversityRule()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var restrictedLooks = content.Looks.Looks
+            .Select(look => look with { AllowedSectionKinds = [SectionKind.Verse] })
+            .ToList();
+        var restricted = content with { Looks = new Choreography.LookLibrary(restrictedLooks) };
+
+        var violations = ShowBibleValidator.Validate(restricted, layout, vocabulary, recipes); // sectionKindOccurrenceCounts: null
+
+        Assert.DoesNotContain(violations, v => v.Rule == "look-diversity-per-kind");
+    }
+
+    [Fact]
     public async Task Validate_PaletteCountOutsideRange_FlagsViolation()
     {
         if (!RealXLightsFixture.IsAvailable)

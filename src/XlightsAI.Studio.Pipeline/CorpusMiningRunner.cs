@@ -194,6 +194,7 @@ public static class CorpusMiningRunner
         var library = PatternLibraryBuilder.Build(analyses);
         var exemplarIndex = ExemplarIndexBuilder.Build(analyses);
         var craftRules = CraftRuleInducer.InduceAndVerify(analyses, favoriteSongWeightMultiplier: favoriteSongWeightMultiplier);
+        var minedTemplates = MultiLayerStackMiner.Build(analyses);
 
         if (descriptionClient is not null && exemplarIndex.Entries.Count > 0)
         {
@@ -206,9 +207,10 @@ public static class CorpusMiningRunner
         var libraryPath = await new JsonPatternLibraryStore(knowledgeDirectory).SaveAsync(library, ct).ConfigureAwait(false);
         var indexPath = await new JsonExemplarIndexStore(knowledgeDirectory).SaveAsync(exemplarIndex, ct).ConfigureAwait(false);
         var rulesPath = await new JsonCraftRulesStore(knowledgeDirectory).SaveAsync(craftRules, ct).ConfigureAwait(false);
-        Report($"Wrote '{libraryPath}', '{indexPath}', '{rulesPath}'.");
+        var minedTemplatesPath = await new JsonMultiLayerTemplateCatalogStore(knowledgeDirectory).SaveAsync(minedTemplates, ct).ConfigureAwait(false);
+        Report($"Wrote '{libraryPath}', '{indexPath}', '{rulesPath}', '{minedTemplatesPath}'.");
 
-        return new CorpusMiningResult(manifest, analyses, failures, library, exemplarIndex, craftRules, libraryPath, indexPath, rulesPath);
+        return new CorpusMiningResult(manifest, analyses, failures, library, exemplarIndex, craftRules, minedTemplates, libraryPath, indexPath, rulesPath, minedTemplatesPath);
     }
 }
 
@@ -220,6 +222,8 @@ public sealed record CorpusMiningResult(
     PatternLibrary PatternLibrary,
     ExemplarIndex ExemplarIndex,
     CraftRules CraftRules,
+    Knowledge.MultiLayerTemplateCatalog MinedTemplates,
     string PatternLibraryPath,
     string ExemplarIndexPath,
-    string CraftRulesPath);
+    string CraftRulesPath,
+    string MinedTemplatesPath);

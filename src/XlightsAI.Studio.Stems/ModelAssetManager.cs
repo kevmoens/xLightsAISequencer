@@ -19,13 +19,25 @@ public sealed class ModelAssetManager : IModelAssetManager
 {
     private readonly string _cacheDirectory;
     private readonly IModelAssetDownloader _downloader;
+    private readonly IReadOnlyList<string> _bundledSearchDirectories;
 
-    public ModelAssetManager(string cacheDirectory, IModelAssetDownloader downloader)
+    /// <param name="bundledSearchDirectories">
+    /// User-requested real feature (2026-11-08): "all models should ship with our app" -- additional
+    /// directories (e.g. a folder installed alongside the app executable) checked, in order, for an
+    /// already-verified copy of an asset BEFORE <paramref name="cacheDirectory"/> is consulted at all.
+    /// This is exactly this type's own pre-existing "offline pre-provisioned asset" design goal (see this
+    /// class's own doc comment), generalized from "pre-provisioned inside the cache directory itself" to
+    /// "pre-provisioned anywhere the app ships a copy" -- a hit here never touches the network and never
+    /// requires <c>userConsent</c>, the same as a hit in <paramref name="cacheDirectory"/>. Defaults to
+    /// empty so every pre-existing caller/test keeps compiling and behaving identically.
+    /// </param>
+    public ModelAssetManager(string cacheDirectory, IModelAssetDownloader downloader, IReadOnlyList<string>? bundledSearchDirectories = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(cacheDirectory);
         ArgumentNullException.ThrowIfNull(downloader);
         _cacheDirectory = cacheDirectory;
         _downloader = downloader;
+        _bundledSearchDirectories = bundledSearchDirectories ?? [];
     }
 
     /// <summary>
@@ -33,19 +45,40 @@ public sealed class ModelAssetManager : IModelAssetManager
     /// fragment, so two different pinned versions (or a corrected hash for the same version) never
     /// collide on disk.
     /// </summary>
-    public string GetVerifiedPath(ModelAsset asset)
+    public string GetVerifiedPath(ModelAsset asset) => GetVerifiedPath(asset, _cacheDirectory);
+
+    private static string GetVerifiedPath(ModelAsset asset, string directory)
     {
         ModelAssetValidator.Validate(asset);
 
         var safeId = new string(asset.Id.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
         var safeVersion = new string(asset.Version.Select(c => char.IsLetterOrDigit(c) ? c : '_').ToArray());
-        return Path.Combine(_cacheDirectory, $"{safeId}-{safeVersion}-{asset.Sha256[..12]}.modelasset");
+        return Path.Combine(directory, $"{safeId}-{safeVersion}-{asset.Sha256[..12]}.modelasset");
     }
 
     public async Task<string> EnsureVerifiedAsync(ModelAsset asset, bool userConsent, CancellationToken ct)
     {
         ModelAssetValidator.Validate(asset);
         ct.ThrowIfCancellationRequested();
+
+        foreach (var bundledDirectory in _bundledSearchDirectories)
+        {
+            var bundledPath = GetVerifiedPath(asset, bundledDirectory);
+            if (!File.Exists(bundledPath))
+            {
+                continue;
+            }
+
+            var bundledSha256 = await ComputeSha256Async(bundledPath, ct).ConfigureAwait(false);
+            if (string.Equals(bundledSha256, asset.Sha256, StringComparison.OrdinalIgnoreCase))
+            {
+                return bundledPath;
+            }
+
+            // A bundled file that fails to hash-verify is never trusted (same "tampered models rejected"
+            // discipline as the cache-directory check below) -- just not treated as a hit; fall through to
+            // the next bundled directory, then to the cache directory/download path.
+        }
 
         Directory.CreateDirectory(_cacheDirectory);
         var finalPath = GetVerifiedPath(asset);

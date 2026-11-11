@@ -28,6 +28,15 @@ public static class TimescaleResolver
         ["section"] = "Sections",
         ["sections"] = "Sections",
         ["percussion"] = "Percussion",
+
+        // User follow-up (2026-11-10): same free-form-word normalization discipline as every alias
+        // above, for the new real-hit-reactive tracks (TimingTrackEmitter.Transients/VocalNotes).
+        ["transient"] = "Transients",
+        ["transients"] = "Transients",
+        ["hit"] = "Transients",
+        ["hits"] = "Transients",
+        ["vocalnote"] = "VocalNotes",
+        ["vocalnotes"] = "VocalNotes",
     };
 
     /// <summary>

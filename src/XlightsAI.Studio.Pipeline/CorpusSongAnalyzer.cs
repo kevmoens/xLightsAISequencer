@@ -121,7 +121,19 @@ public sealed class CorpusSongAnalyzer
         var vocalActivity = await new VocalActivityAnalyzer(_decoder, new JsonStemActivityResultStore(Dir("vocal-activity")))
             .AnalyzeAsync(vocalActivityManifest, ct).ConfigureAwait(false);
 
-        return new CorpusSongAnalysis(entry, beatGrid, fingerprints, labels, phrases, aligned, bandEnergy, vocalActivity);
+        // Build-plan Phase 19 §2b: real, measured musical key changes over the same chroma fingerprints
+        // already computed above for BarFingerprintBuilder's own input -- no new analysis, just capturing
+        // a signal this analyzer always had the inputs for but never kept. "melody" (full-mix pitch
+        // tracking, see class doc comment) is likewise already computed above for the same fingerprint
+        // step and now also kept on the result instead of being discarded.
+        var keyChanges = KeyDetector.DetectKeyChanges(fingerprints);
+
+        // Build-plan Phase 23 §2a/§2b: the same pure post-filter over already-computed onsets/band-energy
+        // real generation runs (AiChoreographyWholeSongGenerator) -- no new DSP, just capturing a signal
+        // this analyzer already has the inputs for.
+        var transientHits = TransientHitDetector.Detect(onsets, bandEnergy);
+
+        return new CorpusSongAnalysis(entry, beatGrid, fingerprints, labels, phrases, aligned, bandEnergy, vocalActivity, keyChanges, melody, transientHits);
     }
 
     private string Dir(string name) => Path.Combine(_cacheRootDirectory, name);

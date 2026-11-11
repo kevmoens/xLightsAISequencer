@@ -38,6 +38,8 @@ public static class SectionScriptPromptBuilder
         sb.AppendLine($"Palette discipline: {preset.PaletteDiscipline.MinActiveSlots}-{preset.PaletteDiscipline.MaxActiveSlots} active slots. Density target: {preset.Density.MinChangeRatePerSecond:0.##}-{preset.Density.MaxChangeRatePerSecond:0.##} changes/second.");
         sb.AppendLine();
 
+        AppendContrastDrivenEmphasisGuidance(sb);
+
         sb.AppendLine("## Show Bible Look library");
         sb.AppendLine("Pick LookId from exactly these (id: intent, energyCeiling, motion, subject, paletteRef, allowed section kinds, variations):");
         foreach (var look in bible.Looks.Looks)
@@ -47,7 +49,9 @@ public static class SectionScriptPromptBuilder
             sb.AppendLine($"- {look.Id}: \"{look.Intent}\" | ceiling={look.EnergyCeiling:0.00} | motion={look.Motion} | subject={look.Subject} | palette={look.PaletteRef} | sections={allowed} | variations={variations}");
             foreach (var layer in look.Layers.OrderBy(l => l.Z))
             {
-                sb.AppendLine($"    layer z={layer.Z} role={layer.Role} effect={layer.Effect} props={layer.Props}");
+                var effect = DirectorPromptBuilder.EnrichEffectName(layer.Effect, knowledge.EffectVisualCharacters);
+                var annotationSuffix = string.IsNullOrWhiteSpace(layer.Annotation) ? string.Empty : $" annotation=\"{layer.Annotation}\"";
+                sb.AppendLine($"    layer z={layer.Z} role={layer.Role} effect={effect} props={layer.Props}{annotationSuffix}");
             }
         }
 
@@ -68,6 +72,10 @@ public static class SectionScriptPromptBuilder
             sb.AppendLine("When more than one Look would serve a section equally well, favor one whose own effects are not already the heaviest-used above -- a Choreographer that keeps reaching for the same one or two heavily-used effects across many sections reads as monotone over a whole song, even though each individual pick looked reasonable on its own.");
         }
 
+        sb.AppendLine();
+        sb.AppendLine("## Layer annotations (optional, grounded -- build-plan Phase 18 §7)");
+        sb.AppendLine("Each layer line above may already show an \"annotation=\" -- the Director's own grounded note on what that layer is meant to visually express. When you rebind a layer to a different prop/group via propBindings, that layer's original annotation no longer necessarily applies to the new target -- you MAY add an \"annotation\" field to that propBindings entry to state what the REBOUND layer now expresses instead; omitting it leaves the Look's own original annotation (if any) as-is.");
+        sb.AppendLine("Same grounding rule as the Director's own annotations, judged against each layer's own enriched \"effect=\" text above: write a specific visual claim (shape/motion/direction) only for an effect shown with a real AI-observed description (no \"(not visually exercised...)\" qualifier) -- never for one marked documented-behavior-only or shown with no description at all. When in doubt, omit the annotation entirely rather than guess.");
         sb.AppendLine();
         sb.AppendLine("## Palettes");
         foreach (var palette in bible.Palettes)
@@ -134,10 +142,27 @@ public static class SectionScriptPromptBuilder
     /// method never has to re-derive it. <see langword="null"/>/empty for the pre-existing default (no
     /// custom prompt, or none of its cues land in this section).
     /// </param>
+    /// <param name="salientVocalNotes">
+    /// User-requested real investigation (2026-11-08): "is there processing to split out singing from the
+    /// rest of the song and notes?" -- yes, and until now that real, already-extracted vocal-note data
+    /// never reached this prompt at all, only a coarse contour summary did. This section's own loudest
+    /// sung-note onsets (<see cref="VocalNoteEmphasisBriefBuilder"/>, already capped/filtered by the
+    /// caller), or <see langword="null"/>/empty when this section has no melody data or no sounding notes
+    /// -- rendered as nothing rather than an invented note list.
+    /// </param>
+    /// <param name="transientHits">
+    /// Build-plan Phase 22 §2b: this section's own real, measured loud percussive transients (<see cref="XlightsAI.Studio.Rhythm.TransientHit"/>)
+    /// whose own time falls within this section's real time window -- the third of the three "repetition
+    /// is the fact that emphasis-worthy moments recur constantly" signal types this phase's own contrast
+    /// guidance names by name (transient hits, vocal-note onsets, timed cues), alongside the vocal-note
+    /// emphasis line already below. <see langword="null"/>/empty when this song has none, or none land in
+    /// this section -- rendered as nothing, never an invented hit.
+    /// </param>
     public static string BuildVolatileSuffix(
         SectionLabelCandidate section, SectionMusicContext context, LayoutSummary layout, int occurrenceIndex = 1, int totalOccurrences = 1,
         SectionMelodicBrief? melodicBrief = null, SectionMotifLink? motifLink = null, IReadOnlyList<PhraseCandidate>? phrases = null,
-        string? customPrompt = null, IReadOnlyList<TimedCue>? timedCues = null)
+        string? customPrompt = null, IReadOnlyList<TimedCue>? timedCues = null, IReadOnlyList<XlightsAI.Studio.Melody.NoteEvent>? salientVocalNotes = null,
+        IReadOnlyList<XlightsAI.Studio.Rhythm.TransientHit>? transientHits = null)
     {
         ArgumentNullException.ThrowIfNull(section);
         ArgumentNullException.ThrowIfNull(context);
@@ -166,6 +191,8 @@ public static class SectionScriptPromptBuilder
         sb.AppendLine($"Vocals active for the majority of this section: {context.VocalActive}");
         sb.AppendLine($"Timing tracks available: {string.Join(", ", context.TimingTracksByName.Keys.OrderBy(k => k, StringComparer.Ordinal))}");
         AppendMelodicContourLine(sb, context, melodicBrief);
+        AppendVocalNoteEmphasisLine(sb, salientVocalNotes);
+        AppendTransientHitLine(sb, transientHits);
         AppendMotifLinkedPredecessorLine(sb, context, motifLink);
         AppendPhraseListLines(sb, phrases);
         AppendTimedCueLines(sb, context, timedCues);
@@ -187,10 +214,11 @@ public static class SectionScriptPromptBuilder
         }
 
         sb.AppendLine();
-        sb.AppendLine("Respond with a single JSON object: {\"sectionId\":\"...\",\"lookId\":\"...\",\"variation\":null,\"propBindings\":[{\"layerZ\":1,\"props\":\"...\"}],\"phraseVariations\":null,\"fillerEffects\":[\"On\",\"Bars\",\"SingleStrand\",\"Color Wash\",\"Twinkle\",\"Shockwave\"],\"fillerEffectsByRole\":null}.");
+        sb.AppendLine("Respond with a single JSON object: {\"sectionId\":\"...\",\"lookId\":\"...\",\"variation\":null,\"propBindings\":[{\"layerZ\":1,\"props\":\"...\",\"annotation\":null}],\"phraseVariations\":null,\"fillerEffects\":[\"On\",\"Bars\",\"SingleStrand\",\"Color Wash\",\"Twinkle\",\"Shockwave\"],\"fillerEffectsByRole\":null}.");
         sb.AppendLine("Only choose a lookId whose declared section kinds include this section's Kind (or declares none, meaning unrestricted).");
         sb.AppendLine("Omit propBindings (or leave it an empty array) if the Look's own default props are fine for this section.");
         sb.AppendLine("If you do rebind a layer, \"props\" accepts a real group reference (e.g. \"group:Matrixes\") exactly like the Look's own default -- prefer it over an individual prop name whenever the whole group should carry the same effect, same as the Look library's own convention above.");
+        sb.AppendLine("\"annotation\" on a propBindings entry is optional -- omit it (or set null) unless you are rebinding that layer's props AND have something grounded to say about what the rebound layer now expresses (see \"Layer annotations\" above).");
         sb.AppendLine("Omit phraseVariations (or leave it null/an empty array) unless this section's own phrase list above makes staging worth it (see \"Phrase-scoped sub-section staging\" above) -- when you do declare it, each entry is {\"phraseIndex\":2,\"activeLayerZs\":[1,2],\"propBindings\":[{\"layerZ\":2,\"props\":\"...\"}]}, at most 3 entries, phraseIndex 1-based and matching the numbered phrase list above.");
         sb.AppendLine("fillerEffects is REQUIRED (not optional like propBindings/phraseVariations/fillerEffectsByRole) -- a response missing it, or declaring fewer than 6 distinct names, will be rejected and you will be asked to correct it.");
 
@@ -225,6 +253,25 @@ public static class SectionScriptPromptBuilder
     private static string FormatTimestamp(TimeSpan time) => $"{(int)time.TotalMinutes}:{time.Seconds:00}";
 
     private static string FormatTimestamp(long ticks) => FormatTimestamp(TimeSpan.FromSeconds(ticks / (double)TicksPerSecond));
+
+    /// <summary>
+    /// Build-plan Phase 22 §2b: strong, repeated, worked-example guidance -- confirmed by the user as the
+    /// PRIMARY mechanism for making a beat/note/word actually FEEL like an accent (never a one-line aside,
+    /// and never a fallback to be superseded by the deterministic patch described in build-plan Phase 22
+    /// §2d, which only repairs whatever real instant this guidance still misses). Lives in the STABLE
+    /// prefix (unlike the per-section transient-hit/vocal-note-emphasis/timed-cue lines, which are
+    /// necessarily volatile) because the rule itself never varies per section -- only which real instants
+    /// it applies to does, and those are already named per-section below.
+    /// </summary>
+    private static void AppendContrastDrivenEmphasisGuidance(StringBuilder sb)
+    {
+        sb.AppendLine("## Contrast-driven emphasis -- READ THIS CAREFULLY, it is the single most important rule in this prompt");
+        sb.AppendLine("A transition from one bright/full effect straight into another bright/full effect NEVER reads as an accent to a real viewer, no matter how precisely it lands on the beat. The ONLY thing that reads as a deliberate accent is a real intensity DROP immediately before the emphasis moment (dim, sparse, or literally off), followed by the emphasis itself landing bright/full. This is true for every kind of emphasis this prompt names below -- a real transient hit (a loud percussive beat), a real vocal-note onset (a sung note's own emphasis), and a user's own timed cue -- every single time one occurs, not just the first or most obvious one in a section.");
+        sb.AppendLine("CONCRETE WORKED EXAMPLE: a section's own transient hits land at 0:42 and 0:44. WRONG: the same bright \"Color Wash\" effect plays straight through both hits with no change -- a viewer cannot tell either hit happened. RIGHT: the subject layer holds a Dim- or Off-tier effect (e.g. a sparse \"Twinkle\" at low duty, or literally nothing lit) for roughly the half-beat to one full beat immediately before 0:42, THEN switches to a Bright-tier effect (e.g. \"Color Wash\", \"Bars\", \"On\") exactly at 0:42 -- then repeats the same dim-then-bright pattern again before 0:44, every single time, not just once per section.");
+        sb.AppendLine("This is the PRIMARY mechanism for making emphasis feel like emphasis -- not a nice-to-have on top of correct timing, and not something a later automated pass is relying on you to skip. When choosing a lookId/propBindings for a section that has real emphasis instants named below (transient hits, vocal-note emphasis, or timed cues), actively prefer whichever choice gives you this dim/off-then-bright shape on the prop(s) that actually carry the emphasis, over a choice that merely lands on the right timing with no real brightness change.");
+        sb.AppendLine("This applies to EVERY recurring emphasis moment through the whole song, not just an occasional highlight -- a chorus hook that repeats four times needs this same dim-before-bright treatment on all four repeats, not only the first.");
+        sb.AppendLine();
+    }
 
     /// <summary>Build-plan Phase 10 §3e task 3: one numbered line per this section's own real phrase, e.g. "Phrase 1 of 4: bars [16,20)." -- the exact phraseIndex numbering a declared phraseVariations entry must reference. Appends nothing when <paramref name="phrases"/> is <see langword="null"/>/empty -- never an invented phrase list.</summary>
     private static void AppendPhraseListLines(StringBuilder sb, IReadOnlyList<PhraseCandidate>? phrases)
@@ -273,6 +320,46 @@ public static class SectionScriptPromptBuilder
         var peakClause = totalBeats > 0 ? $", peak at beat {brief.PeakNoteBeatOffset + 1} of {totalBeats}" : string.Empty;
 
         sb.AppendLine($"Melodic contour: {shapeText}, {densityText}{peakClause}.");
+    }
+
+    /// <summary>
+    /// User-requested real investigation (2026-11-08): the real, isolated-vocal-stem, YIN-pitch-tracked
+    /// note onsets this section's own loudest sung moments actually land on -- a categorically more
+    /// reliable emphasis signal than lyric-word transcription (which this same investigation separately
+    /// confirmed hallucinates on sung pop vocals even at the largest tested model size), since it comes
+    /// from a real, deterministic monophonic pitch tracker, not a probabilistic language model. Appends
+    /// nothing when <paramref name="salientVocalNotes"/> is <see langword="null"/>/empty (no melody data,
+    /// or this section has no sounding notes) -- never an invented note list.
+    /// </summary>
+    private static void AppendVocalNoteEmphasisLine(StringBuilder sb, IReadOnlyList<XlightsAI.Studio.Melody.NoteEvent>? salientVocalNotes)
+    {
+        if (salientVocalNotes is not { Count: > 0 } notes)
+        {
+            return;
+        }
+
+        var times = notes.Select(n => FormatTimestamp(n.StartTicks));
+        sb.AppendLine($"Vocal note emphasis (real, measured from the isolated vocal stem's own pitch track -- the loudest {notes.Count} sung-note onset(s) in this section, NOT lyric words): {string.Join(", ", times)}.");
+        sb.AppendLine("Consider landing a quick accent effect (a pop, a brightness hit, a short overlay) at one or more of these exact real moments when this section's own creative intent calls for the lighting to visibly track the vocal -- these are measured onsets, not a guess.");
+    }
+
+    /// <summary>
+    /// Build-plan Phase 22 §2b: the real, measured loud-transient onsets in this section -- the third
+    /// named emphasis-signal type (alongside vocal-note emphasis above and timed cues below), surfaced here
+    /// for the first time so the "dim/off before every real emphasis instant" guidance in the stable prefix
+    /// has a concrete, real time to anchor a worked example against. Appends nothing when <paramref name="transientHits"/>
+    /// is <see langword="null"/>/empty -- never an invented hit.
+    /// </summary>
+    private static void AppendTransientHitLine(StringBuilder sb, IReadOnlyList<XlightsAI.Studio.Rhythm.TransientHit>? transientHits)
+    {
+        if (transientHits is not { Count: > 0 } hits)
+        {
+            return;
+        }
+
+        var times = hits.OrderBy(h => h.TimeTicks).Select(h => FormatTimestamp(h.TimeTicks));
+        sb.AppendLine($"Transient hits (real, measured loud percussive beats -- the strongest emphasis-worthy moments in this section): {string.Join(", ", times)}.");
+        sb.AppendLine("Each one is a real candidate for the \"dim/off immediately before, bright/full exactly on the hit\" contrast pattern described above -- apply it on the prop(s) that already carry this section's own accent/subject layer at that moment, not every prop in the section.");
     }
 
     /// <summary>

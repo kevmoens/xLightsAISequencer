@@ -11,11 +11,17 @@ namespace XlightsAI.Studio.Director;
 /// free-text-intent-matching this design deliberately avoids) -- that text stays exactly where it
 /// already was, in the unfiltered custom-prompt block every section's prompt already receives.
 ///
-/// One line of the prompt is treated as one potential cue source: every timestamp token found on that
-/// line shares that line's own text (with the timestamp tokens themselves stripped out) as its
-/// <see cref="TimedCue.Instruction"/> -- matching the natural way a user writes "do X at these N
-/// moments: t1 t2 t3" on one line/wrapped paragraph, confirmed against the real prompt that motivated
-/// this feature.
+/// One line of the prompt is treated as one potential cue source. Every timestamp on that line shares
+/// the line's own LEADING text (everything before the first timestamp) as a common prefix -- matching
+/// the natural way a user writes "do X at these N moments: t1 t2 t3" on one line/wrapped paragraph,
+/// confirmed against the real prompt that motivated this feature -- but each timestamp ALSO gets its own
+/// TRAILING text, up to the next timestamp on the line (or end of line), appended to that shared prefix.
+/// User-reported real bug (2026-11-08): a compound, sequential line -- "at 0:22 do A, then at 0:24 do
+/// B" -- previously gave every timestamp the ENTIRE undivided line as its instruction, so the section at
+/// 0:24 was told to do A as well as B, and vice versa. Splitting on trailing text fixes that case while
+/// leaving the original shared-prefix motivating example unchanged (there, nothing but whitespace sits
+/// between consecutive bare timestamps, so every cue's trailing text is empty and each ends up with the
+/// identical, shared prefix alone -- exactly the original behavior).
 /// </summary>
 public static class CustomPromptTimedCueParser
 {
@@ -43,22 +49,17 @@ public static class CustomPromptTimedCueParser
 
         foreach (var rawLine in text.Split('\n'))
         {
-            var matches = TimestampRegex.Matches(rawLine);
+            var matches = TimestampRegex.Matches(rawLine).Cast<Match>().ToList();
             if (matches.Count == 0)
             {
                 continue;
             }
 
-            var instruction = Regex.Replace(TimestampRegex.Replace(rawLine, " "), @"\s+", " ").Trim();
-            if (instruction.Length == 0)
-            {
-                // A line that is ONLY timestamps, with no surrounding instruction text, has nothing
-                // actionable to carry -- never fabricate an instruction for it.
-                continue;
-            }
+            var prefix = rawLine[..matches[0].Index];
 
-            foreach (Match match in matches)
+            for (var i = 0; i < matches.Count; i++)
             {
+                var match = matches[i];
                 if (!TryParseTimestamp(match.Groups["start"].Value, out var start))
                 {
                     continue;
@@ -68,6 +69,18 @@ public static class CustomPromptTimedCueParser
                 if (match.Groups["end"].Success && TryParseTimestamp(match.Groups["end"].Value, out var parsedEnd))
                 {
                     end = parsedEnd;
+                }
+
+                var trailingStart = match.Index + match.Length;
+                var trailingEnd = i + 1 < matches.Count ? matches[i + 1].Index : rawLine.Length;
+                var trailing = rawLine[trailingStart..trailingEnd];
+
+                var instruction = Regex.Replace($"{prefix} {trailing}", @"\s+", " ").Trim();
+                if (instruction.Length == 0)
+                {
+                    // Neither the line's shared leading text nor this specific timestamp's own trailing
+                    // text has anything actionable -- never fabricate an instruction for it.
+                    continue;
                 }
 
                 cues.Add(new TimedCue(start, end, instruction, effectiveTolerance));

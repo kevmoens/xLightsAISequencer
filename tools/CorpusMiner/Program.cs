@@ -12,7 +12,10 @@ using XlightsAI.Studio.Projects;
 // CorpusMiningRunner.RunAsync's new per-song timeout).
 //
 // Usage: dotnet run -c Release --project tools/CorpusMiner -- [corpusRoot] [knowledgeDirectory] [perSongTimeoutMinutes] [maxSongConcurrency] [seasonCommits]
-// Defaults: corpusRoot=C:\xLights, knowledgeDirectory=C:\xLights\knowledge, perSongTimeoutMinutes=3,
+// Defaults: corpusRoot=C:\xLights, knowledgeDirectory=C:\xLights\knowledge,
+// perSongTimeoutMinutes=CorpusMiningRunner.DefaultPerSongTimeout (10 -- this comment previously said 3,
+// which does not match that constant and caused a real 2026-11-09 run to time out on every single song
+// under full concurrency; always check the real constant, not this comment, before relying on it),
 // maxSongConcurrency=0 (every available logical processor -- see CorpusMiningRunner.DefaultMaxSongConcurrency)
 //
 // Build-plan Phase 16 §2b: if the Director role is configured under the real app's own
@@ -75,6 +78,11 @@ Console.CancelKeyPress += (_, e) =>
 };
 
 IExemplarDescriptionClient? descriptionClient = null;
+if (Environment.GetEnvironmentVariable("XLAI_SKIP_EXEMPLAR_DESCRIPTIONS") == "1")
+{
+    Log("XLAI_SKIP_EXEMPLAR_DESCRIPTIONS=1 -- skipping exemplar description generation for this run (temporary, Phase 20 verification only).");
+}
+else
 try
 {
     var (client, model) = await roleClientResolver.ResolveRequiredAsync(AiRole.Director, cts.Token);
@@ -161,10 +169,31 @@ foreach (var rule in result.CraftRules.RejectedCandidates)
 }
 
 Log("");
+Log($"---- MultiLayerTemplateCatalog (build-plan Phase 20 §2a/§2b -- mined, additive to the 3 hand-curated seed templates) ----");
+Log($"  Mined templates promoted: {result.MinedTemplates.Templates.Count}");
+foreach (var template in result.MinedTemplates.Templates)
+{
+    Log($"    [{template.Id}] {template.Name} ({template.EnergyBand} energy, {template.Layers.Count} layers)");
+    Log($"      {template.SourceNote}");
+}
+
+Log("");
+Log("---- PatternLibrary density/layering (build-plan Phase 20 §2c -- now wired into DirectorPromptBuilder) ----");
+foreach (var (kind, density) in result.PatternLibrary.DensityBySection.OrderByDescending(kv => kv.Value))
+{
+    Log($"    DensityBySection[{kind}] = {density:0.00} effect-starts/second");
+}
+foreach (var (layers, count) in result.PatternLibrary.LayerCountPerModelDistribution.OrderBy(kv => kv.Key))
+{
+    Log($"    LayerCountPerModelDistribution[{layers}] = {count} real model-occurrence(s)");
+}
+
+Log("");
 Log($"Artifacts written:");
 Log($"  {result.PatternLibraryPath}");
 Log($"  {result.ExemplarIndexPath}");
 Log($"  {result.CraftRulesPath}");
+Log($"  {result.MinedTemplatesPath}");
 Log("=================================================================");
 
 return 0;

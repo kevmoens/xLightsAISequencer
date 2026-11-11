@@ -24,6 +24,15 @@ public sealed record LookTransition(string Type, NoteValue Duration, bool Revers
 /// <param name="Duty">Declared duty-cycle target for this layer in <c>[0,1]</c> -- cross-checked against <see cref="DutyCycleTable"/>'s own per-effect-family correction, not simply trusted.</param>
 /// <param name="Curves">Named parameter-curve bindings (architecture §4's <c>"curves"</c>), keyed by the plain parameter's <c>SettingKey</c>.</param>
 /// <param name="TransitionIn">A declared in-transition, or <see langword="null"/> for a hard cut.</param>
+/// <param name="Annotation">
+/// Build-plan Phase 18 §7 (Phase F): free text naming what this specific layer is meant to visually
+/// express (e.g. <c>"mimics 'I get up' with an upward chase on the Mega Tree"</c>), or <see langword="null"/>
+/// when the Director declared none -- never a guess: the Director is only prompted to write one when the
+/// chosen <see cref="Effect"/>'s own catalog entry (<c>Knowledge.EffectVisualCharacterCatalog</c>) actually
+/// confirms the claimed visual character, so this field is either a grounded statement or absent, never an
+/// invented one. A Choreographer-role rebinding (<c>SectionEventBinding.Annotation</c>) may override this
+/// per section when that section's own propBindings retarget the layer to a different prop.
+/// </param>
 public sealed record LookLayer(
     int Z,
     string Props,
@@ -34,7 +43,8 @@ public sealed record LookLayer(
     string? Timescale,
     double Duty,
     IReadOnlyDictionary<string, LookCurveBinding>? Curves = null,
-    LookTransition? TransitionIn = null)
+    LookTransition? TransitionIn = null,
+    string? Annotation = null)
 {
     public const string RoleSubject = "subject";
     public const string RoleSupport = "support";

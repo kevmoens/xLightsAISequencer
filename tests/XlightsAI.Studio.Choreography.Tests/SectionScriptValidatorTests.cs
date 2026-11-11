@@ -171,6 +171,76 @@ public sealed class SectionScriptValidatorTests
         Assert.Empty(violations);
     }
 
+    /// <summary>
+    /// User-reported real bug (2026-11-08): a real generation crashed with an unrecoverable
+    /// <see cref="ChoreographyCompilationException"/> when the Choreographer declared PhraseVariations for
+    /// a section with no real phrase segmentation at all -- a defect this validator previously had no way
+    /// to catch (deferred to <see cref="SectionScriptCompiler"/>, which only ever throws, never retries).
+    /// Confirms the new <paramref name="phraseCountBySectionId"/> cross-check turns that into an ordinary,
+    /// retry-worthy violation instead.
+    /// </summary>
+    [Fact]
+    public void Validate_PhraseVariationsButNoPhraseSegmentationForSection_ReportsNoPhrasesViolation()
+    {
+        var sectionId = Guid.NewGuid();
+        var script = new SectionScript(sectionId, "golden-hold", PhraseVariations:
+        [
+            new SectionPhraseVariation(PhraseIndex: 1),
+        ], FillerEffects: ValidFillerEffectNames);
+
+        var violations = SectionScriptValidator.Validate(
+            script, new LookLibrary([GoldenHold()]), BuildLayout(), BuildVocabulary(),
+            phraseCountBySectionId: new Dictionary<Guid, int>());
+
+        Assert.Contains(violations, v => v.Rule == "phrase-variation-no-phrases");
+    }
+
+    [Fact]
+    public void Validate_PhraseVariationIndexBeyondRealPhraseCount_ReportsIndexRangeViolation()
+    {
+        var sectionId = Guid.NewGuid();
+        var script = new SectionScript(sectionId, "golden-hold", PhraseVariations:
+        [
+            new SectionPhraseVariation(PhraseIndex: 5),
+        ], FillerEffects: ValidFillerEffectNames);
+
+        var violations = SectionScriptValidator.Validate(
+            script, new LookLibrary([GoldenHold()]), BuildLayout(), BuildVocabulary(),
+            phraseCountBySectionId: new Dictionary<Guid, int> { [sectionId] = 2 });
+
+        Assert.Contains(violations, v => v.Rule == "phrase-variation-index-range");
+    }
+
+    [Fact]
+    public void Validate_PhraseVariationIndexWithinRealPhraseCount_NoViolations()
+    {
+        var sectionId = Guid.NewGuid();
+        var script = new SectionScript(sectionId, "golden-hold", PhraseVariations:
+        [
+            new SectionPhraseVariation(PhraseIndex: 2, ActiveLayerZs: [1, 2, 3]),
+        ], FillerEffects: ValidFillerEffectNames);
+
+        var violations = SectionScriptValidator.Validate(
+            script, new LookLibrary([GoldenHold()]), BuildLayout(), BuildVocabulary(),
+            phraseCountBySectionId: new Dictionary<Guid, int> { [sectionId] = 3 });
+
+        Assert.Empty(violations);
+    }
+
+    /// <summary>The new cross-check is opt-in via a nullable parameter -- a caller that never passes <c>phraseCountBySectionId</c> (every pre-existing caller/test) keeps behaving exactly as before, even for a section with no real phrase data.</summary>
+    [Fact]
+    public void Validate_PhraseVariationsWithNoPhraseCountSupplied_SkipsNewCheck()
+    {
+        var script = new SectionScript(Guid.NewGuid(), "golden-hold", PhraseVariations:
+        [
+            new SectionPhraseVariation(PhraseIndex: 1),
+        ], FillerEffects: ValidFillerEffectNames);
+
+        var violations = SectionScriptValidator.Validate(script, new LookLibrary([GoldenHold()]), BuildLayout(), BuildVocabulary());
+
+        Assert.DoesNotContain(violations, v => v.Rule is "phrase-variation-no-phrases" or "phrase-variation-index-range");
+    }
+
     [Fact]
     public void Validate_TooManyPhraseVariations_ReportsCountViolation()
     {
@@ -182,6 +252,19 @@ public sealed class SectionScriptValidatorTests
         var violations = SectionScriptValidator.Validate(script, new LookLibrary([GoldenHold()]), BuildLayout(), BuildVocabulary());
 
         Assert.Contains(violations, v => v.Rule == "phrase-variation-count");
+    }
+
+    [Fact]
+    public void Validate_NullPhraseVariationEntry_ReportsNullViolation_NeverThrows()
+    {
+        // Real-run finding (2026-11-10, Phase 24 real-run test): a model's JSON response can include a
+        // literal `null` array element inside "PhraseVariations" -- this previously crashed with a raw
+        // NullReferenceException instead of a real, retryable validation error.
+        var script = new SectionScript(Guid.NewGuid(), "golden-hold", PhraseVariations: [null!]);
+
+        var violations = SectionScriptValidator.Validate(script, new LookLibrary([GoldenHold()]), BuildLayout(), BuildVocabulary());
+
+        Assert.Contains(violations, v => v.Rule == "phrase-variation-null");
     }
 
     [Fact]

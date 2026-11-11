@@ -39,7 +39,23 @@ public sealed class WhisperTokenVocabulary
                 continue;
             }
 
-            pieceBytesById[id] = Convert.FromBase64String(parts[0]);
+            // User-requested real investigation (2026-11-08): some model exports (confirmed against the
+            // real sherpa-onnx large-v3 tokens.txt, line 50256) carry a reserved/placeholder entry whose
+            // own "base64" field is not valid base64 at all (a bare "=") -- apparently a boundary/special
+            // marker the export tooling never meant to be decoded as a real text piece. This id is never
+            // looked up by Decode() in practice (every id this type is ever asked to decode is a real
+            // content token, strictly below the model's own EndOfText id, by construction of the decode
+            // loop that calls it) -- so skipping an unparseable entry here, rather than letting the whole
+            // vocabulary load crash, is always safe: either the id is genuinely never referenced, or a
+            // caller that does reference it already has a bigger problem than a missing piece mapping.
+            try
+            {
+                pieceBytesById[id] = Convert.FromBase64String(parts[0]);
+            }
+            catch (FormatException)
+            {
+                continue;
+            }
         }
 
         return new WhisperTokenVocabulary(pieceBytesById);
@@ -73,10 +89,12 @@ public sealed class WhisperTokenVocabulary
 /// Build-plan "richer analysis tools" Phase 6 (2026-11-02): the fixed special-token ids for
 /// <see cref="SherpaOnnxWhisperTinyEnModelAsset"/> specifically (an English-only "tiny.en" Whisper export,
 /// whose own base vocabulary is exactly <see cref="EndOfText"/> tokens wide) -- independently confirmed
-/// against the real model's own decoding behavior (forcing <see cref="NoTimestamps"/> off at the first
-/// decode step reliably produced a <see cref="TimestampBegin"/>-relative token, matching the real audio's
-/// own measured duration; see <see cref="SherpaOnnxWhisperTinyEnModelAsset"/>'s own doc comment for the
-/// full verification). Not applicable to any other Whisper model/vocabulary size.
+/// against the real model's own decoding behavior (see <see cref="SherpaOnnxWhisperTinyEnModelAsset"/>'s
+/// own doc comment for the full verification). <see cref="WhisperOnnxTranscriber"/> forces
+/// <see cref="TimestampBegin"/> directly into the decode prompt as this chunk's own <c>t=0.00</c> anchor
+/// (user-reported real bug, 2026-11-08: merely excluding <see cref="NoTimestamps"/> from the first free
+/// choice was not reliable for every kind of audio -- see that type's own doc comment). Not applicable to
+/// any other Whisper model/vocabulary size.
 /// </summary>
 public static class WhisperSpecialTokens
 {

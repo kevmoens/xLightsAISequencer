@@ -28,11 +28,12 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
     [Fact]
     public async Task NullKnowledgeDirectory_FallsBackToEmptyDefaults()
     {
-        var (craftRules, exemplarIndex) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(null, CancellationToken.None);
+        var (craftRules, exemplarIndex, patternLibrary) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(null, CancellationToken.None);
 
         Assert.Empty(craftRules.Promoted);
         Assert.Empty(craftRules.RejectedCandidates);
         Assert.Empty(exemplarIndex.Entries);
+        Assert.Equal(0, patternLibrary.SongCount);
     }
 
     [Fact]
@@ -44,11 +45,12 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
         // FileNotFoundException in either case, and both must be caught independently.
         Directory.CreateDirectory(_root);
 
-        var (craftRules, exemplarIndex) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(_root, CancellationToken.None);
+        var (craftRules, exemplarIndex, patternLibrary) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(_root, CancellationToken.None);
 
         Assert.Empty(craftRules.Promoted);
         Assert.Empty(craftRules.RejectedCandidates);
         Assert.Empty(exemplarIndex.Entries);
+        Assert.Equal(0, patternLibrary.SongCount);
     }
 
     [Fact]
@@ -56,10 +58,11 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
     {
         var neverCreated = Path.Combine(_root, "never-created");
 
-        var (craftRules, exemplarIndex) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(neverCreated, CancellationToken.None);
+        var (craftRules, exemplarIndex, patternLibrary) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(neverCreated, CancellationToken.None);
 
         Assert.Empty(craftRules.Promoted);
         Assert.Empty(exemplarIndex.Entries);
+        Assert.Equal(0, patternLibrary.SongCount);
     }
 
     [Fact]
@@ -102,11 +105,24 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
             ]);
         await new JsonExemplarIndexStore(_root).SaveAsync(realExemplarIndex, CancellationToken.None);
 
-        var (craftRules, exemplarIndex) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(_root, CancellationToken.None);
+        var realPatternLibrary = new PatternLibrary(
+            GeneratedAtUtc: DateTimeOffset.UtcNow, SongCount: 31, TotalEffectCount: 66568,
+            EffectFrequency: new Dictionary<string, int> { ["On"] = 100 },
+            EffectFrequencyBySection: new Dictionary<SectionKind, IReadOnlyDictionary<string, int>>(),
+            DensityBySection: new Dictionary<SectionKind, double> { [SectionKind.Chorus] = 13.05, [SectionKind.Verse] = 5.19 },
+            LayerCountPerModelDistribution: new Dictionary<int, int> { [1] = 200, [2] = 80 },
+            BlendModeUsage: new Dictionary<string, int>(),
+            PaletteActiveSlotDistribution: new Dictionary<int, int>(),
+            ModeACount: 500, ModeBCount: 300);
+        await new JsonPatternLibraryStore(_root).SaveAsync(realPatternLibrary, CancellationToken.None);
+
+        var (craftRules, exemplarIndex, patternLibrary) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(_root, CancellationToken.None);
 
         Assert.Single(craftRules.Promoted);
         Assert.Equal("rule.test.001", craftRules.Promoted[0].Id);
         Assert.Single(exemplarIndex.Entries);
         Assert.Equal("Test Song", exemplarIndex.Entries[0].Fingerprint.SongTitle);
+        Assert.Equal(31, patternLibrary.SongCount);
+        Assert.Equal(13.05, patternLibrary.DensityBySection[SectionKind.Chorus]);
     }
 }

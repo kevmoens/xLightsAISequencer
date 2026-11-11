@@ -13,6 +13,13 @@
          and compiles one fixture Look per effect/resolution-tier via LookCompiler (XlightsAI.Studio.Choreography). -->
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Choreography\XlightsAI.Studio.Choreography.csproj" />
+    <!-- Build-plan Phase 18 §5 (Phase D): the real AI role-resolution wiring (AiRoleClientResolver,
+         JsonRoleProviderConfigStore) and EffectVisualCharacterizer itself live in
+         XlightsAI.Studio.Director, the same vision-capable client path AiChoreographyWholeSongGenerator's
+         own Quality Pass already uses, never a second client-construction path. CredentialStoreFactory
+         (real-credential resolution) lives in XlightsAI.Studio.AiEdits. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Director\XlightsAI.Studio.Director.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.AiEdits\XlightsAI.Studio.AiEdits.csproj" />
   </ItemGroup>
 
 </Project>

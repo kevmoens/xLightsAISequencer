@@ -8,6 +8,50 @@ namespace XlightsAI.Studio.Choreography.Tests;
 /// </summary>
 public sealed class EffectFixturePlannerTests
 {
+    /// <summary>
+    /// Regression test for a real defect found building Phase 18 §4 (Phase C): both fixture models'
+    /// <see cref="Xlights.DisplayModel.StringType"/> previously defaulted to <c>""</c> instead of
+    /// <c>"RGB Nodes"</c>, so <see cref="Rendering.RenderedFrameProjector"/> silently skipped every one of
+    /// the 112 real fixtures in a full sweep, decoding every frame with zero illuminated points. No real
+    /// xLights install needed -- this only inspects the in-memory <see cref="DisplayGraph"/>.
+    /// </summary>
+    [Fact]
+    public void BuildFixtureLayout_BothModels_DeclareRgbNodesStringType()
+    {
+        var layout = EffectFixturePlanner.BuildFixtureLayout();
+
+        Assert.Equal(2, layout.Models.Count);
+        foreach (var model in layout.Models)
+        {
+            Assert.Equal("RGB Nodes", model.StringType);
+        }
+    }
+
+    /// <summary>
+    /// Regression test for a real defect found investigating why 38/112 real fixtures rendered completely
+    /// dark: several effects' own real metadata (Shape/Kaleidoscope/Circles/Warp/Lines/Morph/Life/Fireworks)
+    /// describe genuinely 2D-plane behaviour, but <see cref="EffectFixtureSyntheticShow"/>'s own High-tier
+    /// model was a 1-row "Single Line" -- verified by direct inspection of its own exported XML. The High
+    /// tier is now a real <see cref="EffectFixturePlanner.HighResolutionMatrixColumns"/>x<see cref="EffectFixturePlanner.HighResolutionMatrixRows"/>
+    /// Matrix so <see cref="Rendering.RenderedFrameProjector"/>'s own Matrix fan-out can place nodes across
+    /// real 2D space; the Low tier intentionally keeps its Single Line shape (a real low-resolution string
+    /// prop legitimately has no height either).
+    /// </summary>
+    [Fact]
+    public void BuildFixtureLayout_HighResolutionModel_IsARealTwoDimensionalMatrix()
+    {
+        var layout = EffectFixturePlanner.BuildFixtureLayout();
+
+        var high = Assert.Single(layout.Models, m => m.XlightsName == EffectFixturePlanner.HighResolutionModel.XlightsName);
+        Assert.Equal(Xlights.ModelCategory.Matrix, high.Category);
+        Assert.Equal(EffectFixturePlanner.HighResolutionMatrixColumns, high.Parm1);
+        Assert.Equal(EffectFixturePlanner.HighResolutionMatrixRows, high.Parm2);
+        Assert.Equal(EffectFixturePlanner.HighResolutionMatrixColumns * EffectFixturePlanner.HighResolutionMatrixRows, high.NodeCount);
+
+        var low = Assert.Single(layout.Models, m => m.XlightsName == EffectFixturePlanner.LowResolutionModel.XlightsName);
+        Assert.Equal(Xlights.ModelCategory.SingleLine, low.Category);
+    }
+
     [Fact]
     public void Build_EveryRealEffect_ProducesLowAndHighTierFixtures()
     {

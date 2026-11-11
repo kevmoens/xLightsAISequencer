@@ -2,7 +2,7 @@ namespace XlightsAI.Studio.Choreography.Tests;
 
 public sealed class TimescaleResolverTests
 {
-    private static readonly string[] RealTrackNames = ["Beats", "Bars", "Phrases", "Sections", "Lyrics_Phrases"];
+    private static readonly string[] RealTrackNames = ["Beats", "Bars", "Phrases", "Sections", "Lyrics_Phrases", "Transients", "VocalNotes"];
 
     [Theory]
     [InlineData("beat", "Beats")]
@@ -13,6 +13,13 @@ public sealed class TimescaleResolverTests
     [InlineData("bars", "Bars")]
     [InlineData("phrase", "Phrases")]
     [InlineData("phrases", "Phrases")]
+    [InlineData("transient", "Transients")]
+    [InlineData("transients", "Transients")]
+    [InlineData("hit", "Transients")]
+    [InlineData("hits", "Transients")]
+    [InlineData("vocalnote", "VocalNotes")]
+    [InlineData("vocalnotes", "VocalNotes")]
+    [InlineData("VOCALNOTES", "VocalNotes")]
     public void Resolve_AiAuthoredFreeFormWord_ResolvesToRealTrackName(string requested, string expected)
     {
         Assert.Equal(expected, TimescaleResolver.Resolve(requested, RealTrackNames));

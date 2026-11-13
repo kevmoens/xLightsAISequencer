@@ -21,6 +21,14 @@ namespace XlightsAI.Studio.Pipeline;
 /// finer, always-populated granularity that a labeled section's own <see cref="SectionKind"/> is still
 /// attached to (<see cref="MajoritySectionKind"/>), so no information from architecture §8b's named
 /// fingerprint shape is lost — only the grouping unit changes.
+///
+/// <b>Build-plan Phase 25 Part D.3, disclosed:</b> this builder indexes <i>every</i> phrase from every
+/// mineable song unconditionally — there is no per-song/per-phrase drop/cap/selection step here today, so
+/// a high-<see cref="ExemplarFingerprint.PeakConcurrentLayerCount"/> window is never under-sampled or
+/// dropped at index-build time (every window, complex or not, already becomes an entry 1:1). The real
+/// place a complex window could otherwise go unseen is <i>retrieval</i>, not indexing — see
+/// <see cref="ExemplarIndex.FindSimilar"/>/<see cref="ExemplarIndex.FindVaried"/>'s own complexity-bias
+/// parameter (Part D.4) for where that bias is actually applied.
 /// </summary>
 public static class ExemplarIndexBuilder
 {
@@ -53,6 +61,11 @@ public static class ExemplarIndexBuilder
                 var percentile = PercentileRank(energyValues, meanEnergy);
                 var sectionKind = MajoritySectionKind(song.Labels, phrase.StartBarIndex, phrase.EndBarIndexExclusive);
 
+                var effects = song.AlignedEffects
+                    .Where(a => a.StartBarIndex >= phrase.StartBarIndex && a.StartBarIndex < phrase.EndBarIndexExclusive)
+                    .OrderBy(a => a.Effect.StartTimeMs)
+                    .ToList();
+
                 var fingerprint = new ExemplarFingerprint(
                     SongTitle: song.Entry.SongTitle,
                     Provenance: song.Entry.Provenance,
@@ -62,12 +75,8 @@ public static class ExemplarIndexBuilder
                     EnergyPercentile: percentile,
                     SectionKind: sectionKind,
                     BandBalance: MeanBandBalance(song.BandEnergy, phrase.StartBarIndex, phrase.EndBarIndexExclusive, bars),
-                    VocalActivityHint: VocalActivityWithinWindow(song.VocalActivity, phrase.StartBarIndex, phrase.EndBarIndexExclusive, bars));
-
-                var effects = song.AlignedEffects
-                    .Where(a => a.StartBarIndex >= phrase.StartBarIndex && a.StartBarIndex < phrase.EndBarIndexExclusive)
-                    .OrderBy(a => a.Effect.StartTimeMs)
-                    .ToList();
+                    VocalActivityHint: VocalActivityWithinWindow(song.VocalActivity, phrase.StartBarIndex, phrase.EndBarIndexExclusive, bars),
+                    PeakConcurrentLayerCount: LayerComplexityAnalyzer.PeakConcurrentLayerCount(effects));
 
                 entries.Add(new ExemplarEntry(fingerprint, effects));
             }

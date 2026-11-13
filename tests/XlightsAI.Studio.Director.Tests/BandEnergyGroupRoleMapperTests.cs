@@ -92,9 +92,8 @@ public sealed class BandEnergyGroupRoleMapperTests
                 new LayoutSummaryEntry("group:Gutter", 200, "low-resolution"),
                 new LayoutSummaryEntry("group:Matrixes", 300, "high-resolution"),
                 new LayoutSummaryEntry("group:MiniTrees", 100, "low-resolution"),
-                new LayoutSummaryEntry("group:Everything", 1000, "high-resolution"),
             ],
-            TopPixelHeavyModels: [new LayoutSummaryEntry("Tree", 900, "high-resolution")]);
+            TopPixelHeavyModels: [new LayoutSummaryEntry("Tree", 600, "high-resolution")]);
 
         var classified = BandEnergyGroupRoleMapper.Classify(layout);
 
@@ -103,7 +102,50 @@ public sealed class BandEnergyGroupRoleMapperTests
         Assert.Contains(classified, c => c.Reference == "group:Matrixes" && c.Role == BandRole.Subject);
         Assert.Contains(classified, c => c.Reference == "Tree" && c.Role == BandRole.Subject);
         Assert.Contains(classified, c => c.Reference == "group:MiniTrees" && c.Role == BandRole.Accent);
-        Assert.DoesNotContain(classified, c => c.Reference == "group:Everything");
+    }
+
+    /// <summary>
+    /// Build-plan Phase 25 Part A: a catch-all group at/above <see cref="BandEnergyGroupRoleMapper.WholeCanvasCoverageThreshold"/>
+    /// coverage is classified <see cref="BandRole.WholeCanvas"/> -- structurally, by coverage ratio, never
+    /// by name -- and the coverage check runs *before* keyword matching, so even a group whose name would
+    /// otherwise match a keyword (e.g. containing "tree") is still WholeCanvas once it covers the whole
+    /// layout.
+    /// </summary>
+    [Fact]
+    public void Classify_ClassifiesHighCoverageCatchAllGroupAsWholeCanvas_RegardlessOfName()
+    {
+        var layout = new LayoutSummary(
+            ModelCount: 2,
+            TotalPixels: 1000,
+            Groups:
+            [
+                new LayoutSummaryEntry("group:Everything", 1000, "high-resolution"),
+                new LayoutSummaryEntry("group:AlmostEverythingTree", 900, "high-resolution"),
+                new LayoutSummaryEntry("group:MiniTrees", 100, "low-resolution"),
+            ],
+            TopPixelHeavyModels: []);
+
+        var classified = BandEnergyGroupRoleMapper.Classify(layout);
+
+        Assert.Contains(classified, c => c.Reference == "group:Everything" && c.Role == BandRole.WholeCanvas);
+        // 900/1000 = 90% -- at the threshold, and its name would otherwise match the Subject "tree" keyword.
+        Assert.Contains(classified, c => c.Reference == "group:AlmostEverythingTree" && c.Role == BandRole.WholeCanvas);
+        Assert.Contains(classified, c => c.Reference == "group:MiniTrees" && c.Role == BandRole.Accent);
+    }
+
+    /// <summary>A big-but-not-whole-layout group (a large megatree well under the threshold) must still classify by name, not false-positive as WholeCanvas.</summary>
+    [Fact]
+    public void Classify_DoesNotTreatAMerelyLargeGroupAsWholeCanvas()
+    {
+        var layout = new LayoutSummary(
+            ModelCount: 2,
+            TotalPixels: 1000,
+            Groups: [new LayoutSummaryEntry("group:MegaTree", 700, "high-resolution")],
+            TopPixelHeavyModels: []);
+
+        var classified = BandEnergyGroupRoleMapper.Classify(layout);
+
+        Assert.Contains(classified, c => c.Reference == "group:MegaTree" && c.Role == BandRole.Subject);
     }
 
     [Fact]

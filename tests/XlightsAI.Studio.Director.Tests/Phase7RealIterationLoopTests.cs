@@ -358,19 +358,31 @@ public sealed class Phase7RealIterationLoopTests : IDisposable
         {
             var subject = subjects[i % subjects.Length];
             var secondary = subjects[(i + 1) % subjects.Length];
+            var energyCeiling = 0.15 + (0.08 * (i % 10));
+            var layers = new List<LookLayer>
+            {
+                new(1, secondary, "Twinkle", LookLayer.RoleSecondary, new Dictionary<string, string>(), "Normal", "Bars", 0.3),
+                new(2, subject, "On", LookLayer.RoleSubject, new Dictionary<string, string>(), "Normal", "Bars", 0.9),
+            };
+
+            // ShowBibleValidator.PeakLookEnergyCeilingThreshold/MinPeakLookLayers: a Chorus/Solo-tier
+            // peak Look (EnergyCeiling >= 0.75) must carry 3+ layers -- this fixture's own energy ramp
+            // crosses that threshold at i=8/9, so it needs a real third layer there too.
+            if (energyCeiling >= ShowBibleValidator.PeakLookEnergyCeilingThreshold)
+            {
+                var tertiary = subjects[(i + 2) % subjects.Length];
+                layers.Add(new LookLayer(0, tertiary, "Color Wash", LookLayer.RoleSupport, new Dictionary<string, string>(), "Additive", "Bars", 0.5));
+            }
+
             looks.Add(new Look(
                 Id: $"look-{i}",
                 Name: $"Look {i}",
                 Intent: $"Real-track Phase 7 harness Look {i}: deliver a clearly {(i % 2 == 0 ? "warm, restrained" : "high-energy, saturated")} moment.",
-                EnergyCeiling: 0.15 + (0.08 * (i % 10)),
+                EnergyCeiling: energyCeiling,
                 Motion: i % 3 == 0 ? "hold" : "chase",
                 PaletteRef: palettes[i % palettes.Count].Id,
                 Subject: subject,
-                Layers:
-                [
-                    new LookLayer(1, secondary, "Twinkle", LookLayer.RoleSecondary, new Dictionary<string, string>(), "Normal", "Bars", 0.3),
-                    new LookLayer(2, subject, "On", LookLayer.RoleSubject, new Dictionary<string, string>(), "Normal", "Bars", 0.9),
-                ]));
+                Layers: layers));
         }
 
         var lookIds = looks.Select(l => l.Id).ToList();

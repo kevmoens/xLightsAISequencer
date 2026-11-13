@@ -43,14 +43,22 @@
               <ItemsControl ItemsSource="{Binding Entries}">
                 <ItemsControl.ItemTemplate>
                   <DataTemplate x:DataType="vm:ExemplarLibraryEntryViewModel">
-                    <Grid ColumnDefinitions="Auto,100,90,90,*" Margin="0,2">
+                    <Grid ColumnDefinitions="Auto,100,90,90,80,90,*" Margin="0,2">
                       <CheckBox Grid.Column="0" IsChecked="{Binding IsEnabled}" />
                       <TextBlock Grid.Column="1" Classes="detail" Text="{Binding BarRangeDisplay}" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="2" Classes="detail" Text="{Binding SectionKind}" VerticalAlignment="Center" />
                       <TextBlock Grid.Column="3" Classes="detail" VerticalAlignment="Center">
                         <Run Text="{Binding TempoBpm, StringFormat={}{0:F0} bpm}" />
                       </TextBlock>
-                      <TextBlock Grid.Column="4" Classes="hint" Text="{Binding Description}" TextWrapping="Wrap" VerticalAlignment="Center" />
+                      <TextBlock Grid.Column="4" Classes="detail" VerticalAlignment="Center">
+                        <Run Text="{Binding EffectCount}" />
+                        <Run Text=" fx" />
+                      </TextBlock>
+                      <TextBlock Grid.Column="5" Classes="detail" VerticalAlignment="Center" IsVisible="{Binding IsLayeredComplexity}">
+                        <Run Text="{Binding PeakConcurrentLayerCount}" />
+                        <Run Text=" layers" />
+                      </TextBlock>
+                      <TextBlock Grid.Column="6" Classes="hint" Text="{Binding Description}" TextWrapping="Wrap" VerticalAlignment="Center" />
                     </Grid>
                   </DataTemplate>
                 </ItemsControl.ItemTemplate>

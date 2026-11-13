@@ -23,15 +23,29 @@ public static class ShowBibleContentFixture
         {
             var paletteRef = palettes[i % palettes.Count].Id;
             var subject = RealGroupRefs[i % RealGroupRefs.Length];
+            var energyCeiling = 0.1 + (0.08 * (i % 10));
+            var layers = new List<LookLayer> { new(1, subject, "On", LookLayer.RoleSubject, new Dictionary<string, string>(), "Normal", "Bars", 0.9) };
+
+            // ShowBibleValidator.PeakLookEnergyCeilingThreshold/MinPeakLookLayers: a Chorus/Solo-tier
+            // peak Look (EnergyCeiling >= 0.75) must carry 3+ layers -- add two more real layers whenever
+            // this fixture's own energy ramp reaches that tier, so BuildValid stays genuinely valid.
+            if (energyCeiling >= ShowBibleValidator.PeakLookEnergyCeilingThreshold)
+            {
+                var secondary = RealGroupRefs[(i + 1) % RealGroupRefs.Length];
+                var tertiary = RealGroupRefs[(i + 2) % RealGroupRefs.Length];
+                layers.Add(new LookLayer(2, secondary, "Twinkle", LookLayer.RoleSecondary, new Dictionary<string, string>(), "Normal", "Bars", 0.3));
+                layers.Add(new LookLayer(0, tertiary, "Color Wash", LookLayer.RoleSupport, new Dictionary<string, string>(), "Additive", "Bars", 0.5));
+            }
+
             looks.Add(new Look(
                 Id: $"look-{i}",
                 Name: $"Look {i}",
                 Intent: $"Synthetic test look {i}.",
-                EnergyCeiling: 0.1 + (0.08 * (i % 10)),
+                EnergyCeiling: energyCeiling,
                 Motion: i % 3 == 0 ? "hold" : "chase",
                 PaletteRef: paletteRef,
                 Subject: subject,
-                Layers: [new LookLayer(1, subject, "On", LookLayer.RoleSubject, new Dictionary<string, string>(), "Normal", "Bars", 0.9)]));
+                Layers: layers));
         }
 
         var lookIds = looks.Select(l => l.Id).ToList();

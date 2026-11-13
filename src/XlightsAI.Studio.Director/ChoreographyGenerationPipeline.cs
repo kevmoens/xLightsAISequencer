@@ -352,8 +352,19 @@ public sealed class ChoreographyGenerationPipeline
             prompt, songId, settings.Layout, settings.Vocabulary, settings.RecipeCatalog, _maxOutputTokens, ct,
             _knowledge.TemplatesOrEmpty, sectionKindOccurrenceCounts).ConfigureAwait(false);
 
-        return report.Bible ?? throw new InvalidOperationException(
-            $"Show Bible generation exhausted {report.AttemptCount} attempt(s) without validating: {string.Join("; ", report.FinalViolations.Select(v => v.Message))}");
+        if (report.Bible is not null)
+        {
+            return report.Bible;
+        }
+
+        // Build-plan Phase 26 bugfix: AttemptCount 0 means ShowBibleGenerator rejected this song/corpus
+        // combination before ever calling the LLM (a structural exemplar-retrieval requirement that no
+        // model output could satisfy) -- a distinct message from "exhausted N attempts", since no attempt
+        // was ever spent.
+        var violationText = string.Join("; ", report.FinalViolations.Select(v => v.Message));
+        throw new InvalidOperationException(report.AttemptCount == 0
+            ? $"Show Bible generation failed before any attempt was made -- this song/corpus combination cannot satisfy a structural retrieval requirement: {violationText}"
+            : $"Show Bible generation exhausted {report.AttemptCount} attempt(s) without validating: {violationText}");
     }
 
     /// <summary>

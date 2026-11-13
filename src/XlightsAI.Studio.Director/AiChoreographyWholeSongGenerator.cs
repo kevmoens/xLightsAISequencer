@@ -191,14 +191,16 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         // Build-plan Phase 10 §6b task 3: the shippable multi-layer Tree/Matrix template catalog (manual
         // first pass over real §6a research) IS wired in here -- loaded once from this assembly's own
         // embedded seed data, no offline step required.
-        var (craftRules, exemplarIndex, patternLibrary) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
+        var (craftRules, exemplarIndex, patternLibrary, wholeCanvasCoOccurrence, layerComplexity) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
         var knowledge = new DirectorKnowledgeContext(
             catalogs.Vocabulary,
             craftRules,
             exemplarIndex,
             MultiLayerTemplateCatalogLoader.Load(_knowledgeDirectory),
             EffectVisualCharacterCatalogLoader.Load(),
-            patternLibrary);
+            patternLibrary,
+            wholeCanvasCoOccurrence,
+            layerComplexity);
 
         var registry = new EffectRecipeRegistry(catalogs.Recipes);
 
@@ -304,8 +306,8 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
                 $"No Show Bible is persisted for generation run '{generationRunId:N}' -- generate the whole-song plan first.");
         var existingScripts = await ChoreographyGenerationPipeline.LoadPersistedScriptsAsync(scriptsDir, generationRunId, ct).ConfigureAwait(false);
 
-        var (craftRules, exemplarIndex, patternLibrary) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
-        var knowledge = new DirectorKnowledgeContext(catalogs.Vocabulary, craftRules, exemplarIndex, MultiLayerTemplateCatalogLoader.Load(_knowledgeDirectory), EffectVisualCharacterCatalogLoader.Load(), patternLibrary);
+        var (craftRules, exemplarIndex, patternLibrary, wholeCanvasCoOccurrence, layerComplexity) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
+        var knowledge = new DirectorKnowledgeContext(catalogs.Vocabulary, craftRules, exemplarIndex, MultiLayerTemplateCatalogLoader.Load(_knowledgeDirectory), EffectVisualCharacterCatalogLoader.Load(), patternLibrary, wholeCanvasCoOccurrence, layerComplexity);
 
         var pipeline = new ChoreographyGenerationPipeline(
             knowledge, _style, directorClient: null, directorModelName: null, choreographerClient, choreographerModel, _maxOutputTokens,
@@ -363,7 +365,7 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         }
     }
 
-    public static async Task<(CraftRules CraftRules, ExemplarIndex ExemplarIndex, PatternLibrary PatternLibrary)> LoadCorpusKnowledgeAsync(string? knowledgeDirectory, CancellationToken ct)
+    public static async Task<(CraftRules CraftRules, ExemplarIndex ExemplarIndex, PatternLibrary PatternLibrary, WholeCanvasCoOccurrenceStats? WholeCanvasCoOccurrence, LayerComplexityStats? LayerComplexity)> LoadCorpusKnowledgeAsync(string? knowledgeDirectory, CancellationToken ct)
     {
         var emptyCraftRules = new CraftRules(DateTimeOffset.UtcNow, MinConfidenceThreshold: 0.7, MinSongCountThreshold: 3, Promoted: [], RejectedCandidates: []);
         var emptyExemplarIndex = new ExemplarIndex(DateTimeOffset.UtcNow, []);
@@ -376,7 +378,7 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
 
         if (knowledgeDirectory is null)
         {
-            return (emptyCraftRules, emptyExemplarIndex, emptyPatternLibrary);
+            return (emptyCraftRules, emptyExemplarIndex, emptyPatternLibrary, null, null);
         }
 
         CraftRules craftRules;
@@ -416,7 +418,28 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
             patternLibrary = emptyPatternLibrary;
         }
 
-        return (craftRules, exemplarIndex, patternLibrary);
+        // Build-plan Phase 25 Part B.2/C §3 bullet 3: the real, measured whole-canvas co-occurrence and
+        // layer-complexity stats a prior CorpusTrainingRunner run (over external, non-exemplar-eligible
+        // sequences) wrote -- both optional (null, never a fabricated empty stats object) whenever that
+        // training pass has simply never been run against this knowledge directory yet, so
+        // AppendWholeCanvasGroupSection/AppendLayerComplexityGuidance's own "no training data yet"
+        // disclosures stay accurate rather than silently claiming zero real samples. One shared load, since
+        // both live on the same persisted CorpusTrainingReport.
+        WholeCanvasCoOccurrenceStats? wholeCanvasCoOccurrence;
+        LayerComplexityStats? layerComplexity;
+        try
+        {
+            var trainingReport = await new JsonCorpusTrainingReportStore(knowledgeDirectory).LoadAsync(ct).ConfigureAwait(false);
+            wholeCanvasCoOccurrence = trainingReport.WholeCanvasCoOccurrence;
+            layerComplexity = trainingReport.LayerComplexity;
+        }
+        catch (FileNotFoundException)
+        {
+            wholeCanvasCoOccurrence = null;
+            layerComplexity = null;
+        }
+
+        return (craftRules, exemplarIndex, patternLibrary, wholeCanvasCoOccurrence, layerComplexity);
     }
 
     /// <summary>

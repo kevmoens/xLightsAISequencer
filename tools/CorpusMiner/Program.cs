@@ -40,6 +40,17 @@ var seasonCommits = args.Length > 4 && !string.IsNullOrWhiteSpace(args[4])
     ? args[4].Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
     : [];
 
+// User feedback (2026-11-12): a real run against this corpus (23 analyzed songs) found zero signatures
+// reaching MultiLayerStackMiner's own default 5-distinct-song promotion floor -- its own single
+// best-repeated real 3+-layer stack (Morph+Morph+Morph) topped out at 3 songs, and nothing else cleared
+// 2. A real designer varies effect choice between songs even when the real underlying "3+ layers at a
+// Chorus peak" shape repeats, so an exact-effect-name-sequence match at a craft-rule-sized 5-song floor
+// is systematically too strict for this mining approach specifically -- never promoting anything is
+// itself the wrong outcome (an empty mined-template catalog teaches the Director nothing a real designer
+// actually does repeat). Optional 6th arg overrides just this one threshold for a specific run without
+// touching MultiLayerStackMiner.DefaultMinSongCount's own production default.
+var minLayerStackSongCount = args.Length > 5 ? int.Parse(args[5]) : MultiLayerStackMiner.DefaultMinSongCount;
+
 var appDataDirectory = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData), "XlightsAI.Studio");
 
 // Build-plan Phase 17 §2a: exclude this app's own prior project directories, same as the Shell UI's
@@ -114,6 +125,18 @@ catch (Exception ex)
 
 stopwatch.Stop();
 
+// Re-mine with the (possibly overridden) threshold against the real analyses this run already paid to
+// produce -- cheap, in-memory, no need to re-run the whole (expensive) per-song analysis pass again just
+// to try a different promotion floor.
+var minedTemplates = minLayerStackSongCount == MultiLayerStackMiner.DefaultMinSongCount
+    ? result.MinedTemplates
+    : MultiLayerStackMiner.Build(result.Analyses, minSongCount: minLayerStackSongCount);
+if (minLayerStackSongCount != MultiLayerStackMiner.DefaultMinSongCount)
+{
+    var overriddenPath = await new JsonMultiLayerTemplateCatalogStore(knowledgeDirectory).SaveAsync(minedTemplates, cts.Token);
+    Log($"Multi-layer stack promotion floor overridden to {minLayerStackSongCount} distinct song(s) (default {MultiLayerStackMiner.DefaultMinSongCount}) -- re-wrote '{overriddenPath}'.");
+}
+
 Log("");
 Log("==================== CORPUS MINING SUMMARY ====================");
 Log($"Wall-clock time: {stopwatch.Elapsed:hh\\:mm\\:ss}");
@@ -170,11 +193,32 @@ foreach (var rule in result.CraftRules.RejectedCandidates)
 
 Log("");
 Log($"---- MultiLayerTemplateCatalog (build-plan Phase 20 §2a/§2b -- mined, additive to the 3 hand-curated seed templates) ----");
-Log($"  Mined templates promoted: {result.MinedTemplates.Templates.Count}");
-foreach (var template in result.MinedTemplates.Templates)
+Log($"  Mined templates promoted: {minedTemplates.Templates.Count}");
+foreach (var template in minedTemplates.Templates)
 {
     Log($"    [{template.Id}] {template.Name} ({template.EnergyBand} energy, {template.Layers.Count} layers)");
     Log($"      {template.SourceNote}");
+}
+
+// User feedback (2026-11-12): the promoted list alone gives no visibility into near-miss stacks (seen
+// in fewer than minLayerStackSongCount distinct songs) or into how many real layers a candidate
+// actually stacked -- the same blind spot CraftRules' own promoted-vs-rejected split already avoids for
+// craft rules. Logs every real candidate signature this run found, promoted or not.
+var allCandidates = XlightsAI.Studio.Pipeline.MultiLayerStackMiner.BuildCandidates(result.Analyses, minSongCount: minLayerStackSongCount);
+Log("");
+Log($"---- MultiLayerStackMiner candidates (all signatures found, promoted or not; promotion needs {minLayerStackSongCount}+ distinct songs) ----");
+Log($"  Total distinct candidate signatures: {allCandidates.Count} ({allCandidates.Count(c => c.Promoted)} promoted, {allCandidates.Count(c => !c.Promoted)} not)");
+foreach (var layerCountGroup in allCandidates.GroupBy(c => c.EffectNames.Count).OrderBy(g => g.Key))
+{
+    Log($"    {layerCountGroup.Key}-layer candidates: {layerCountGroup.Count()} signature(s), {layerCountGroup.Count(c => c.Promoted)} promoted");
+}
+foreach (var candidate in allCandidates.Where(c => !c.Promoted).Take(25))
+{
+    Log($"    NOT PROMOTED [{candidate.Tier}] {string.Join(" + ", candidate.EffectNames)} ({candidate.EffectNames.Count} layers) -- seen in {candidate.SongCount} song(s): {string.Join(", ", candidate.ExampleSongs)}");
+}
+if (allCandidates.Count(c => !c.Promoted) > 25)
+{
+    Log($"    ... and {allCandidates.Count(c => !c.Promoted) - 25} more not-promoted signature(s) omitted for brevity.");
 }
 
 Log("");

@@ -20,41 +20,21 @@ public static class MultiLayerStackMiner
     private static readonly HashSet<SectionKind> HighEnergyKinds = [SectionKind.Chorus, SectionKind.PreChorus, SectionKind.Solo];
     private static readonly HashSet<SectionKind> LowEnergyKinds = [SectionKind.Intro, SectionKind.Outro, SectionKind.Bridge];
 
-    public static MultiLayerTemplateCatalog Build(IReadOnlyList<CorpusSongAnalysis> songs, int minSongCount = DefaultMinSongCount)
+    /// <summary>
+    /// Build-plan Phase 25 Part D.1: <paramref name="minDistinctLayers"/> defaults to
+    /// <see cref="LayerComplexityAnalyzer.DefaultMinDistinctLayers"/> (3, raised from the original 2+), and
+    /// <paramref name="restrictToTreeMatrixModels"/> defaults to <see langword="false"/> -- "any model/group
+    /// with genuine layering is discoverable," not just Tree/Matrix-class props. Pass
+    /// <paramref name="restrictToTreeMatrixModels"/>: <see langword="true"/> to recover the original Phase 20
+    /// scope.
+    /// </summary>
+    public static MultiLayerTemplateCatalog Build(
+        IReadOnlyList<CorpusSongAnalysis> songs,
+        int minSongCount = DefaultMinSongCount,
+        int minDistinctLayers = LayerComplexityAnalyzer.DefaultMinDistinctLayers,
+        bool restrictToTreeMatrixModels = false)
     {
-        ArgumentNullException.ThrowIfNull(songs);
-
-        var mineable = songs.Where(s => s.Entry.Provenance != CorpusProvenanceTag.ExternalReference).ToList();
-        var aggregatesBySignature = new Dictionary<string, StackAggregate>(StringComparer.Ordinal);
-
-        foreach (var song in mineable)
-        {
-            var beatMs = song.BeatGrid.SelectedTempo is { Bpm: > 0 } tempo ? 60_000.0 / tempo.Bpm : (double?)null;
-
-            foreach (var modelGroup in song.AlignedEffects
-                .Where(a => TreeMatrixPropNameConvention.IsTreeOrMatrixName(a.Effect.ModelName))
-                .GroupBy(a => a.Effect.ModelName, StringComparer.Ordinal))
-            {
-                foreach (var occurrence in FindStackOccurrences(modelGroup.ToList(), beatMs))
-                {
-                    var signature = occurrence.Tier + "|" + string.Join(">", occurrence.Layers.Select(l => l.EffectName));
-                    if (!aggregatesBySignature.TryGetValue(signature, out var aggregate))
-                    {
-                        aggregate = new StackAggregate(occurrence.Tier, occurrence.Layers.Select(l => l.EffectName).ToList());
-                        aggregatesBySignature[signature] = aggregate;
-                    }
-
-                    aggregate.SongTitles.Add(song.Entry.SongTitle);
-                    aggregate.CadenceVotes.Add(occurrence.Cadence);
-                    for (var i = 0; i < occurrence.Layers.Count; i++)
-                    {
-                        aggregate.DutyByPosition[i].Add(occurrence.Layers[i].DutyCycle);
-                    }
-                }
-            }
-        }
-
-        var promoted = aggregatesBySignature.Values
+        var promoted = BuildAggregates(songs, minDistinctLayers, restrictToTreeMatrixModels)
             .Where(a => a.SongTitles.Count >= minSongCount)
             .OrderByDescending(a => a.SongTitles.Count)
             .ThenBy(a => a.Tier, StringComparer.Ordinal)
@@ -66,59 +46,80 @@ public static class MultiLayerStackMiner
     }
 
     /// <summary>
-    /// Build-plan Phase 20 §2a: groups one model's own aligned effects into maximal time-connected runs
-    /// (adjacent/overlapping placements merged, same interval-merge technique <see cref="PatternLibraryBuilder"/>'s
-    /// section-density accumulation already trusts for a different purpose), keeps only the runs whose
-    /// real peak concurrency (<see cref="CraftRuleInducer.MaxConcurrentOverlap"/>) reaches 2+ distinct
-    /// <see cref="ParsedEffectInstance.LayerIndex"/> values, then extracts the real effect-name stack
-    /// (z-ordered by <see cref="ParsedEffectInstance.LayerIndex"/>) active at that run's own single busiest
-    /// instant (<see cref="CraftRuleInducer.FindPeakOverlapSegment{T}"/>) as one real occurrence.
+    /// User feedback (2026-11-12): <see cref="Build"/> only ever surfaces the stacks that actually
+    /// cleared <paramref name="minSongCount"/> -- a near-miss stack seen in, say, 4 of a required 5
+    /// distinct songs is silently discarded with no visibility at all, the same blind spot
+    /// <c>CraftRuleInducer.InduceAndVerify</c>'s own promoted-vs-rejected split already avoids for craft
+    /// rules. This is every real candidate stack this run found, promoted or not, for a one-off tool
+    /// (<c>tools/CorpusMiner</c>) to log in full -- never used by the production <see cref="Build"/> path
+    /// itself, which still only ships what actually promotes.
     /// </summary>
-    private static IEnumerable<StackOccurrence> FindStackOccurrences(IReadOnlyList<AlignedEffectInstance> modelEffects, double? beatMs)
+    public static IReadOnlyList<MultiLayerStackCandidate> BuildCandidates(
+        IReadOnlyList<CorpusSongAnalysis> songs,
+        int minSongCount = DefaultMinSongCount,
+        int minDistinctLayers = LayerComplexityAnalyzer.DefaultMinDistinctLayers,
+        bool restrictToTreeMatrixModels = false) =>
+        BuildAggregates(songs, minDistinctLayers, restrictToTreeMatrixModels)
+            .OrderByDescending(a => a.SongTitles.Count)
+            .ThenBy(a => a.Tier, StringComparer.Ordinal)
+            .ThenBy(a => string.Join(">", a.EffectNames), StringComparer.Ordinal)
+            .Select(a => new MultiLayerStackCandidate(
+                a.Tier, a.EffectNames, a.SongTitles.Count, a.SongTitles.Count >= minSongCount,
+                a.SongTitles.OrderBy(s => s, StringComparer.Ordinal).Take(5).ToList()))
+            .ToList();
+
+    private static IReadOnlyList<StackAggregate> BuildAggregates(
+        IReadOnlyList<CorpusSongAnalysis> songs, int minDistinctLayers, bool restrictToTreeMatrixModels)
     {
-        var ordered = modelEffects.OrderBy(a => a.Effect.StartTimeMs).ToList();
-        var clusters = new List<List<AlignedEffectInstance>>();
-        List<AlignedEffectInstance>? current = null;
-        var currentEnd = long.MinValue;
+        ArgumentNullException.ThrowIfNull(songs);
 
-        foreach (var instance in ordered)
+        var mineable = songs.Where(s => s.Entry.Provenance != CorpusProvenanceTag.ExternalReference).ToList();
+        var aggregatesBySignature = new Dictionary<string, StackAggregate>(StringComparer.Ordinal);
+
+        foreach (var song in mineable)
         {
-            if (current is not null && instance.Effect.StartTimeMs < currentEnd)
-            {
-                current.Add(instance);
-                currentEnd = Math.Max(currentEnd, instance.Effect.EndTimeMs);
-                continue;
-            }
+            var beatMs = song.BeatGrid.SelectedTempo is { Bpm: > 0 } tempo ? 60_000.0 / tempo.Bpm : (double?)null;
 
-            current = [instance];
-            currentEnd = instance.Effect.EndTimeMs;
-            clusters.Add(current);
+            foreach (var modelGroup in song.AlignedEffects
+                .Where(a => !restrictToTreeMatrixModels || TreeMatrixPropNameConvention.IsTreeOrMatrixName(a.Effect.ModelName))
+                .GroupBy(a => a.Effect.ModelName, StringComparer.Ordinal))
+            {
+                var isTreeOrMatrix = TreeMatrixPropNameConvention.IsTreeOrMatrixName(modelGroup.Key);
+                foreach (var occurrence in FindStackOccurrences(modelGroup.ToList(), beatMs, minDistinctLayers))
+                {
+                    var signature = occurrence.Tier + "|" + string.Join(">", occurrence.Layers.Select(l => l.EffectName));
+                    if (!aggregatesBySignature.TryGetValue(signature, out var aggregate))
+                    {
+                        aggregate = new StackAggregate(occurrence.Tier, occurrence.Layers.Select(l => l.EffectName).ToList());
+                        aggregatesBySignature[signature] = aggregate;
+                    }
+
+                    aggregate.SongTitles.Add(song.Entry.SongTitle);
+                    aggregate.CadenceVotes.Add(occurrence.Cadence);
+                    aggregate.IsTreeOrMatrixVotes.Add(isTreeOrMatrix);
+                    for (var i = 0; i < occurrence.Layers.Count; i++)
+                    {
+                        aggregate.DutyByPosition[i].Add(occurrence.Layers[i].DutyCycle);
+                    }
+                }
+            }
         }
 
-        foreach (var cluster in clusters)
+        return aggregatesBySignature.Values.ToList();
+    }
+
+    /// <summary>
+    /// Build-plan Phase 20 §2a / Phase 25 Part D.1: delegates clustering and peak-instant extraction to
+    /// the shared <see cref="LayerComplexityAnalyzer.FindLayerWindows"/> sweep (keeps only runs whose real
+    /// peak distinct-layer count reaches <paramref name="minDistinctLayers"/>), then extracts the real
+    /// effect-name stack (z-ordered by <see cref="ParsedEffectInstance.LayerIndex"/>) active at that run's
+    /// own single busiest instant as one real occurrence.
+    /// </summary>
+    private static IEnumerable<StackOccurrence> FindStackOccurrences(IReadOnlyList<AlignedEffectInstance> modelEffects, double? beatMs, int minDistinctLayers)
+    {
+        foreach (var window in LayerComplexityAnalyzer.FindLayerWindows(modelEffects, minDistinctLayers))
         {
-            var distinctLayers = cluster.Select(a => a.Effect.LayerIndex).Distinct().Count();
-            if (distinctLayers < 2)
-            {
-                continue;
-            }
-
-            var maxOverlap = CraftRuleInducer.MaxConcurrentOverlap(cluster.Select(a => (a.Effect.StartTimeMs, a.Effect.EndTimeMs)));
-            if (maxOverlap < 2)
-            {
-                continue;
-            }
-
-            var (segmentStart, segmentEnd, activeAtPeak) = CraftRuleInducer.FindPeakOverlapSegment(
-                cluster, a => a.Effect.StartTimeMs, a => a.Effect.EndTimeMs);
-            if (activeAtPeak.Count < 2)
-            {
-                continue;
-            }
-
-            var clusterStart = cluster.Min(a => a.Effect.StartTimeMs);
-            var clusterEnd = cluster.Max(a => a.Effect.EndTimeMs);
-            var clusterSpan = (double)(clusterEnd - clusterStart);
+            var clusterSpan = (double)(window.ClusterEnd - window.ClusterStart);
             if (clusterSpan <= 0)
             {
                 continue;
@@ -126,29 +127,22 @@ public static class MultiLayerStackMiner
 
             // One real stack occurrence per distinct LayerIndex active at the peak instant (never the same
             // layer twice even if that layer itself has several placements inside this cluster).
-            var stackLayers = activeAtPeak
+            var stackLayers = window.ActiveAtPeak
                 .GroupBy(a => a.Effect.LayerIndex)
                 .OrderBy(g => g.Key)
                 .Select(g =>
                 {
                     var representative = g.OrderBy(a => a.Effect.StartTimeMs).First();
-                    var presentMs = cluster.Where(a => a.Effect.LayerIndex == g.Key)
-                        .Sum(a => Math.Max(0, Math.Min(a.Effect.EndTimeMs, clusterEnd) - Math.Max(a.Effect.StartTimeMs, clusterStart)));
+                    var presentMs = window.ClusterEffects.Where(a => a.Effect.LayerIndex == g.Key)
+                        .Sum(a => Math.Max(0, Math.Min(a.Effect.EndTimeMs, window.ClusterEnd) - Math.Max(a.Effect.StartTimeMs, window.ClusterStart)));
                     var duty = Math.Clamp(presentMs / clusterSpan, 0.0, 1.0);
                     return (representative.Effect.EffectName, DutyCycle: duty);
                 })
                 .ToList();
 
-            var tier = ClassifyTier(cluster
-                .Select(a => a.SectionKind)
-                .Where(k => k is not null)
-                .GroupBy(k => k!.Value)
-                .OrderByDescending(g => g.Count())
-                .Select(g => g.Key)
-                .FirstOrDefault());
-
-            var segmentDurationMs = (double)(segmentEnd - segmentStart);
-            var cadence = ClassifyCadence(segmentDurationMs, beatMs, cluster[0].PhraseBars);
+            var tier = ClassifyTier(window.DominantSectionKind);
+            var segmentDurationMs = (double)(window.PeakSegmentEnd - window.PeakSegmentStart);
+            var cadence = ClassifyCadence(segmentDurationMs, beatMs, window.ClusterEffects[0].PhraseBars);
 
             yield return new StackOccurrence(tier, cadence, stackLayers.Select(l => (l.EffectName, l.DutyCycle)).ToList());
         }
@@ -226,11 +220,17 @@ public static class MultiLayerStackMiner
         var exampleSongs = aggregate.SongTitles.OrderBy(s => s, StringComparer.Ordinal).Take(3).ToList();
         var slug = string.Join("-", aggregate.EffectNames.Select(n => n.ToLowerInvariant().Replace(" ", "-")));
 
+        // Build-plan Phase 25 Part D.1: now that the tree/matrix-only restriction is optional, a majority
+        // of this signature's own real occurrences may come from a non-Tree/Matrix model -- claiming
+        // "Tree/Matrixes/Mega Tree" regardless would misdescribe where this stack was actually observed.
+        var isTreeOrMatrix = aggregate.IsTreeOrMatrixVotes.Count(v => v) * 2 >= aggregate.IsTreeOrMatrixVotes.Count;
+        var props = isTreeOrMatrix ? new[] { "Tree", "Matrixes", "Mega Tree" } : new[] { "Any" };
+
         return new MultiLayerTemplate(
             Id: $"mined-{aggregate.Tier}-{slug}-{index}",
             Name: $"Mined {aggregate.Tier}-energy {string.Join(" + ", aggregate.EffectNames)}",
             EnergyBand: aggregate.Tier,
-            Props: ["Tree", "Matrixes", "Mega Tree"],
+            Props: props,
             Motion: motion,
             Layers: layers,
             SourceNote: $"Build-plan Phase 20 §2a/§2b: auto-mined from the real sequence corpus -- this exact " +
@@ -241,6 +241,9 @@ public static class MultiLayerStackMiner
                 "ranges, and a cadence bucket are retained, no literal color or exact timing copied.");
     }
 
+    /// <summary>One real candidate multi-layer stack signature and how many distinct real songs it was seen in, whether or not it actually promoted -- see <see cref="BuildCandidates"/>.</summary>
+    public sealed record MultiLayerStackCandidate(string Tier, IReadOnlyList<string> EffectNames, int SongCount, bool Promoted, IReadOnlyList<string> ExampleSongs);
+
     private sealed record StackOccurrence(string Tier, string Cadence, IReadOnlyList<(string EffectName, double DutyCycle)> Layers);
 
     private sealed class StackAggregate(string tier, List<string> effectNames)
@@ -249,6 +252,7 @@ public static class MultiLayerStackMiner
         public List<string> EffectNames { get; } = effectNames;
         public HashSet<string> SongTitles { get; } = new(StringComparer.Ordinal);
         public List<string> CadenceVotes { get; } = [];
+        public List<bool> IsTreeOrMatrixVotes { get; } = [];
         public Dictionary<int, List<double>> DutyByPosition { get; } = Enumerable.Range(0, effectNames.Count).ToDictionary(i => i, _ => new List<double>());
     }
 }

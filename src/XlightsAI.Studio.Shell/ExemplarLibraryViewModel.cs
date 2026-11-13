@@ -223,6 +223,14 @@ public sealed class ExemplarLibraryEntryViewModel : ObservableObject
 
     public double EnergyPercentile => Entry.Fingerprint.EnergyPercentile;
 
+    public int EffectCount => Entry.Effects.Count;
+
+    /// <summary>Build-plan Phase 25 Part D.5: this exemplar's own real peak concurrent-layer count (see <see cref="ExemplarFingerprint.PeakConcurrentLayerCount"/>), surfaced alongside <see cref="EffectCount"/> so curators can see -- and selectively enable/disable -- genuinely layered entries.</summary>
+    public int PeakConcurrentLayerCount => Entry.Fingerprint.PeakConcurrentLayerCount;
+
+    /// <summary>Whether this entry reaches <see cref="MultiLayerStackMiner.DefaultMinSongCount"/>'s companion complexity floor (<see cref="LayerComplexityAnalyzer.DefaultMinDistinctLayers"/>, 3+) -- the same bar a "genuinely layered" badge should light up at, consistent with Part D.1's raised threshold.</summary>
+    public bool IsLayeredComplexity => PeakConcurrentLayerCount >= LayerComplexityAnalyzer.DefaultMinDistinctLayers;
+
     public string? Description => Entry.Description;
 
     public bool IsEnabled

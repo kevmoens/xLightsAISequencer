@@ -290,4 +290,106 @@ public sealed class ShowBibleValidatorTests
 
         Assert.Contains(violations, v => v.Rule == "palette-count");
     }
+
+    [Fact]
+    public async Task Validate_ExemplarDrawnBeyondMaxReuseCount_FlagsExemplarReuseMaxViolation()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var overReused = new Pipeline.ExemplarReuseReport(
+            DrawCountByExemplarKey: new Dictionary<string, int> { ["Song A::0-8"] = ShowBibleValidator.MaxExemplarReuseCount + 1 },
+            GroupStats: new Dictionary<string, Pipeline.ExemplarGroupReuseStats>());
+
+        var violations = ShowBibleValidator.Validate(content, layout, vocabulary, recipes, exemplarReuse: overReused);
+
+        Assert.Contains(violations, v => v.Rule == "exemplar-reuse-max");
+    }
+
+    [Fact]
+    public async Task Validate_ExemplarDrawnWithinMaxReuseCount_NoExemplarReuseMaxViolation()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var withinBudget = new Pipeline.ExemplarReuseReport(
+            DrawCountByExemplarKey: new Dictionary<string, int> { ["Song A::0-8"] = ShowBibleValidator.MaxExemplarReuseCount },
+            GroupStats: new Dictionary<string, Pipeline.ExemplarGroupReuseStats>());
+
+        var violations = ShowBibleValidator.Validate(content, layout, vocabulary, recipes, exemplarReuse: withinBudget);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "exemplar-reuse-max");
+    }
+
+    [Fact]
+    public async Task Validate_RepeatablePieceGroupUnderDiversified_FlagsExemplarReuseDiversityViolation()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+
+        // 4 total draws from this group (>= MinOccurrencesForDiversityFloor) but only 1 distinct exemplar
+        // drawn -- needs ceil(4/2)=2 distinct, so this must fail.
+        var underDiversified = new Pipeline.ExemplarReuseReport(
+            DrawCountByExemplarKey: new Dictionary<string, int> { ["Song A::0-8"] = 4 },
+            GroupStats: new Dictionary<string, Pipeline.ExemplarGroupReuseStats> { ["8bar|Chorus|Mid"] = new(TotalDraws: 4, DistinctKeysDrawn: 1) });
+
+        var violations = ShowBibleValidator.Validate(content, layout, vocabulary, recipes, exemplarReuse: underDiversified);
+
+        Assert.Contains(violations, v => v.Rule == "exemplar-reuse-diversity");
+    }
+
+    [Fact]
+    public async Task Validate_RepeatablePieceGroupBelowDiversityFloor_NeverFlagged()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+
+        // Only 2 total draws (< MinOccurrencesForDiversityFloor) -- nothing real to diversify yet.
+        var belowFloor = new Pipeline.ExemplarReuseReport(
+            DrawCountByExemplarKey: new Dictionary<string, int> { ["Song A::0-8"] = 2 },
+            GroupStats: new Dictionary<string, Pipeline.ExemplarGroupReuseStats> { ["8bar|Chorus|Mid"] = new(TotalDraws: 2, DistinctKeysDrawn: 1) });
+
+        var violations = ShowBibleValidator.Validate(content, layout, vocabulary, recipes, exemplarReuse: belowFloor);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "exemplar-reuse-diversity");
+    }
+
+    [Fact]
+    public async Task Validate_WithNoExemplarReuseReportSupplied_NeverFlagsExemplarReuseRules()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+
+        var violations = ShowBibleValidator.Validate(content, layout, vocabulary, recipes); // exemplarReuse: null
+
+        Assert.DoesNotContain(violations, v => v.Rule is "exemplar-reuse-max" or "exemplar-reuse-diversity");
+    }
 }

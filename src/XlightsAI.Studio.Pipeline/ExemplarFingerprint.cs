@@ -22,6 +22,14 @@ namespace XlightsAI.Studio.Pipeline;
 /// <param name="SectionKind">The majority labeled <see cref="SectionKind"/> covering this window's bars, or <see cref="SectionKind.Unknown"/> if none/mixed.</param>
 /// <param name="BandBalance">This window's mean normalized [bass, mid, high] energy shares (<c>BandEnergyFrame</c>), or <see langword="null"/> for an exemplar mined before build-plan Phase 16 §2c.</param>
 /// <param name="VocalActivityHint">Whether the window's bars overlap a detected vocal-active region, or <see langword="null"/> for an exemplar mined before build-plan Phase 16 §2c.</param>
+/// <param name="PeakConcurrentLayerCount">
+/// Build-plan Phase 25 Part D.2: the real peak distinct-layer count (<see cref="LayerComplexityAnalyzer.PeakConcurrentLayerCount"/>)
+/// reached by any single model within this exact phrase window's own real effect placements -- "these
+/// complex effects of multiple layers ... built into Exemplar Library so they are used," evaluated at this
+/// window's own granularity (not just whichever windows <c>MultiLayerStackMiner</c>'s separate catalog
+/// happens to cover). Defaults to <c>0</c> (no measured complexity) for an exemplar mined before this
+/// phase shipped, same "absence, never fabricated" discipline as <see cref="BandBalance"/>/<see cref="VocalActivityHint"/>.
+/// </param>
 public sealed record ExemplarFingerprint(
     string SongTitle,
     CorpusProvenanceTag Provenance,
@@ -31,7 +39,8 @@ public sealed record ExemplarFingerprint(
     double EnergyPercentile,
     SectionKind SectionKind,
     IReadOnlyList<double>? BandBalance,
-    bool? VocalActivityHint)
+    bool? VocalActivityHint,
+    int PeakConcurrentLayerCount = 0)
 {
     /// <summary>
     /// The comparison vector <see cref="ExemplarIndex.FindSimilar"/> uses — tempo (normalized against a

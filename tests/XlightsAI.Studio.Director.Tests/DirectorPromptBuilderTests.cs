@@ -117,6 +117,31 @@ public sealed class DirectorPromptBuilderTests
     }
 
     [Fact]
+    public void Build_StablePrefix_RequiresDistinctZPerLayer_AndShowsATwoLayerExample()
+    {
+        // Real-run finding (2026-11-11, project "Bang"): Show Bible generation exhausted every retry
+        // attempt because nearly every multi-layer Look the model wrote left two layers both at Z=0 --
+        // the required-JSON-shape example previously showed only a single layer, giving the model nothing
+        // to generalize a second layer's Z from, especially now that the seed multi-layer templates
+        // section (below) REQUIRES at least one 2-layer Look. The prompt must both say this explicitly and
+        // show a concrete 2-layer example with distinct Z values.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("distinct \"Z\" value", prompt.StablePrefix);
+        Assert.Contains("\"Z\": 0,", prompt.StablePrefix);
+        Assert.Contains("\"Z\": 1,", prompt.StablePrefix);
+    }
+
+    [Fact]
     public void Build_StablePrefix_NamesTransientsAndVocalNotesAsValidTimescales_WithAWorkedExample()
     {
         // User follow-up (2026-11-10): measured directly against a real hand-sequenced reference show --
@@ -593,6 +618,98 @@ public sealed class DirectorPromptBuilderTests
         Assert.DoesNotContain("Band-to-group mapping", prompt.VolatileSuffix);
     }
 
+    /// <summary>Build-plan Phase 25 Part B.1: "Everything" covers 100% of this layout's own total pixels -- above the coverage threshold, so it classifies whole-canvas and gets its own section.</summary>
+    private static LayoutSummary BuildLayoutWithWholeCanvasGroup() => new(
+        ModelCount: 2,
+        TotalPixels: 1000,
+        Groups: [new LayoutSummaryEntry("group:Everything", 1000, "high-resolution")],
+        TopPixelHeavyModels: []);
+
+    [Fact]
+    public void Build_VolatileSuffix_DisclosesNoTrainingData_WhenWholeCanvasGroupExistsButCoOccurrenceIsEmpty()
+    {
+        // Build-plan Phase 25 Part B.2: never fabricate usage-frequency guidance ahead of real data.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = BuildLayoutWithWholeCanvasGroup();
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("## Whole-canvas group", prompt.VolatileSuffix);
+        Assert.Contains("group:Everything", prompt.VolatileSuffix);
+        Assert.Contains("no real corpus training data is available yet", prompt.VolatileSuffix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_DisclosesMeasuredAbsence_WhenTrainingRanButFoundZeroWholeCanvasWindows()
+    {
+        // Build-plan Phase 25 Part C real-corpus finding: a real CorpusTrainingRunner run that completed
+        // but genuinely found zero whole-canvas windows (WindowSampleCount == 0, a non-null stats object)
+        // is a different fact than "training has never been run" (null) -- it must get its own message,
+        // never the same "no training data is available yet" text that implies the tool was never run.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var coOccurrence = new WholeCanvasCoOccurrenceStats(
+            WindowSampleCount: 0, SongsWithWholeCanvasCount: 0,
+            FoundationCoFireRatio: null, SubjectCoFireRatio: null, AccentCoFireRatio: null,
+            SectionKindHistogram: new Dictionary<string, int>(), EnergyTierHistogram: new Dictionary<string, int>(),
+            MedianDurationBars: null, P90DurationBars: null);
+        var knowledge = new DirectorKnowledgeContext(
+            vocabulary, new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []), new ExemplarIndex(DateTimeOffset.UtcNow, []),
+            WholeCanvasCoOccurrence: coOccurrence);
+        var layout = BuildLayoutWithWholeCanvasGroup();
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("a real CorpusTrainer run completed and genuinely found no whole-canvas-group effect windows", prompt.VolatileSuffix);
+        Assert.Contains("a measured absence, not an untrained gap", prompt.VolatileSuffix);
+        Assert.DoesNotContain("no real corpus training data is available yet", prompt.VolatileSuffix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_StatesMeasuredWholeCanvasUsageGuidance_WhenCoOccurrenceDataIsSupplied()
+    {
+        // Build-plan Phase 25 Part B.2: once real training data exists, state concrete, measured usage
+        // guidance -- mirroring AppendBandEnergyGroupRoleMapping's own "measured for this song" framing.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var coOccurrence = new WholeCanvasCoOccurrenceStats(
+            WindowSampleCount: 40, SongsWithWholeCanvasCount: 4,
+            FoundationCoFireRatio: 0.2, SubjectCoFireRatio: 0.7, AccentCoFireRatio: 0.3,
+            SectionKindHistogram: new Dictionary<string, int> { ["Chorus"] = 24, ["Bridge"] = 10, ["Verse"] = 6 },
+            EnergyTierHistogram: new Dictionary<string, int> { ["High"] = 30, ["Mid"] = 8, ["Low"] = 2 },
+            MedianDurationBars: 1.5, P90DurationBars: 2.0);
+        var knowledge = new DirectorKnowledgeContext(
+            vocabulary, new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []), new ExemplarIndex(DateTimeOffset.UtcNow, []),
+            WholeCanvasCoOccurrence: coOccurrence);
+        var layout = BuildLayoutWithWholeCanvasGroup();
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("measured across 4 real corpus song(s), 40 whole-canvas window(s)", prompt.VolatileSuffix);
+        Assert.Contains("Subject 70%", prompt.VolatileSuffix);
+        Assert.Contains("Foundation 20%", prompt.VolatileSuffix);
+        Assert.Contains("Accent 30%", prompt.VolatileSuffix);
+        Assert.Contains("Chorus (60%)", prompt.VolatileSuffix);
+        Assert.Contains("High most often (75%", prompt.VolatileSuffix);
+        Assert.Contains("median 1.5 bar(s), P90 2 bar(s)", prompt.VolatileSuffix);
+    }
+
     /// <summary>Build-plan Phase 18 §6 (Phase E): the "## Effect vocabulary" section enriches each bare effect name with its real, known visual character when one exists in the supplied catalog.</summary>
     [Fact]
     public void Build_StablePrefix_EnrichesEffectNameWithCatalogDescription_WhenCatalogHasAnEntry()
@@ -693,5 +810,142 @@ public sealed class DirectorPromptBuilderTests
         var emptyPrompt = DirectorPromptBuilder.Build(withEmptyCatalog, "Traditional / Classic", song, layout);
 
         Assert.Equal(withoutExplicitDefault.StablePrefix, emptyPrompt.StablePrefix);
+    }
+
+    /// <summary>
+    /// Build-plan Phase 25 Part E.1: <see cref="DirectorPromptBuilder.Build"/> now owns one
+    /// <see cref="Pipeline.ExemplarReuseTracker"/> across its whole retrieved-exemplars loop over every
+    /// <see cref="SectionKind"/> -- with only one real same-kind entry in the index, every other Kind's
+    /// query falls back to that same entry, so it must show up drawn more than once in the returned report.
+    /// </summary>
+    [Fact]
+    public void Build_ExemplarReuse_RecordsEveryDrawAcrossTheWholeKindLoop()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var onlyEntry = new ExemplarEntry(
+            new ExemplarFingerprint("Only Song", CorpusProvenanceTag.UserAuthored, 0, 8, 120, 0.5, SectionKind.Verse, null, null), []);
+        var knowledge = new DirectorKnowledgeContext(
+            vocabulary, new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []), new ExemplarIndex(DateTimeOffset.UtcNow, [onlyEntry]));
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.NotNull(prompt.ExemplarReuse);
+        var key = ExemplarOverrides.KeyFor(onlyEntry.Fingerprint);
+        Assert.True(prompt.ExemplarReuse!.DrawCountByExemplarKey[key] > 1,
+            "The only real exemplar in the index should be drawn as the cross-kind fallback for every other SectionKind, so its own draw count should exceed 1.");
+    }
+
+    /// <summary>
+    /// Build-plan Phase 25 Part D.4/loose end: a peak-energy <see cref="SectionKind"/> (Chorus, whose
+    /// <see cref="DefaultEnergyCeilings.ArchitectureSection10"/> ceiling is 0.85) must request a genuinely
+    /// layered exemplar when one exists in the index -- retrieval should prefer the real 3-layer entry over
+    /// an otherwise-closer-matching 0-layer one.
+    /// </summary>
+    [Fact]
+    public void Build_StablePrefix_RequestsALayeredExemplarForAPeakEnergySectionKind()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var layered = new ExemplarEntry(
+            new ExemplarFingerprint("Layered Chorus", CorpusProvenanceTag.UserAuthored, 0, 8, 120, 0.5, SectionKind.Chorus, null, null, PeakConcurrentLayerCount: 3),
+            []);
+        var flat = new ExemplarEntry(
+            new ExemplarFingerprint("Flat Chorus", CorpusProvenanceTag.UserAuthored, 0, 8, 120, 0.5, SectionKind.Chorus, null, null, PeakConcurrentLayerCount: 0),
+            []);
+        var knowledge = new DirectorKnowledgeContext(
+            vocabulary, new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []), new ExemplarIndex(DateTimeOffset.UtcNow, [flat, layered]));
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("Layered Chorus", prompt.StablePrefix);
+    }
+
+    /// <summary>
+    /// Build-plan Phase 25 Part D.4: when nothing in the index reaches the complexity floor for a
+    /// peak-energy Kind, retrieval must still fall back to the plain match rather than silently showing
+    /// zero exemplars for that Kind.
+    /// </summary>
+    [Fact]
+    public void Build_StablePrefix_FallsBackWhenNoExemplarMeetsTheComplexityFloor()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var flatOnly = new ExemplarEntry(
+            new ExemplarFingerprint("Flat Chorus Only", CorpusProvenanceTag.UserAuthored, 0, 8, 120, 0.5, SectionKind.Chorus, null, null, PeakConcurrentLayerCount: 0),
+            []);
+        var knowledge = new DirectorKnowledgeContext(
+            vocabulary, new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []), new ExemplarIndex(DateTimeOffset.UtcNow, [flatOnly]));
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("Flat Chorus Only", prompt.StablePrefix);
+    }
+
+    /// <summary>Build-plan Phase 25 loose end: no training pass ever run against this knowledge directory -- a disclosed-empty message, never a fabricated "zero real windows" claim.</summary>
+    [Fact]
+    public void Build_StablePrefix_WithNoLayerComplexityStats_DisclosesNoneAvailable()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(BuildKnowledge(), "Traditional / Classic", song, layout);
+
+        Assert.Contains("Real corpus layer-complexity baseline", prompt.StablePrefix);
+        Assert.Contains("None available for this run", prompt.StablePrefix);
+    }
+
+    /// <summary>Build-plan Phase 25 loose end: real measured LayerComplexityStats render concrete tier/section/duration numbers instead of the disclosed-empty message.</summary>
+    [Fact]
+    public void Build_StablePrefix_WithRealLayerComplexityStats_RendersMeasuredTierNumbers()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var vocabulary = RealXLightsFixture.BuildCatalogs().Vocabulary;
+        var stats = new LayerComplexityStats(
+            ThreePlus: new LayerComplexityTierStats(12, new Dictionary<string, int> { ["Chorus"] = 9 }, 2.0, 4.0),
+            FourPlus: new LayerComplexityTierStats(3, new Dictionary<string, int> { ["Chorus"] = 3 }, 1.5, 2.0),
+            FivePlus: new LayerComplexityTierStats(0, new Dictionary<string, int>(), null, null));
+        var knowledge = new DirectorKnowledgeContext(
+            vocabulary, new CraftRules(DateTimeOffset.UtcNow, 0.7, 3, [], []), new ExemplarIndex(DateTimeOffset.UtcNow, []),
+            LayerComplexity: stats);
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "Traditional / Classic", song, layout);
+
+        Assert.Contains("12 real window(s)", prompt.StablePrefix);
+        Assert.Contains("5+ layers: no real window reached this tier.", prompt.StablePrefix);
+
+        var sectionStart = prompt.StablePrefix.IndexOf("Real corpus layer-complexity baseline", StringComparison.Ordinal);
+        var sectionEnd = prompt.StablePrefix.IndexOf("## ", sectionStart + 1, StringComparison.Ordinal);
+        var layerComplexitySection = prompt.StablePrefix[sectionStart..(sectionEnd < 0 ? prompt.StablePrefix.Length : sectionEnd)];
+        Assert.DoesNotContain("None available for this run", layerComplexitySection);
     }
 }

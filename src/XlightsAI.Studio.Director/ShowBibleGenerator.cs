@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Knowledge;
+using XlightsAI.Studio.Pipeline;
 using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
 
@@ -58,10 +59,27 @@ public sealed class ShowBibleGenerator
         int maxOutputTokens, CancellationToken ct, MultiLayerTemplateCatalog? templates = null,
         IReadOnlyDictionary<SectionKind, int>? sectionKindOccurrenceCounts = null)
     {
+        // Build-plan Phase 25 Part E.3: the same reuse report DirectorPromptBuilder.Build recorded while
+        // assembling prompt.StablePrefix's own "## Retrieved exemplars" section -- a property of that
+        // (unchanging-across-retries) stable prefix, so it is validated identically on every attempt below,
+        // the same way a stable-prefix-driven structural violation always would be.
+        var exemplarReuse = prompt.ExemplarReuse;
         ArgumentNullException.ThrowIfNull(prompt);
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(vocabulary);
         ArgumentNullException.ThrowIfNull(recipeCatalog);
+
+        // Build-plan Phase 26 bugfix: real-run finding (2026-11-11, project "Bang") -- exemplarReuse is a
+        // property of retrieval (fixed before the first LLM call), so a violation here is identical on
+        // EVERY attempt regardless of what the model returns. Checked once, before spending a single call,
+        // so a song/corpus combination that can never satisfy this fails fast with a clear, distinct
+        // message instead of silently burning the whole retry budget on calls doomed from the start and
+        // burying the real (corpus/retrieval, not model) root cause inside per-Look content errors.
+        var structuralViolations = ShowBibleValidator.ValidateExemplarReuseOnly(exemplarReuse);
+        if (structuralViolations.Count > 0)
+        {
+            return new ShowBibleGenerationReport(null, 0, false, structuralViolations, []);
+        }
 
         var usages = new List<AiUsage?>();
         IReadOnlyList<ShowBibleValidationError> violations = [];
@@ -90,7 +108,7 @@ public sealed class ShowBibleGenerator
             }
 
             usages.Add(result.Usage);
-            violations = ShowBibleValidator.Validate(result.Value, layout, vocabulary, recipeCatalog, templates, sectionKindOccurrenceCounts);
+            violations = ShowBibleValidator.Validate(result.Value, layout, vocabulary, recipeCatalog, templates, sectionKindOccurrenceCounts, exemplarReuse);
             await LogAsync(songId, result.Usage, $"attempt {attempt}/{_maxAttempts}: {(violations.Count == 0 ? "validated" : $"{violations.Count} violation(s)")}", result.Diagnostics, ct).ConfigureAwait(false);
 
             if (violations.Count == 0)

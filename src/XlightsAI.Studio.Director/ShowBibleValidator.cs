@@ -1,6 +1,7 @@
 using System.Globalization;
 using XlightsAI.Studio.Choreography;
 using XlightsAI.Studio.Knowledge;
+using XlightsAI.Studio.Pipeline;
 using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
 
@@ -27,13 +28,42 @@ public static class ShowBibleValidator
 
     /// <summary>
     /// Build-plan Phase 24 §2a: a <see cref="SectionKind"/> with fewer than this many real occurrences in
-    /// a song has nothing real to diversify -- exempt from the per-Kind Look-diversity floor below.
+    /// a song has nothing real to diversify -- exempt from the per-Kind Look-diversity floor below. Reused
+    /// by <see cref="ValidateExemplarReuse"/> (build-plan Phase 25 Part E.2) as the same "nothing real to
+    /// diversify yet" floor for a repeatable-piece group's own total draws.
     /// </summary>
     public const int MinOccurrencesForDiversityFloor = 3;
 
+    /// <summary>
+    /// Build-plan Phase 25 Part E.3: the ceiling on how many times a single real exemplar may be quoted
+    /// into one generation run's own "## Retrieved exemplars" prompt section before it counts as
+    /// over-reused -- measured as <c>CorpusTrainingReport.ReuseRate.P90OccurrencesPerReusedBucket</c> from
+    /// a real <c>CorpusTrainer</c> run over 31 external sequences at <c>C:\xLights</c> (2026-11-11): 400
+    /// distinct phrase-length/section-kind/energy-tier buckets, 899 total phrase windows, 150 buckets
+    /// (55.5% of all windows) recurring within their own song, median 3 occurrences per reused bucket,
+    /// P90 10 -- the same "measured, not guessed" discipline as <see cref="MinLooks"/>/<see cref="MaxLooks"/>.
+    /// </summary>
+    public const int MaxExemplarReuseCount = 10;
+
+    /// <summary>
+    /// User feedback (2026-11-12): the baseline craft guidance built into <see cref="DirectorPromptBuilder"/>
+    /// already states a hard floor -- "a Chorus/Drop/peak-energy Look's subject prop should carry 3 or more
+    /// concurrent layers" -- but nothing previously enforced it, so a generation that ignored the prose
+    /// still passed validation cleanly. This is that floor made real: any Look energetic enough to be a
+    /// genuine peak/featured moment (<see cref="PeakLookEnergyCeilingThreshold"/>, the same cutoff
+    /// <c>DirectorPromptBuilder.ComplexityRequestCeilingThreshold</c> uses to decide which SectionKinds are
+    /// Chorus/Solo-tier) must actually declare <see cref="MinPeakLookLayers"/>+ layers, same tier/mechanism
+    /// as <see cref="MinLooks"/>/<see cref="MaxLooks"/> -- a hard, retryable validation failure rather than
+    /// a hope that the model followed the prose.
+    /// </summary>
+    public const double PeakLookEnergyCeilingThreshold = 0.75;
+
+    public const int MinPeakLookLayers = 3;
+
     public static IReadOnlyList<ShowBibleValidationError> Validate(
         ShowBibleContent content, DisplayGraph layout, EffectVocabularyCatalog vocabulary, EffectRecipeCatalog recipeCatalog,
-        MultiLayerTemplateCatalog? templates = null, IReadOnlyDictionary<SectionKind, int>? sectionKindOccurrenceCounts = null)
+        MultiLayerTemplateCatalog? templates = null, IReadOnlyDictionary<SectionKind, int>? sectionKindOccurrenceCounts = null,
+        ExemplarReuseReport? exemplarReuse = null)
     {
         ArgumentNullException.ThrowIfNull(content);
         ArgumentNullException.ThrowIfNull(layout);
@@ -59,7 +89,74 @@ public static class ShowBibleValidator
             ValidateLookDiversityPerKind(content.Looks.Looks, sectionKindOccurrenceCounts, errors);
         }
 
+        errors.AddRange(ValidateExemplarReuseOnly(exemplarReuse));
+
         return errors;
+    }
+
+    /// <summary>
+    /// Build-plan Phase 26 bugfix: public entry point onto <see cref="ValidateExemplarReuse"/> alone, for
+    /// <see cref="ShowBibleGenerator"/> to check BEFORE spending any attempt against the LLM. Real-run
+    /// finding (2026-11-11, project "Bang"): <paramref name="report"/> is a property of retrieval (which
+    /// real exemplars <c>ExemplarIndex.FindSimilar</c>/<c>FindVaried</c> drew while assembling the
+    /// -- unchanging-across-retries -- stable prefix), never of the LLM's own returned content, so any
+    /// violation this produces is identical on every attempt no matter what the model returns: a Look
+    /// library the LLM could not possibly write its way out of. Checking it only inside the main
+    /// generate-and-correct loop (alongside genuinely model-fixable violations like a malformed Look)
+    /// silently burned the entire retry budget on calls that were mathematically guaranteed to fail before
+    /// the first one was ever sent, and buried the real, actionable root cause (a corpus/retrieval gap,
+    /// not a model mistake) inside a wall of unrelated per-Look content errors.
+    /// </summary>
+    public static IReadOnlyList<ShowBibleValidationError> ValidateExemplarReuseOnly(ExemplarReuseReport? report)
+    {
+        var errors = new List<ShowBibleValidationError>();
+        ValidateExemplarReuse(report, errors);
+        return errors;
+    }
+
+    /// <summary>
+    /// Build-plan Phase 25 Part E.3: validates <paramref name="report"/> (this run's own
+    /// <see cref="ExemplarReuseTracker"/> recording, built while assembling the Director's own stable
+    /// prefix) the same way <see cref="ValidateLookDiversityPerKind"/> validates Look diversity -- a single
+    /// exemplar drawn beyond <see cref="MaxExemplarReuseCount"/> times is a hard failure, and a
+    /// "repeatable piece" group (<see cref="RepeatablePieceGrouper"/>) drawn <see cref="MinOccurrencesForDiversityFloor"/>+
+    /// times total must have drawn at least <c>ceil(totalDraws/2)</c> distinct members -- the same
+    /// occurrences-to-required-distinct-count ratio <see cref="ValidateLookDiversityPerKind"/> already
+    /// applies to Looks. Appends nothing when <paramref name="report"/> is <see langword="null"/> (no
+    /// reuse tracking was supplied -- every pre-existing caller before this phase).
+    /// </summary>
+    private static void ValidateExemplarReuse(ExemplarReuseReport? report, List<ShowBibleValidationError> errors)
+    {
+        if (report is null)
+        {
+            return;
+        }
+
+        foreach (var (key, count) in report.DrawCountByExemplarKey)
+        {
+            if (count > MaxExemplarReuseCount)
+            {
+                errors.Add(new ShowBibleValidationError(
+                    "exemplar-reuse-max",
+                    $"Exemplar '{key}' was drawn {count} time(s) while assembling this run's own retrieved-exemplar prompt section, exceeding the measured reuse budget of {MaxExemplarReuseCount} -- the corpus needs more real variety for this structural bucket, not the same passage quoted repeatedly."));
+            }
+        }
+
+        foreach (var (group, stats) in report.GroupStats)
+        {
+            if (stats.TotalDraws < MinOccurrencesForDiversityFloor)
+            {
+                continue;
+            }
+
+            var requiredDistinct = (int)Math.Ceiling(stats.TotalDraws / 2.0);
+            if (stats.DistinctKeysDrawn < requiredDistinct)
+            {
+                errors.Add(new ShowBibleValidationError(
+                    "exemplar-reuse-diversity",
+                    $"Repeatable-piece group '{group}' was drawn {stats.TotalDraws} time(s) across this run's retrieved exemplars, but only {stats.DistinctKeysDrawn} distinct exemplar(s) from that group were used -- need at least {requiredDistinct} (ceil({stats.TotalDraws}/2)) distinct exemplars, not the same one or two repeated."));
+            }
+        }
     }
 
     /// <summary>
@@ -176,6 +273,11 @@ public static class ShowBibleValidator
             {
                 errors.Add(new ShowBibleValidationError("look-layers", $"Look '{look.Id}' has no layers."));
                 continue;
+            }
+
+            if (look.EnergyCeiling >= PeakLookEnergyCeilingThreshold && look.Layers.Count < MinPeakLookLayers)
+            {
+                errors.Add(new ShowBibleValidationError("look-peak-layer-floor", $"Look '{look.Id}' has EnergyCeiling {look.EnergyCeiling}, a Chorus/Solo-tier peak moment, but only {look.Layers.Count} layer(s) -- a peak Look's subject prop must carry {MinPeakLookLayers}+ concurrent layers (the multi-layer template catalog and layer-complexity guidance above exist to help with this)."));
             }
 
             var seenZ = new HashSet<int>();

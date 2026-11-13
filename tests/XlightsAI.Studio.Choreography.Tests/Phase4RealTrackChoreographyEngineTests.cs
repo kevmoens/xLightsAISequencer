@@ -166,9 +166,18 @@ public sealed class Phase4RealTrackChoreographyEngineTests : IDisposable
         // reference show's main props and was never designed to also address this layout's real Arches
         // models, exactly the kind of gap the Director's own self-healing repair pass (not this
         // deterministic, no-LLM compiler-only test) exists to catch in a real AI-generated run.
+        //
+        // Build-plan Phase 26: "concurrent-focal-effect-cap" also postdates architecture §7, also
+        // deliberately soft/advisory (see ChoreographyLegalityValidator's own doc comment). This real
+        // layout's own filler schedule (SectionFillerSchedule.Flat) spreads short, "always-moving" filler
+        // effects evenly across every prop with no awareness of how many other props are simultaneously
+        // active -- exactly the kind of cross-model busyness a real AI-generated show's Director prompt
+        // guidance (density bands, per-model moments) is meant to manage, not this fixed, filler-driven
+        // compiler-only fixture.
         var postPhase7Rules = new HashSet<string>(StringComparer.Ordinal)
         {
-            "declared-vs-measured-change-density", "whole-song-effect-concentration", ChoreographyLegalityValidator.RuleModelCoverage,
+            "declared-vs-measured-change-density", "whole-song-effect-concentration",
+            ChoreographyLegalityValidator.RuleModelCoverage, "concurrent-focal-effect-cap",
         };
         var preExistingViolations = result.Violations.Where(v => !postPhase7Rules.Contains(v.Rule)).ToList();
         if (preExistingViolations.Count > 0)

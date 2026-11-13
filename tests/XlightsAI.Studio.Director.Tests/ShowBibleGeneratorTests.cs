@@ -180,4 +180,40 @@ public sealed class ShowBibleGeneratorTests
         Assert.Equal(0, firstReport.UsagePerAttempt[0]!.CacheReadInputTokens);
         Assert.True(secondReport.UsagePerAttempt[0]!.CacheReadInputTokens > 0, "Expected the repeated call's own usage to report a nonzero cache read.");
     }
+
+    /// <summary>
+    /// Build-plan Phase 26 bugfix: real-run finding (2026-11-11, project "Bang") -- an
+    /// <see cref="Pipeline.ExemplarReuseReport"/> violation is a property of retrieval (fixed before the
+    /// first LLM call), so it is identical on every attempt no matter what the model returns. This must be
+    /// rejected BEFORE any attempt is spent (never retried against the LLM), with a distinct
+    /// <see cref="ShowBibleGenerationReport.AttemptCount"/> of 0 -- not after silently burning the whole
+    /// retry budget on calls that were always going to fail.
+    /// </summary>
+    [Fact]
+    public async Task GenerateAsync_StructuralExemplarReuseViolation_FailsBeforeAnyAttempt_NeverCallsTheClient()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var (layout, vocabulary, recipes) = await LoadRealFixturesAsync();
+        var validContent = ShowBibleContentFixture.BuildValid();
+        var client = new FakeChatCompletionClient([
+            _ => new ChatCompletionResult(ShowBibleContentFixture.ToModelResponseText(validContent), new AiUsage(1000, 200, 0, 0)),
+        ]);
+
+        var underDiversified = new Pipeline.ExemplarReuseReport(
+            DrawCountByExemplarKey: new Dictionary<string, int> { ["Song A::0-8"] = 4 },
+            GroupStats: new Dictionary<string, Pipeline.ExemplarGroupReuseStats> { ["3bar|Chorus|high"] = new(TotalDraws: 4, DistinctKeysDrawn: 1) });
+        var prompt = new DirectorPrompt("STABLE PREFIX", "VOLATILE SUFFIX", underDiversified);
+
+        var generator = new ShowBibleGenerator(client, maxAttempts: 3);
+        var report = await generator.GenerateAsync(prompt, Guid.NewGuid(), layout, vocabulary, recipes, maxOutputTokens: 4000, CancellationToken.None);
+
+        Assert.Null(report.Bible);
+        Assert.Equal(0, report.AttemptCount);
+        Assert.Contains(report.FinalViolations, v => v.Rule == "exemplar-reuse-diversity");
+        Assert.Equal(0, client.CallCount);
+    }
 }

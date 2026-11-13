@@ -28,12 +28,14 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
     [Fact]
     public async Task NullKnowledgeDirectory_FallsBackToEmptyDefaults()
     {
-        var (craftRules, exemplarIndex, patternLibrary) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(null, CancellationToken.None);
+        var (craftRules, exemplarIndex, patternLibrary, wholeCanvasCoOccurrence, layerComplexity) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(null, CancellationToken.None);
 
         Assert.Empty(craftRules.Promoted);
         Assert.Empty(craftRules.RejectedCandidates);
         Assert.Empty(exemplarIndex.Entries);
         Assert.Equal(0, patternLibrary.SongCount);
+        Assert.Null(wholeCanvasCoOccurrence);
+        Assert.Null(layerComplexity);
     }
 
     [Fact]
@@ -45,12 +47,14 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
         // FileNotFoundException in either case, and both must be caught independently.
         Directory.CreateDirectory(_root);
 
-        var (craftRules, exemplarIndex, patternLibrary) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(_root, CancellationToken.None);
+        var (craftRules, exemplarIndex, patternLibrary, wholeCanvasCoOccurrence, layerComplexity) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(_root, CancellationToken.None);
 
         Assert.Empty(craftRules.Promoted);
         Assert.Empty(craftRules.RejectedCandidates);
         Assert.Empty(exemplarIndex.Entries);
         Assert.Equal(0, patternLibrary.SongCount);
+        Assert.Null(wholeCanvasCoOccurrence);
+        Assert.Null(layerComplexity);
     }
 
     [Fact]
@@ -58,11 +62,13 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
     {
         var neverCreated = Path.Combine(_root, "never-created");
 
-        var (craftRules, exemplarIndex, patternLibrary) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(neverCreated, CancellationToken.None);
+        var (craftRules, exemplarIndex, patternLibrary, wholeCanvasCoOccurrence, layerComplexity) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(neverCreated, CancellationToken.None);
 
         Assert.Empty(craftRules.Promoted);
         Assert.Empty(exemplarIndex.Entries);
         Assert.Equal(0, patternLibrary.SongCount);
+        Assert.Null(wholeCanvasCoOccurrence);
+        Assert.Null(layerComplexity);
     }
 
     [Fact]
@@ -116,7 +122,24 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
             ModeACount: 500, ModeBCount: 300);
         await new JsonPatternLibraryStore(_root).SaveAsync(realPatternLibrary, CancellationToken.None);
 
-        var (craftRules, exemplarIndex, patternLibrary) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(_root, CancellationToken.None);
+        var realTrainingReport = new CorpusTrainingReport(
+            GeneratedAtUtc: DateTimeOffset.UtcNow, ExternalSequencesRoot: @"C:\fake\external", DiscoveredSequenceCount: 10,
+            ExcludedSequenceCount: 2, AnalyzedSequenceCount: 10, FailedSequenceCount: 0, FailureReasons: [],
+            CatchAllCoverageRatioDistribution: new CoverageRatioDistribution(0, 0, null, null, null, null, new Dictionary<string, int>()),
+            WholeCanvasCoOccurrence: new WholeCanvasCoOccurrenceStats(
+                WindowSampleCount: 40, SongsWithWholeCanvasCount: 4,
+                FoundationCoFireRatio: 0.2, SubjectCoFireRatio: 0.7, AccentCoFireRatio: 0.3,
+                SectionKindHistogram: new Dictionary<string, int> { ["Chorus"] = 24 },
+                EnergyTierHistogram: new Dictionary<string, int> { ["High"] = 30 },
+                MedianDurationBars: 1.5, P90DurationBars: 2.0),
+            LayerComplexity: new LayerComplexityStats(
+                ThreePlus: new LayerComplexityTierStats(12, new Dictionary<string, int> { ["Chorus"] = 9, ["Solo"] = 3 }, 2.0, 4.0),
+                FourPlus: new LayerComplexityTierStats(3, new Dictionary<string, int> { ["Chorus"] = 3 }, 1.5, 2.0),
+                FivePlus: new LayerComplexityTierStats(0, new Dictionary<string, int>(), null, null)),
+            ReuseRate: new ReuseRateStats(0, 0, 0, 0, null, null, null, new Dictionary<string, int>()));
+        await new JsonCorpusTrainingReportStore(_root).SaveAsync(realTrainingReport, CancellationToken.None);
+
+        var (craftRules, exemplarIndex, patternLibrary, wholeCanvasCoOccurrence, layerComplexity) = await AiChoreographyWholeSongGenerator.LoadCorpusKnowledgeAsync(_root, CancellationToken.None);
 
         Assert.Single(craftRules.Promoted);
         Assert.Equal("rule.test.001", craftRules.Promoted[0].Id);
@@ -124,5 +147,11 @@ public sealed class CorpusKnowledgeLoadingTests : IDisposable
         Assert.Equal("Test Song", exemplarIndex.Entries[0].Fingerprint.SongTitle);
         Assert.Equal(31, patternLibrary.SongCount);
         Assert.Equal(13.05, patternLibrary.DensityBySection[SectionKind.Chorus]);
+        Assert.NotNull(wholeCanvasCoOccurrence);
+        Assert.Equal(40, wholeCanvasCoOccurrence.WindowSampleCount);
+        Assert.Equal(0.7, wholeCanvasCoOccurrence.SubjectCoFireRatio);
+        Assert.NotNull(layerComplexity);
+        Assert.Equal(12, layerComplexity.ThreePlus.WindowCount);
+        Assert.Equal(3, layerComplexity.FourPlus.WindowCount);
     }
 }

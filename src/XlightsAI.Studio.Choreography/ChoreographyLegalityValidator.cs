@@ -1,5 +1,6 @@
 using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Rhythm;
+using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Choreography;
@@ -32,6 +33,61 @@ public static class ChoreographyLegalityValidator
     private const string RuleSectionDensityContrast = "declared-vs-measured-change-density";
     private const string RuleEffectConcentration = "whole-song-effect-concentration";
     private const string RuleSilenceCrossValidation = "declared-darkness-vs-measured-audio-silence";
+
+    /// <summary>
+    /// Build-plan Phase 26: docs/MASTER-SYSTEM-ARCHITECTURE.md §9a's own disclosed gap -- the archived
+    /// <c>XlightsAI.Studio.Composition.VisualBudget</c>'s density/concurrency-capping role was deliberately
+    /// never ported, leaving nothing deterministic checking "how many props are simultaneously carrying an
+    /// attention-grabbing effect at any one instant." Soft/advisory, same framing as every rule above except
+    /// <see cref="RuleModelCoverage"/> -- deliberately NOT wired into <c>RevisionDirectiveDeriver</c>'s
+    /// self-healing retry path. RuleModelCoverage escalated to self-healing because a prop silently getting
+    /// zero effects for a whole show is an unambiguous content gap (user feedback 2026-10-31); "too many
+    /// props fighting for attention at once" is a judgment call about busyness, the same soft-quality
+    /// territory <see cref="RuleEffectConcentration"/> and <see cref="RuleSectionDensityContrast"/> already
+    /// occupy -- a finding worth surfacing, never one deterministic enough to drive an automatic retry.
+    /// </summary>
+    private const string RuleConcurrentFocalEffectCap = "concurrent-focal-effect-cap";
+
+    /// <summary>
+    /// Build-plan Phase 26: the fraction of its own containing section's whole window an effect instance
+    /// must span before <see cref="IsFocalEffect"/> calls it a steady-state base-layer "hold" rather than a
+    /// momentary, attention-grabbing "focal" gesture -- the "hold is a steady state, never a dead one" rule
+    /// already named by <c>SectionScriptPromptBuilder</c>'s own prompt guidance (a long color-wash/VU-reactive
+    /// layer spanning most of a section, with shorter accents layered on top). Deliberately well above half
+    /// so an ordinary multi-bar accent is never mistaken for a hold -- only a layer that genuinely spans
+    /// most of the section counts as steady-state.
+    /// </summary>
+    private const double HoldCoverageThreshold = 0.6;
+
+    /// <summary>
+    /// Build-plan Phase 26: how many distinct models may simultaneously carry an active focal effect (see
+    /// <see cref="IsFocalEffect"/>) before <see cref="RuleConcurrentFocalEffectCap"/> flags the instant as
+    /// overcrowded, for an ordinary (non-<see cref="DenseSectionKinds"/>) section. No real corpus
+    /// measurement of cross-model (as opposed to per-model) simultaneous-attention load exists --
+    /// <c>LayerComplexityAnalyzer</c>/<c>LayerComplexityStats</c> (build-plan Phase 25 Part C/D.1) measure
+    /// concurrent *layers stacked on one model*, never concurrent *focal models*. Rather than fabricate an
+    /// unrelated number, this reuses that same real, corpus-calibrated complexity floor
+    /// (<c>LayerComplexityAnalyzer.DefaultMinDistinctLayers</c> = 3, "the complexity bar... 3+, not 2+")
+    /// one tier higher: a real 31-sequence training run (build-plan Phase 25 Part C) measured a sharp
+    /// drop-off per additional concurrent-layer tier on a single model -- 551 windows at 3+, 290 at 4+,
+    /// only 151 at 5+ -- so this rule's own cap sits one tier above that floor (allow up to 4 concurrent
+    /// focal models, flag at 5+), the same "comfortably past the point real corpus practice itself got
+    /// rare" framing <see cref="MaxSingleEffectShare"/> above already uses, applied cross-model instead of
+    /// fabricating a second unrelated constant.
+    /// </summary>
+    private const int DefaultMaxConcurrentFocalModels = 4;
+
+    /// <summary>
+    /// One higher than <see cref="DefaultMaxConcurrentFocalModels"/> -- <c>PatternLibrary.DensityBySection</c>
+    /// (build-plan Phase 2b §2b.8) measures Chorus/Bridge/Solo-kind sections as reliably denser
+    /// (effect-starts/second) than Intro/Verse/PreChorus/Outro/Unknown ones, so a song's own busiest,
+    /// most climactic moments earn one more simultaneously-focal prop before this rule flags them, rather
+    /// than one flat cap applied to a show's loudest and quietest sections alike.
+    /// </summary>
+    private const int DensePeakSectionMaxConcurrentFocalModels = DefaultMaxConcurrentFocalModels + 1;
+
+    /// <summary>Section kinds <see cref="DensePeakSectionMaxConcurrentFocalModels"/> applies to -- the peak-energy kinds this codebase already singles out for the loudest treatment (e.g. <c>StylePreset</c>'s own energy-ceiling guidance).</summary>
+    private static readonly IReadOnlyCollection<SectionKind> DenseSectionKinds = new HashSet<SectionKind> { SectionKind.Chorus, SectionKind.Bridge, SectionKind.Solo };
 
     /// <summary>
     /// Build-plan Phase 22 §2c: public (same reason as <see cref="RuleModelCoverage"/>) so a caller can
@@ -184,9 +240,15 @@ public static class ChoreographyLegalityValidator
     /// for a caller that predates this phase. <see cref="RuleSectionDensityContrast"/> skips any section
     /// missing this the same way it skips a missing <see cref="Window"/>.
     /// </param>
+    /// <param name="Kind">
+    /// Build-plan Phase 26: this section's own classified <see cref="SectionKind"/>, or <see langword="null"/>
+    /// for a caller that predates this phase. Only consulted by <see cref="RuleConcurrentFocalEffectCap"/>, to
+    /// pick between <see cref="DefaultMaxConcurrentFocalModels"/> and <see cref="DensePeakSectionMaxConcurrentFocalModels"/>
+    /// -- a section missing this simply gets the default (non-dense) cap, never a guessed kind.
+    /// </param>
     public sealed record SectionAssignment(
         string SectionId, Look Look, ChoreographyIR CompiledIR, IReadOnlyList<ModelId> TargetedModels,
-        TimeWindow? Window = null, double? EnergyCeiling = null);
+        TimeWindow? Window = null, double? EnergyCeiling = null, SectionKind? Kind = null);
 
     /// <summary>Validates whole-song concerns that no single section's own compile can check in isolation: peak-Look uniqueness, pixel-heavy coverage, and declared-vs-accidental darkness.</summary>
     /// <param name="audioEnergy">
@@ -352,7 +414,95 @@ public static class ChoreographyLegalityValidator
                 AffectedModelId: model.Id.Value));
         }
 
+        // Concurrent focal-effect density cap (M), build-plan Phase 26: docs/MASTER-SYSTEM-ARCHITECTURE.md
+        // §9a's own disclosed gap -- nothing today checks how many distinct props are simultaneously
+        // carrying an attention-grabbing ("focal," see IsFocalEffect) effect. A plain sweep-line over every
+        // section's own focal effects (grouped by real, group-expanded model id -- ResolveRealModelIds,
+        // same group-collapse awareness RuleModelCoverage above already needs) finds the real peak
+        // concurrent-focal-model count at every instant; a section missing its own Window is skipped
+        // entirely (never inventing one to measure a hold against), the same discipline RuleSectionDensityContrast
+        // and RuleDeclaredDarkness already apply to a missing Window.
+        var focalEvents = new List<(long Time, int Delta, ModelId Model)>();
+        foreach (var section in sections)
+        {
+            if (section.Window is not { } sectionWindow)
+            {
+                continue;
+            }
+
+            foreach (var effect in section.CompiledIR.Effects)
+            {
+                if (effect.EndTicks <= effect.StartTicks || !IsFocalEffect(effect, sectionWindow))
+                {
+                    continue;
+                }
+
+                foreach (var modelId in ResolveRealModelIds(effect.Target.Value, layout))
+                {
+                    focalEvents.Add((effect.StartTicks, 1, modelId));
+                    focalEvents.Add((effect.EndTicks, -1, modelId));
+                }
+            }
+        }
+
+        if (focalEvents.Count > 0)
+        {
+            // End events (-1) apply before start events (+1) at the same instant -- same tie-break
+            // LayerComplexityAnalyzer's own sweep line uses, so two back-to-back (never truly overlapping)
+            // focal effects on the same model never misread as one instant of double occupancy.
+            var activeCounts = new Dictionary<ModelId, int>();
+            var wasOvercrowded = false;
+            foreach (var e in focalEvents.OrderBy(e => e.Time).ThenBy(e => e.Delta))
+            {
+                activeCounts.TryGetValue(e.Model, out var count);
+                count += e.Delta;
+                if (count <= 0)
+                {
+                    activeCounts.Remove(e.Model);
+                }
+                else
+                {
+                    activeCounts[e.Model] = count;
+                }
+
+                var owningSection = sections.FirstOrDefault(s => s.Window is { } w && e.Time >= w.StartTicks && e.Time < w.EndTicks);
+                var cap = owningSection?.Kind is { } kind && DenseSectionKinds.Contains(kind)
+                    ? DensePeakSectionMaxConcurrentFocalModels
+                    : DefaultMaxConcurrentFocalModels;
+
+                var isOvercrowded = activeCounts.Count > cap;
+                if (isOvercrowded && !wasOvercrowded)
+                {
+                    violations.Add(new LegalityViolation(RuleConcurrentFocalEffectCap,
+                        $"{activeCounts.Count} distinct models simultaneously carry an active focal effect at {TimeSpan.FromTicks(e.Time):mm\\:ss} (section '{owningSection?.SectionId ?? "unknown"}') -- exceeds the cap of {cap} concurrent focal models for this section kind."));
+                }
+
+                wasOvercrowded = isOvercrowded;
+            }
+        }
+
         return violations;
+    }
+
+    /// <summary>
+    /// Build-plan Phase 26: whether <paramref name="effect"/> is a "focal" (active, attention-grabbing)
+    /// effect rather than a steady-state base-layer "hold" -- an effect spanning at least
+    /// <see cref="HoldCoverageThreshold"/> of its own containing section's whole window reads as that
+    /// steady base layer, not a momentary focal gesture, and is excluded so <see cref="RuleConcurrentFocalEffectCap"/>
+    /// never trips on ordinary base+accent layering, only on genuinely simultaneous accents. A section
+    /// whose own window has non-positive duration has nothing real to measure a hold's coverage against,
+    /// so every effect in it counts as focal rather than being silently excluded.
+    /// </summary>
+    private static bool IsFocalEffect(EffectInstance effect, TimeWindow sectionWindow)
+    {
+        var sectionDuration = sectionWindow.EndTicks - sectionWindow.StartTicks;
+        if (sectionDuration <= 0)
+        {
+            return true;
+        }
+
+        var effectDuration = effect.EndTicks - effect.StartTicks;
+        return effectDuration < sectionDuration * HoldCoverageThreshold;
     }
 
     /// <summary>

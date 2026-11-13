@@ -31,17 +31,36 @@ namespace XlightsAI.Studio.Director;
 /// <see cref="CraftRules"/>/<see cref="Exemplars"/>) so the Director's own baseline guidance above is
 /// cross-checked against what real shows actually do, not left as pure hand-tuned prose.
 /// </param>
+/// <param name="WholeCanvasCoOccurrence">
+/// Build-plan Phase 25 Part B.2/C: the real, measured <see cref="Pipeline.WholeCanvasCoOccurrenceStats"/>
+/// a prior <c>CorpusTrainingRunner</c> run computed over external (non-exemplar-eligible) sequences --
+/// defaults to <see langword="null"/> so every existing caller that does not yet pass one keeps compiling;
+/// a real composition root should load it (from a persisted <c>CorpusTrainingReport</c>) so
+/// <see cref="DirectorPromptBuilder.AppendWholeCanvasGroupSection"/> can state concrete, measured usage
+/// guidance instead of withholding it pending real data.
+/// </param>
+/// <param name="LayerComplexity">
+/// Build-plan Phase 25 Part C §3 bullet 3/loose end: the real, measured <see cref="Pipeline.LayerComplexityStats"/>
+/// the same prior <c>CorpusTrainingRunner</c> run computed -- defaults to <see langword="null"/> so every
+/// existing caller that does not yet pass one keeps compiling; a real composition root should load it so
+/// <see cref="DirectorPromptBuilder.AppendLayerComplexityGuidance"/> can ground how often the Director is
+/// told to reach for a genuinely layered moment in real numbers instead of pure hand-tuned prose.
+/// </param>
 public sealed record DirectorKnowledgeContext(
     EffectVocabularyCatalog Vocabulary,
     CraftRules CraftRules,
     ExemplarIndex Exemplars,
     MultiLayerTemplateCatalog? Templates = null,
     EffectVisualCharacterCatalog? EffectVisualCharacters = null,
-    PatternLibrary? PatternLibrary = null)
+    PatternLibrary? PatternLibrary = null,
+    WholeCanvasCoOccurrenceStats? WholeCanvasCoOccurrence = null,
+    LayerComplexityStats? LayerComplexity = null)
 {
     public MultiLayerTemplateCatalog TemplatesOrEmpty => Templates ?? EmptyCatalog;
 
     public PatternLibrary PatternLibraryOrEmpty => PatternLibrary ?? EmptyPatternLibrary;
+
+    public LayerComplexityStats LayerComplexityOrEmpty => LayerComplexity ?? EmptyLayerComplexity;
 
     private static readonly MultiLayerTemplateCatalog EmptyCatalog = new(0, DateTimeOffset.MinValue, []);
 
@@ -51,6 +70,10 @@ public sealed record DirectorKnowledgeContext(
         DensityBySection: new Dictionary<SectionKind, double>(), LayerCountPerModelDistribution: new Dictionary<int, int>(),
         BlendModeUsage: new Dictionary<string, int>(), PaletteActiveSlotDistribution: new Dictionary<int, int>(),
         ModeACount: 0, ModeBCount: 0);
+
+    private static readonly LayerComplexityTierStats EmptyTier = new(0, new Dictionary<string, int>(), null, null);
+
+    private static readonly LayerComplexityStats EmptyLayerComplexity = new(EmptyTier, EmptyTier, EmptyTier);
 }
 
 /// <summary>
@@ -62,7 +85,12 @@ public sealed record DirectorKnowledgeContext(
 /// <see cref="ExemplarIndex.FindVaried"/>), trading that provider cache hit for actual effect-choice
 /// variety on a user-requested "regenerate" -- an explicit, disclosed opt-out, not an oversight.
 /// </summary>
-public sealed record DirectorPrompt(string StablePrefix, string VolatileSuffix);
+/// <param name="ExemplarReuse">
+/// Build-plan Phase 25 Part E.1: every exemplar draw this call's own "## Retrieved exemplars" section
+/// made, recorded by the same <see cref="ExemplarReuseTracker"/> instance across the whole stable-prefix
+/// build -- see <see cref="ShowBibleValidator.ValidateExemplarReuse"/> for how this is validated.
+/// </param>
+public sealed record DirectorPrompt(string StablePrefix, string VolatileSuffix, ExemplarReuseReport? ExemplarReuse = null);
 
 /// <summary>
 /// Build-plan Phase 5 task 3/4: "Assemble the Director prompt from MusicModel, Layout, style selection,
@@ -110,12 +138,38 @@ public static class DirectorPromptBuilder
         // song in "varied" mode draw different exemplars, which is the entire point of the toggle; it
         // would defeat that purpose to make this Random deterministic/seeded from the song itself.
         var stayCloseToExemplars = customPrompt?.StayCloseToExemplars ?? true;
+        var reuseTracker = new ExemplarReuseTracker();
+        var stablePrefix = BuildStablePrefix(knowledge, style, music, stayCloseToExemplars, stayCloseToExemplars ? null : new Random(), reuseTracker);
         return new DirectorPrompt(
-            BuildStablePrefix(knowledge, style, music, stayCloseToExemplars, stayCloseToExemplars ? null : new Random()),
-            BuildVolatileSuffix(music, layout, customPrompt));
+            stablePrefix,
+            BuildVolatileSuffix(music, layout, customPrompt, knowledge.WholeCanvasCoOccurrence),
+            reuseTracker.BuildReport());
     }
 
-    private static string BuildStablePrefix(DirectorKnowledgeContext knowledge, string style, MusicModel music, bool stayCloseToExemplars, Random? variationRandom)
+    /// <summary>
+    /// Build-plan Phase 25 Part D.4/loose end: a <see cref="SectionKind"/> whose own
+    /// <see cref="DefaultEnergyCeilings.ArchitectureSection10"/> ceiling reaches this threshold is a
+    /// genuine peak/featured moment (Chorus/Solo) -- exactly the kind of section the baseline craft
+    /// guidance above already tells the Director to stack 3+ concurrent layers for. Requesting a real
+    /// <see cref="LayerComplexityAnalyzer.DefaultMinDistinctLayers"/>+ exemplar for these kinds specifically
+    /// (rather than leaving layer complexity an accidental byproduct of plain similarity ranking) is the
+    /// one structural signal available at stable-prefix-build time -- before any Show Bible exists -- that
+    /// stands in for "a section the show bible flags for added density."
+    /// </summary>
+    private const double ComplexityRequestCeilingThreshold = 0.75;
+
+    /// <summary>
+    /// User feedback (2026-11-12): the baseline craft guidance above already demands "a Verse/ballad/
+    /// low-energy Look's subject prop should still carry at least 2" layers, but until now only kinds at
+    /// or above <see cref="ComplexityRequestCeilingThreshold"/> (Chorus/Solo) ever requested a complexity
+    /// floor at all -- every other kind (Verse, PreChorus, Bridge, Intro, Outro, Unknown) requested a
+    /// plain similarity match with no floor, so the single-layer-dominant pool could win even where a
+    /// real 2+-layer exemplar existed in the index. This is that floor for every non-peak kind; the
+    /// existing "retry with no floor" fallback a few lines down still applies when nothing meets it.
+    /// </summary>
+    private const int SecondaryComplexityFloor = 2;
+
+    private static string BuildStablePrefix(DirectorKnowledgeContext knowledge, string style, MusicModel music, bool stayCloseToExemplars, Random? variationRandom, ExemplarReuseTracker reuseTracker)
     {
         var preset = StylePresetCatalog.Resolve(style);
 
@@ -161,7 +215,8 @@ public static class DirectorPromptBuilder
         sb.AppendLine("- A \"hold\"-motion layer is a steady state, never a dead one. Confirmed against a real exported show: a layer using the plain \"On\" effect, reused across several consecutive sections for the same subject/group, renders as one long, visually unbroken, boring block -- exactly as lifeless as the bare negative-space problem above, just on the opposite (always-on) extreme. \"On\" has no animation of its own, so reserve it for brief transitional moments (well under a bar) -- never as the sole, long-duration content of a \"hold\" layer or a Look reused across many consecutive sections. For an actual held/steady look, pick an effect with its own real per-frame animation instead (Color Wash, Twinkle, SingleStrand, Bars, ...) -- it still reads as calm and steady at a low duty cycle, but it is never a single dead frame stretched over a minute.");
         sb.AppendLine("- Give every section's subject layer a long-duration base layer spanning most of that section's own window -- a real hand-sequenced reference for this exact craft brief runs one steady color-wash/VU-meter-style base layer across nearly the whole song, with short accent effects layered on top of it, never standing alone. A generation that compiles only short discrete hits (a handful of seconds each, repeated) has no anchor for a listener's eye to settle on during a quiet stretch, even if the hits themselves are well-placed. This is additive, not a replacement: keep the short accent/overlay layers this guidance already calls for elsewhere -- bind one of a Look's own layers (ordinarily the subject, timing-track-bound in Mode A, e.g. a long Color Wash/Twinkle/SingleStrand spanning the whole section) to be that base, and let the rest ride on top of it.");
         sb.AppendLine("- Stack real layers on high-resolution canvas props, not just one effect at a time. Tree and Matrixes/Matrix-2/Matrix3 (and similarly dense multi-node props) have enough pixels to carry a base effect PLUS one or two overlay effects simultaneously (Z-ordered layers, blended with Additive/Max/Average so the base shows through) -- a single flat effect on these props under-uses them and reads as plain motion rather than genuine texture. Favor Looks with 2-3 layers on these specific props: a slower base wash or chase for the subject's color/identity, plus a faster-moving accent layer (Twinkle, Sparkles, Snowflakes) riding on top for sparkle and detail. This is not occasional set-dressing -- for Tree/Matrixes specifically, a single-layer Look should be the exception, reserved for quiet/sparse moments, not the default. Low-resolution props (short strings, small accent models) should usually stay single-layer -- they rarely have enough pixels for a second layer to read as anything but noise.");
-        sb.AppendLine("- Use Butterfly sparingly. It is a valid effect, not a forbidden one, but it reads as a strong, busy, high-duty-cycle signature move -- reserve it for a genuine rare moment (a specific peak/pop), not a default go-to for a hold layer or a Tree/Matrixes accent layer. When in doubt, prefer Twinkle, Sparkles, Snowflakes, Color Wash, or SingleStrand instead.");
+        sb.AppendLine("- Use Butterfly sparingly. It is a valid effect, not a forbidden one, but it reads as a strong, busy, high-duty-cycle signature move -- reserve it for a genuine rare moment (a specific peak/pop), not a default go-to for a hold layer or a Tree/Matrixes accent layer. When in doubt, prefer Twinkle, Sparkles, Snowflakes, or Color Wash instead.");
+        sb.AppendLine("- SingleStrand reads as a single moving point/segment of color along one real axis -- it is most legible on Single Line models and Arches, where that one-axis motion is the whole prop's geometry. On a Tree or Matrix (dense, radial/2D props with plenty of pixels to spare), a single bare SingleStrand layer alone gets lost or reads as a flat shimmer rather than the intentional chase/wipe it is on a line or arch. User feedback (2026-11-12), confirmed against real corpus-mined multi-layer stacks: this is specifically about SingleStrand used ALONE as a Tree/Matrix's only layer -- 2-3 SingleStrand layers stacked together (different colors/offsets), or SingleStrand layered over a Color Wash base, is a genuinely different, denser visual (real shows do this) and is fine on Tree/Matrix. So: never a single standalone SingleStrand layer as a Tree/Matrix's whole look -- favor Twinkle, Sparkles, Snowflakes, or Color Wash for that single-layer case -- but SingleStrand stacked 2-3 deep with other layers is a legitimate Tree/Matrix choice, not just a Single Line/Arch one.");
         sb.AppendLine("- User feedback: increase the overall number of effects and layers across the whole show, not just on Tree/Matrixes. Layering is not limited to those two props -- any prop or group with enough resolution for a second layer to read as real texture (not noise) benefits from one during a Chorus/Drop/peak section: a base effect carrying color/identity plus a brighter or faster accent layer on top. Push for MORE total Looks using 2+ layers, MORE distinct Looks overall (use more of the MinLooks-MaxLooks range, not the floor), and faster composition-change rates toward the upper end of this style's own density band below -- while still respecting negative space during genuinely quiet sections. \"More layered/more frequent\" and \"everything on constantly\" are not the same goal; the first makes high-energy sections feel richer, the second just reads as noise.");
         sb.AppendLine("- A stated minimum, not just \"more\": a real hand-sequenced reference for this exact craft brief ran up to 8 concurrent EffectLayers on its richest prop and 3 on typical secondary props, against a generated show that peaked at 3 on its richest prop and 0-2 on secondary ones. Concretely: a Chorus/Drop/peak-energy Look's subject prop should carry 3 or more concurrent layers (the multi-layer template catalog below demonstrates real corpus-derived 2-layer patterns at every energy band; this floor pushes higher specifically for peak-energy sections, on top of that catalog, not instead of it); a Verse/ballad/low-energy Look's subject prop should still carry at least 2 (one steady base, one accent) -- never a bare single-layer Look outside a genuinely sparse/negative-space moment. Secondary props on a Chorus/Drop/peak section should carry 2-3 layers where their own resolution supports it, not just the subject.");
         sb.AppendLine("- Also use a genuinely wide slice of the real effect vocabulary above, not a narrow handful repeated everywhere: the same reference used 22 distinct effect names across the whole song, with its two most-used effects together covering only about half of all effects; a generated show that leans on 2 effects for well over a third of everything reads as monotone regardless of how its colors or timing vary. Spread Look design across many different effects from the vocabulary -- reserve any one effect (however good it looks) for a clear minority of this song's own Looks.");
@@ -170,6 +225,7 @@ public static class DirectorPromptBuilder
 
         AppendMultiLayerTemplates(sb, knowledge.TemplatesOrEmpty);
         AppendPatternLibraryDensity(sb, knowledge.PatternLibraryOrEmpty);
+        AppendLayerComplexityGuidance(sb, knowledge.LayerComplexityOrEmpty);
 
         sb.AppendLine("## Verified craft rules");
         sb.AppendLine("Rules below were induced from a real sequence corpus and mechanically re-verified; follow them.");
@@ -195,9 +251,34 @@ public static class DirectorPromptBuilder
                 BandBalance: null, VocalActivityHint: null);
 
             var count = ExemplarCountForKind(knowledge.Exemplars, kind);
+
+            // Build-plan Phase 25 Part D.4/loose end: request a genuinely layered moment for a
+            // peak/featured SectionKind first; fall back to the plain (no complexity floor) retrieval
+            // rather than silently showing zero exemplars for this Kind when nothing in the index meets
+            // that floor yet.
+            var requestLayeredMoment = DefaultEnergyCeilings.ArchitectureSection10.TryGetValue(kind, out var ceiling) && ceiling >= ComplexityRequestCeilingThreshold;
+            int? complexityFloor = requestLayeredMoment ? LayerComplexityAnalyzer.DefaultMinDistinctLayers : SecondaryComplexityFloor;
+
+            // Build-plan Phase 26 bugfix: real-run finding (2026-11-11, project "Bang") -- several
+            // SectionKinds with zero real same-kind corpus entries each fell back to the identical
+            // cross-kind pool (the query vector is otherwise the same placeholder shape for every Kind,
+            // see ExemplarFingerprint.ToComparisonVector) and deterministically drew the SAME single top
+            // match every time, inflating one real exemplar's reuse count with no real variety ever having
+            // been considered. Excluding whatever this run has already drawn (reuseTracker.DrawnKeys, built
+            // up incrementally by the earlier Record calls below as this foreach loop proceeds kind by
+            // kind) makes every later kind's own retrieval genuinely prefer a fresh exemplar first.
+            var alreadyDrawn = reuseTracker.DrawnKeys;
             var retrieval = stayCloseToExemplars
-                ? knowledge.Exemplars.FindSimilar(query, count)
-                : knowledge.Exemplars.FindVaried(query, count, variationRandom!);
+                ? knowledge.Exemplars.FindSimilar(query, count, complexityFloor, alreadyDrawn)
+                : knowledge.Exemplars.FindVaried(query, count, variationRandom!, complexityFloor, alreadyDrawn);
+            if (retrieval.Entries.Count == 0 && complexityFloor is not null)
+            {
+                retrieval = stayCloseToExemplars
+                    ? knowledge.Exemplars.FindSimilar(query, count, excludeKeys: alreadyDrawn)
+                    : knowledge.Exemplars.FindVaried(query, count, variationRandom!, excludeKeys: alreadyDrawn);
+            }
+
+            reuseTracker.Record(retrieval.Entries);
             if (retrieval.Entries.Count == 0)
             {
                 continue;
@@ -222,7 +303,7 @@ public static class DirectorPromptBuilder
         return sb.ToString();
     }
 
-    private static string BuildVolatileSuffix(MusicModel music, LayoutSummary layout, CustomGenerationPrompt? customPrompt)
+    private static string BuildVolatileSuffix(MusicModel music, LayoutSummary layout, CustomGenerationPrompt? customPrompt, WholeCanvasCoOccurrenceStats? wholeCanvasCoOccurrence)
     {
         var sb = new StringBuilder();
         sb.AppendLine("## This song");
@@ -261,6 +342,7 @@ public static class DirectorPromptBuilder
         sb.AppendLine(layout.ToPromptText());
 
         AppendBandEnergyGroupRoleMapping(sb, music, layout, bandProfiles);
+        AppendWholeCanvasGroupSection(sb, layout, wholeCanvasCoOccurrence);
 
         CustomPromptBlockFormatter.AppendBlock(sb, customPrompt);
 
@@ -442,6 +524,81 @@ public static class DirectorPromptBuilder
     }
 
     /// <summary>
+    /// Build-plan Phase 25 Part B.1/B.2: a sibling section to "## Band-to-group mapping" for every
+    /// <see cref="BandRole.WholeCanvas"/>-classified group (Part A's structural coverage-ratio
+    /// detection) -- present only when one exists, same "append nothing when there's nothing to ground it
+    /// in" convention <see cref="AppendBandEnergyGroupRoleMapping"/> already uses. States the measured fact
+    /// (which group, how much of the layout it covers) and that it is a different *kind* of role than
+    /// Foundation/Subject/Accent, plus -- once Part B.4's <see cref="WholeCanvasCoOccurrenceStats"/> has
+    /// real samples (<paramref name="coOccurrence"/>) -- concrete, measured usage guidance for *when* a
+    /// real designer actually fires a whole-canvas group, mirroring how
+    /// <see cref="AppendBandEnergyGroupRoleMapping"/> already states its own rule as "measured for this
+    /// song, not re-decided per Look." Falls back to disclosing that no training data exists yet (never a
+    /// fabricated usage-frequency guess) when <paramref name="coOccurrence"/> is <see langword="null"/> --
+    /// distinct (build-plan Phase 25 Part C real-corpus finding) from a real <c>CorpusTrainingRunner</c> run
+    /// having actually completed and genuinely found zero whole-canvas windows across its own corpus
+    /// (<see cref="WholeCanvasCoOccurrenceStats.WindowSampleCount"/> <c>== 0</c>) -- those are different
+    /// facts (one says "run the tool", the other says "the tool ran and this really doesn't happen in your
+    /// corpus yet") and must not share the same message.
+    /// </summary>
+    private static void AppendWholeCanvasGroupSection(StringBuilder sb, LayoutSummary layout, WholeCanvasCoOccurrenceStats? coOccurrence)
+    {
+        var wholeCanvasGroups = BandEnergyGroupRoleMapper.Classify(layout).Where(c => c.Role == BandRole.WholeCanvas).ToList();
+        if (wholeCanvasGroups.Count == 0)
+        {
+            return;
+        }
+
+        var pixelsByReference = layout.Groups.Concat(layout.TopPixelHeavyModels)
+            .GroupBy(e => e.Reference)
+            .ToDictionary(g => g.Key, g => g.First().NodeCount);
+
+        sb.AppendLine();
+        sb.AppendLine("## Whole-canvas group");
+        sb.AppendLine("Not tied to any single frequency band's spatial home -- a song-wide synchronized moment across the whole layout, never a fourth foundation/subject/accent peer:");
+        foreach (var group in wholeCanvasGroups)
+        {
+            var coverage = layout.TotalPixels > 0 ? pixelsByReference[group.Reference] / (double)layout.TotalPixels : 0;
+            sb.AppendLine($"- {group.Reference} ({coverage:P0} of this layout's total pixels)");
+        }
+
+        if (coOccurrence is null)
+        {
+            sb.AppendLine("Usage guidance: no real corpus training data is available yet for when a whole-canvas group actually fires (run the CorpusTrainer tool against an external sequence folder) -- use judgment, reserving it for a genuine peak moment rather than a default go-to.");
+            return;
+        }
+
+        if (coOccurrence.WindowSampleCount == 0)
+        {
+            sb.AppendLine("Usage guidance: a real CorpusTrainer run completed and genuinely found no whole-canvas-group effect windows anywhere in that corpus yet -- a measured absence, not an untrained gap. Use judgment, reserving it for a genuine peak moment rather than a default go-to.");
+            return;
+        }
+
+        sb.AppendLine($"Usage guidance (measured across {coOccurrence.SongsWithWholeCanvasCount} real corpus song(s), {coOccurrence.WindowSampleCount} whole-canvas window(s) -- not a guess):");
+        sb.AppendLine($"- Co-fires with: Subject {coOccurrence.SubjectCoFireRatio:P0} of the time, Foundation {coOccurrence.FoundationCoFireRatio:P0}, Accent {coOccurrence.AccentCoFireRatio:P0}.");
+
+        if (coOccurrence.SectionKindHistogram.Count > 0)
+        {
+            var total = coOccurrence.SectionKindHistogram.Values.Sum();
+            var ranked = coOccurrence.SectionKindHistogram.OrderByDescending(kv => kv.Value).ToList();
+            var topText = string.Join(", ", ranked.Take(2).Select(kv => $"{kv.Key} ({kv.Value / (double)total:P0})"));
+            sb.AppendLine($"- Concentrated in: {topText}.");
+        }
+
+        if (coOccurrence.EnergyTierHistogram.Count > 0)
+        {
+            var total = coOccurrence.EnergyTierHistogram.Values.Sum();
+            var dominant = coOccurrence.EnergyTierHistogram.OrderByDescending(kv => kv.Value).First();
+            sb.AppendLine($"- Energy: {dominant.Key} most often ({dominant.Value / (double)total:P0} of windows).");
+        }
+
+        if (coOccurrence.MedianDurationBars is { } median)
+        {
+            sb.AppendLine($"- Typical duration: median {median:0.#} bar(s), P90 {coOccurrence.P90DurationBars:0.#} bar(s) -- a brief, discrete moment, not a long-held state.");
+        }
+    }
+
+    /// <summary>
     /// Build-plan Phase 20 §2c: renders this corpus's own real, measured <see cref="PatternLibrary.DensityBySection"/>
     /// (effect-starts-per-second, by <see cref="SectionKind"/>) and <see cref="PatternLibrary.LayerCountPerModelDistribution"/>
     /// (how many distinct <c>EffectLayer</c>s a real model actually carries, across the whole corpus) next
@@ -483,6 +640,46 @@ public static class DirectorPromptBuilder
     }
 
     /// <summary>
+    /// Build-plan Phase 25 Part C §3 bullet 3/loose end: grounds the baseline craft guidance's own "3+
+    /// concurrent layers on a Chorus/Drop/peak-energy Look's subject prop" line with real, measured corpus
+    /// numbers -- how many real windows across the external training corpus actually reached 3+/4+/5+
+    /// concurrent layers, in which section kinds, and for how long -- the same "cross-check, never a
+    /// replacement" framing <see cref="AppendPatternLibraryDensity"/> already uses for density. Appends a
+    /// disclosed-empty message (same convention as that method) when no training pass has ever been run.
+    /// </summary>
+    private static void AppendLayerComplexityGuidance(StringBuilder sb, LayerComplexityStats stats)
+    {
+        sb.AppendLine("## Real corpus layer-complexity baseline (measured, not hand-tuned)");
+        sb.AppendLine("Cross-check only, for the \"3+ concurrent layers\" baseline craft guidance above -- how often a real corpus moment actually reached that complexity, and where:");
+        if (stats.ThreePlus.WindowCount == 0)
+        {
+            sb.AppendLine("(None available for this run -- run the CorpusTrainer tool against an external sequence folder to populate this.)");
+            sb.AppendLine();
+            return;
+        }
+
+        AppendLayerComplexityTier(sb, "3+ layers", stats.ThreePlus);
+        AppendLayerComplexityTier(sb, "4+ layers", stats.FourPlus);
+        AppendLayerComplexityTier(sb, "5+ layers", stats.FivePlus);
+        sb.AppendLine();
+    }
+
+    private static void AppendLayerComplexityTier(StringBuilder sb, string label, LayerComplexityTierStats tier)
+    {
+        if (tier.WindowCount == 0)
+        {
+            sb.AppendLine($"- {label}: no real window reached this tier.");
+            return;
+        }
+
+        var sectionText = tier.SectionKindHistogram.Count > 0
+            ? ", most often in " + string.Join(", ", tier.SectionKindHistogram.OrderByDescending(kv => kv.Value).Take(2).Select(kv => kv.Key))
+            : string.Empty;
+        var durationText = tier.MedianDurationBars is { } median ? $", typical duration {median:0.#} bar(s) (P90 {tier.P90DurationBars:0.#})" : string.Empty;
+        sb.AppendLine($"- {label}: {tier.WindowCount} real window(s){sectionText}{durationText}.");
+    }
+
+    /// <summary>
     /// Confirmed against real model calls (both a local Ollama model and real Anthropic Claude): with no
     /// explicit schema, a model reasonably invents its own shape (e.g. adding a "title" field), which the
     /// deliberately-strict deserializer (<see cref="StructuredJsonAiClient{TResponse}"/>'s
@@ -501,6 +698,7 @@ public static class DirectorPromptBuilder
         sb.AppendLine("You do not know each effect's own real parameter names (they vary per effect and are not listed here) -- OMIT \"Params\" entirely on every layer unless you are certain of a real setting key; every effect already has sensible defaults, so an empty Params is always safe and preferred over a guessed one.");
         sb.AppendLine("\"Subject\"/\"Props\" accept either a real individual prop name OR a real group reference from the Layout section below (e.g. \"group:Matrixes\", \"group:MiniTrees\", \"group:Outline\") -- use a group reference when every member of that group should genuinely carry the exact same effect at the same time (it compiles to one real, editable group-level effect instead of silently repeating the same effect once per member model). This is a MIX, not a default: a Look library that leans on \"group:Everything\"/a couple of broad groups for most of its Looks is exactly as wrong as one that never uses a group at all -- individual high-value props (the matrices, the tree, a hero arch) deserve their own direct moments too, especially for a peak/solo Look naming one specific subject. Vary it deliberately across the library, the same way a real designer alternates between a full-canvas moment and a single prop carrying a line.");
         sb.AppendLine("Reach across the WHOLE real prop/group list below over the course of the Look library, not just the handful of broad groups and heaviest individual props -- a prop that never appears as any Look's own Subject/Props (not even inside a group) never gets its own moment in the finished show. Spread deliberate attention across small/outline props too (an arch, a mini tree, the front door), not only the matrices and the tree.");
+        sb.AppendLine("Every layer within one Look's own \"Layers\" array MUST have a distinct \"Z\" value (0, 1, 2, ... in the order you list them) -- two layers left at the same Z (most commonly both left at the default-looking 0) is a hard validation failure, not a cosmetic detail. The first/base layer is Z=0, the next layer stacked on top of it is Z=1, and so on -- this applies to every multi-layer Look, including every Look built from a seed multi-layer template below (REQUIRED to have 2 layers): its subject layer is Z=0 and its secondary/accent layer is Z=1, never both Z=0.");
         sb.AppendLine("A literal \"moving from one prop to the next\" sweep (light prop A, then B, then C in turn) is NOT something a single group-targeted effect can produce -- a group effect always treats every member identically and simultaneously. For that specific traveling effect, declare \"PropDelays\" on a Look whose Props/Subject is a group with genuinely different-sized members (mass/mid/accent tiers by real pixel weight -- e.g. \"{\\\"mass\\\":\\\"+0ms\\\",\\\"mid\\\":\\\"+80ms\\\",\\\"accent\\\":\\\"+160ms\\\"}\"), which staggers each tier's own reveal instead of firing every member at once -- reserve this for Looks where that graduated, traveling reveal is the actual intent, not every Look using a group.");
         sb.AppendLine($"REQUIRED (build-plan Phase 24 §2a -- a hard validation failure, same tier as the {ShowBibleValidator.MinLooks}-{ShowBibleValidator.MaxLooks}-Look count rule above): a Look is \"eligible\" for a SectionKind when its own \"AllowedSectionKinds\" either omits that Kind's restriction entirely (unrestricted -- eligible for every Kind) or explicitly names it. For any SectionKind that repeats {ShowBibleValidator.MinOccurrencesForDiversityFloor}+ times in this song (named below, under \"This song\", with every one of that Kind's own real bar ranges listed together), at least ceil(occurrences/2) Looks must stay eligible for it. This means: if you give a Look an explicit \"AllowedSectionKinds\" list at all, make sure you still leave enough OTHER Looks eligible for every repeating Kind -- do not restrict so many Looks away from a repeating Kind that fewer than this minimum remain. The simplest way to always satisfy this is to leave \"AllowedSectionKinds\" omitted (unrestricted) on most Looks, and only restrict the few Looks where a real creative reason calls for it.");
         sb.AppendLine("""
@@ -527,6 +725,22 @@ public static class DirectorPromptBuilder
                         "Duty": 0.0,
                         "Timescale": "Beats|Bars|Phrases|Transients|VocalNotes (optional, omit if unused -- use these exact real track names, not a paraphrase like \"beat\" or \"bar\"; Transients/VocalNotes exist only when this song's own real detected hits/sung notes are available, see below)",
                         "Annotation": "optional -- what this layer is meant to visually express; see the grounding rule below the effect vocabulary, omit entirely rather than guess"
+                      },
+                      {
+                        "Z": 1,
+                        "Props": "a prop or group name (a second layer -- only when this Look genuinely needs one; a single-layer Look just omits this and every later array entry entirely)",
+                        "Effect": "must be exactly one of the effect vocabulary names below",
+                        "Role": "subject|support|secondary",
+                        "Blend": "Normal|Bright|Additive|Max",
+                        "Duty": 0.0
+                      },
+                      {
+                        "Z": 2,
+                        "Props": "a prop or group name (a third layer -- REQUIRED, not just allowed, on a Chorus/Solo/peak-energy Look's subject prop per the baseline craft guidance above; omit entirely on a Verse/low-energy or genuinely single-layer Look)",
+                        "Effect": "must be exactly one of the effect vocabulary names below",
+                        "Role": "subject|support|secondary",
+                        "Blend": "Normal|Bright|Additive|Max",
+                        "Duty": 0.0
                       }
                     ],
                     "Variations": ["optional array of strings, omit if none"],

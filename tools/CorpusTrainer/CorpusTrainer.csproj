@@ -1,0 +1,19 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <!-- Build-plan Phase 25 Part C: a sibling tool to CorpusMiner, deliberately kept separate from the
+         exemplar-eligible mining CLI; this one only ever produces an aggregate-only
+         corpus-training-report.json via CorpusTrainingRunner, never an ExemplarIndex/MultiLayerTemplate
+         artifact. -->
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Pipeline\XlightsAI.Studio.Pipeline.csproj" />
+  </ItemGroup>
+
+</Project>

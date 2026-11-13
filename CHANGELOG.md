@@ -172,12 +172,17 @@ All notable changes to xLights AI Choreography Studio are recorded in this file.
   rejected by the separation model; the Show Import screen reports the measured mismatch plus what to do
   about it. Non-WAV imports are unaffected, being normalized automatically.
 - Phrase-seam continuity and motif variation (`IPhraseSeamAssembler`/`IMotifVariationScheduler`) are
-  deliberately **not** wired: generated effects are already phrase-bounded by construction so there is no
-  seam to resolve, and motif variation intensity-scales effect parameters that the sole implemented
-  effect recipe (`EffectRecipeRegistry.SimpleOnRecipeId`, a flat on/off) does not have. Both become
-  meaningful once a richer effect recipe exists.
-- The `Refinement` candidate/score/repair loop is likewise not wired; it requires a real rendering and
-  quality-evaluation subsystem that does not exist yet.
+  deliberately **not** wired into the live, LLM-driven generation path: generated effects are already
+  phrase-bounded by construction so there is no seam to resolve. Both types live only in
+  `XlightsAI.Studio.WholeSong`, which backs the old M1-M4 `WholeSongGenerator`/`ChoreographyCompositionRunner`
+  path -- superseded and never executed by a real app generation (see `docs/MASTER-SYSTEM-ARCHITECTURE.md`
+  §9a and the Phase 10 §3g entry above).
+- Corrected (this entry previously claimed the `Refinement` candidate/score/repair loop was not wired, and
+  that the sole implemented effect recipe was a flat on/off `EffectRecipeRegistry.SimpleOnRecipeId` --
+  both stale): `XlightsAI.Studio.Director.IterationLoop` now runs the real render -> measure -> critique ->
+  revise loop (`QualityReport`/`CritiqueFinding`/`RevisionDirective`/convergence diffing), and
+  `GeneratedEffectRecipe`/`GeneratedEffectRecipeFactory` register one real `IEffectRecipe` per actual
+  xLights effect from the generated vocabulary metadata, not a single hardcoded "On" recipe.
 
 ## [0.16.0] - 2026-10-19
 

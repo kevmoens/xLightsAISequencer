@@ -32,8 +32,29 @@ public sealed record ExemplarIndex(DateTimeOffset GeneratedAtUtc, IReadOnlyList<
     /// rather than raw magnitude, which is the more natural notion of "similar" when every axis is
     /// already unit-scaled and equally weighted; either choice is defensible at this dimensionality, and
     /// this is a disclosed, swappable choice, not a derived requirement.
+    ///
+    /// Build-plan Phase 25 Part D.4: <paramref name="minPeakConcurrentLayerCount"/>, when given, is a hard
+    /// filter applied before ranking — only entries whose own <see cref="ExemplarFingerprint.PeakConcurrentLayerCount"/>
+    /// reaches at least that floor are ever considered, so the Director can deliberately request "a
+    /// genuinely layered moment" instead of complexity being an accidental byproduct of whichever window
+    /// the plain similarity search happens to prefer. Applied within the same-kind pool first, and (only
+    /// when that pool has zero same-kind entries at all) within the cross-kind fallback pool — never
+    /// fabricated when no real window meets it: a floor no real entry reaches simply yields <see cref="ExemplarRetrievalResult.Entries"/> empty.
+    ///
+    /// Build-plan Phase 26 bugfix: real-run finding (2026-11-11, project "Bang") -- several different
+    /// <see cref="XlightsAI.Studio.Structure.SectionKind"/> queries built from an otherwise-identical
+    /// comparison vector (see <see cref="ExemplarFingerprint.ToComparisonVector"/>'s own doc comment: tempo/
+    /// energy/band/vocal are fixed placeholders for this query shape) and with zero real same-kind entries
+    /// each independently fell back to the exact same cross-kind pool and deterministically picked the
+    /// identical single top match -- inflating one real exemplar's reuse count with no actual "regeneration"
+    /// ever having happened. <paramref name="excludeKeys"/> (<see cref="ExemplarOverrides.KeyFor"/> keys
+    /// already drawn elsewhere in this same run, see <see cref="ExemplarReuseTracker.DrawnKeys"/>) are
+    /// ranked AFTER every not-yet-drawn candidate, so a later call genuinely prefers a fresh exemplar over
+    /// repeating one already quoted -- only falling back to a repeat when fewer than <paramref name="count"/>
+    /// fresh candidates remain, the same "a real reuse ceiling the pool cannot satisfy" case
+    /// <see cref="ShowBibleValidator.ValidateExemplarReuseOnly"/> still correctly flags.
     /// </summary>
-    public ExemplarRetrievalResult FindSimilar(ExemplarFingerprint query, int count)
+    public ExemplarRetrievalResult FindSimilar(ExemplarFingerprint query, int count, int? minPeakConcurrentLayerCount = null, IReadOnlySet<string>? excludeKeys = null)
     {
         ArgumentNullException.ThrowIfNull(query);
         if (count <= 0)
@@ -43,12 +64,13 @@ public sealed record ExemplarIndex(DateTimeOffset GeneratedAtUtc, IReadOnlyList<
 
         var sameKind = Entries.Where(e => e.Fingerprint.SectionKind == query.SectionKind).ToList();
         var isFallback = sameKind.Count == 0;
-        var candidates = isFallback ? Entries : sameKind;
+        var candidates = ApplyComplexityFilter(isFallback ? Entries : sameKind, minPeakConcurrentLayerCount);
 
         var queryVector = query.ToComparisonVector();
         var results = candidates
             .Select(entry => (Entry: entry, Similarity: CosineSimilarity(queryVector, entry.Fingerprint.ToComparisonVector())))
-            .OrderByDescending(x => x.Similarity)
+            .OrderBy(x => IsAlreadyDrawn(x.Entry, excludeKeys)) // not-yet-drawn (false) before already-drawn (true).
+            .ThenByDescending(x => x.Similarity)
             .Take(count)
             .Select(x => x.Entry)
             .ToList();
@@ -70,8 +92,17 @@ public sealed record ExemplarIndex(DateTimeOffset GeneratedAtUtc, IReadOnlyList<
     /// needs to be the right <see cref="ExemplarFingerprint.SectionKind"/> (or there must be none of that
     /// kind at all) to ever be drawn; this only randomizes which *otherwise-eligible* match gets quoted,
     /// it never relaxes the section-kind constraint itself.
+    ///
+    /// Build-plan Phase 25 Part D.4: <paramref name="minPeakConcurrentLayerCount"/> is the same hard
+    /// complexity filter <see cref="FindSimilar"/> applies, evaluated before weighted sampling — see that
+    /// method's own doc comment.
+    ///
+    /// Build-plan Phase 26 bugfix: <paramref name="excludeKeys"/> is the same already-drawn-this-run
+    /// preference <see cref="FindSimilar"/> applies -- see its own doc comment for why. Applied the same
+    /// way here: every not-yet-drawn candidate is ranked (by its weighted sampling key) ahead of every
+    /// already-drawn one, so a repeat only happens once genuinely fresh candidates run out.
     /// </summary>
-    public ExemplarRetrievalResult FindVaried(ExemplarFingerprint query, int count, Random random)
+    public ExemplarRetrievalResult FindVaried(ExemplarFingerprint query, int count, Random random, int? minPeakConcurrentLayerCount = null, IReadOnlySet<string>? excludeKeys = null)
     {
         ArgumentNullException.ThrowIfNull(query);
         ArgumentNullException.ThrowIfNull(random);
@@ -82,7 +113,7 @@ public sealed record ExemplarIndex(DateTimeOffset GeneratedAtUtc, IReadOnlyList<
 
         var sameKind = Entries.Where(e => e.Fingerprint.SectionKind == query.SectionKind).ToList();
         var isFallback = sameKind.Count == 0;
-        var candidates = isFallback ? Entries : sameKind;
+        var candidates = ApplyComplexityFilter(isFallback ? Entries : sameKind, minPeakConcurrentLayerCount);
         if (candidates.Count == 0)
         {
             return new ExemplarRetrievalResult([], isFallback);
@@ -93,14 +124,19 @@ public sealed record ExemplarIndex(DateTimeOffset GeneratedAtUtc, IReadOnlyList<
             .Select(entry => (
                 Entry: entry,
                 Weight: Math.Max(MinSimilarityWeight, CosineSimilarity(queryVector, entry.Fingerprint.ToComparisonVector()))))
-            .Select(x => (x.Entry, Key: Math.Pow(random.NextDouble(), 1.0 / x.Weight)))
-            .OrderByDescending(x => x.Key)
+            .Select(x => (x.Entry, AlreadyDrawn: IsAlreadyDrawn(x.Entry, excludeKeys), Key: Math.Pow(random.NextDouble(), 1.0 / x.Weight)))
+            .OrderBy(x => x.AlreadyDrawn)
+            .ThenByDescending(x => x.Key)
             .Take(count)
             .Select(x => x.Entry)
             .ToList();
 
         return new ExemplarRetrievalResult(results, isFallback);
     }
+
+    /// <summary>Whether <paramref name="entry"/>'s own <see cref="ExemplarOverrides.KeyFor"/> key is in <paramref name="excludeKeys"/> -- <see langword="false"/> (never already-drawn) when no exclusion set was supplied, the pre-Phase-26 behavior every existing caller keeps.</summary>
+    private static bool IsAlreadyDrawn(ExemplarEntry entry, IReadOnlySet<string>? excludeKeys) =>
+        excludeKeys is not null && excludeKeys.Contains(ExemplarOverrides.KeyFor(entry.Fingerprint));
 
     /// <summary>
     /// The floor every candidate's similarity weight is clamped up to before <see cref="FindVaried"/>'s
@@ -111,6 +147,12 @@ public sealed record ExemplarIndex(DateTimeOffset GeneratedAtUtc, IReadOnlyList<
     /// small, odds -- the explicit point of this method existing at all.
     /// </summary>
     private const double MinSimilarityWeight = 0.05;
+
+    /// <summary>Build-plan Phase 25 Part D.4: applies the optional hard complexity floor both <see cref="FindSimilar"/> and <see cref="FindVaried"/> share. A <see langword="null"/> floor is a no-op pass-through.</summary>
+    private static IReadOnlyList<ExemplarEntry> ApplyComplexityFilter(IReadOnlyList<ExemplarEntry> candidates, int? minPeakConcurrentLayerCount) =>
+        minPeakConcurrentLayerCount is { } floor
+            ? candidates.Where(e => e.Fingerprint.PeakConcurrentLayerCount >= floor).ToList()
+            : candidates;
 
     private static double CosineSimilarity(double[] a, double[] b)
     {

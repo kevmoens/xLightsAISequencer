@@ -80,6 +80,25 @@ public sealed class StatisticsBuilderTests
     }
 
     [Fact]
+    public void ExemplarIndexBuilder_PopulatesPeakConcurrentLayerCount_FromThisWindowsOwnRealEffects()
+    {
+        // Build-plan Phase 25 Part D.2: 3 genuinely overlapping layers on one model within the phrase
+        // window must surface as this exemplar's own PeakConcurrentLayerCount, not just feed the separate
+        // MultiLayerTemplate catalog.
+        var effects = new[]
+        {
+            new ParsedEffectInstance("Model1", "model", "On", 0, 900, LayerIndex: 0, PaletteIndex: 0, SettingsString: "", PaletteString: ""),
+            new ParsedEffectInstance("Model1", "model", "Twinkle", 0, 900, LayerIndex: 1, PaletteIndex: 0, SettingsString: "", PaletteString: ""),
+            new ParsedEffectInstance("Model1", "model", "Shockwave", 0, 900, LayerIndex: 2, PaletteIndex: 0, SettingsString: "", PaletteString: ""),
+        };
+        var song = BuildSongFromEffects("Song", CorpusProvenanceTag.UserAuthored, effects);
+
+        var index = ExemplarIndexBuilder.Build([song]);
+
+        Assert.Contains(index.Entries, e => e.Fingerprint.PeakConcurrentLayerCount == 3);
+    }
+
+    [Fact]
     public void CraftRuleInducer_PromotesBlendModeDefaultRule_WhenEveryEffectOmitsExplicitLayerMethod()
     {
         var songs = Enumerable.Range(0, 6)

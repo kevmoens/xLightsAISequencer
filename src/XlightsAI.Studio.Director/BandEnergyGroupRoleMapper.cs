@@ -4,12 +4,48 @@ using XlightsAI.Studio.Structure;
 
 namespace XlightsAI.Studio.Director;
 
-/// <summary>Build-plan Phase 10 §2b/§3d: the physical/spatial "home" a frequency band gets for the whole song -- bass reads as a full-canvas impact on the biggest structural groups, mids carry the melodic subject, highs live on small/detail accents.</summary>
+/// <summary>
+/// Build-plan Phase 10 §2b/§3d: the physical/spatial "home" a frequency band gets for the whole song --
+/// bass reads as a full-canvas impact on the biggest structural groups, mids carry the melodic subject,
+/// highs live on small/detail accents.
+///
+/// Build-plan Phase 25 Part A: <see cref="WholeCanvas"/> is a different *kind* of role than the other
+/// three -- it answers "when" (a song-wide synchronized moment), not "where" (one frequency band's
+/// spatial home), so a consumer must never treat it as a fourth peer in the foundation/subject/accent
+/// band-to-group mapping (it gets its own prompt section; see <c>DirectorPromptBuilder.AppendWholeCanvasGroupSection</c>).
+/// </summary>
 public enum BandRole
 {
     Foundation,
     Subject,
     Accent,
+
+    /// <summary>
+    /// Build-plan Phase 25 Part A: a group/model whose own pixel coverage against the whole layout meets
+    /// <see cref="BandEnergyGroupRoleMapper.WholeCanvasCoverageThreshold"/> -- a catch-all group (e.g.
+    /// named "Everything", "All", "Master", "WholeHouse") that is not tied to any single frequency band's
+    /// spatial home. Detected structurally (by coverage ratio), never by name, since no fixed keyword list
+    /// can cover every way a user might name a whole-layout group.
+    ///
+    /// <b>Build-plan Phase 25 Part B.3 audit finding:</b> <see cref="BandRole"/> is not purely cosmetic --
+    /// <c>ChoreographyGenerationPipeline.BuildFillerSchedule</c> resolves every filler target's own
+    /// <c>BandRole</c> (via <c>Classify</c>) into a role-key string the compiled <c>SectionFillerSchedule</c>
+    /// uses to pick a narrower per-role filler pool when a <c>SectionScript</c> declared one. In practice,
+    /// though, this never changes compiled output for <see cref="WholeCanvas"/> specifically:
+    /// <c>SectionScriptValidator.KnownRoleKeys</c> only recognizes <c>"Foundation"</c>/<c>"Subject"</c>/
+    /// <c>"Accent"</c> -- a declared <c>FillerEffectsByRole["WholeCanvas"]</c> key would fail validation, and
+    /// the Director is never prompted that <c>"WholeCanvas"</c> is a valid key to declare in the first
+    /// place -- so a whole-canvas-classified target's resolved role key never matches any section's own
+    /// <c>FillerEffectsByRole</c> dictionary and <see cref="Choreography.SectionFillerSchedule.Resolve"/>
+    /// always falls back to that section's flat pool, exactly as it did before this group had any role at
+    /// all (unclassified). Confirmed acceptable for v1: today, <see cref="WholeCanvas"/> only ever affects
+    /// <see cref="Director.DirectorPromptBuilder"/>'s own prompt text (informational guidance), never which
+    /// exemplar/effect gets compiled for a group. Expanding scope to let the Director actually declare a
+    /// whole-canvas-specific filler pool would require adding <c>"WholeCanvas"</c> to
+    /// <c>SectionScriptValidator.KnownRoleKeys</c> and prompting for it -- a real but separate, not-yet-
+    /// requested change.
+    /// </summary>
+    WholeCanvas,
 }
 
 /// <summary>One real layout group/model (<see cref="LayoutSummary.Groups"/> or <see cref="LayoutSummary.TopPixelHeavyModels"/>) classified into a <see cref="BandRole"/> by name, so the Director prompt can name actual props rather than a generic abstraction.</summary>
@@ -40,16 +76,39 @@ public sealed record SectionBandShare(SectionKind Kind, int StartBarIndex, int E
 /// </summary>
 public static class BandEnergyGroupRoleMapper
 {
+    /// <summary>
+    /// Build-plan Phase 25 Part C calibration: measured, not guessed, against a real
+    /// <c>CorpusTrainingRunner</c> run over 31 external <c>C:\xLights</c> sequences (2026-11-11) --
+    /// <c>CatchAllCoverageRatioDistribution</c> (360 group samples across 30 songs with a layout): Median
+    /// 8.0%, P90 55.7%, Max 100%. The real histogram is not a smooth curve -- it has two distinct clusters
+    /// above the bulk of ordinary groups: 30 samples (one per song) land in the 0.5-0.6 bucket, and a
+    /// separate 30 samples (also one per song, <c>Max</c> confirms several hit exactly 100%) land in the
+    /// 0.9-1.0+ bucket, with every bucket in between (0.6-0.9) carrying zero samples -- a clean, real gap.
+    /// The 0.5-0.6 cluster is a real "large" group (e.g. a whole roofline or yard section) that still
+    /// deliberately excludes other real estate (a Tree, an Arch) -- exactly the false-positive this
+    /// threshold exists to avoid; the 0.9-1.0+ cluster is the genuine catch-all ("ALL_Display"/"Everything"
+    /// -style groups that really do cover the whole layout). Moving this threshold down toward the overall
+    /// P90 (55.7%) would merge those two clusters and misclassify the first group's worth of real "just a
+    /// big prop" groups as whole-canvas. 0.90 sits safely inside the real empty 0.6-0.9 gap between the two
+    /// clusters, so it is kept as the calibrated value, not lowered.
+    /// </summary>
+    public const double WholeCanvasCoverageThreshold = 0.90;
+
     private static readonly string[] AccentKeywords = ["minitree", "mini tree", "icicle", "strand", "star", "sparkle", "spike", "snowflake"];
     private static readonly string[] SubjectKeywords = ["megatree", "mega tree", "tree", "arch", "matrix"];
     private static readonly string[] FoundationKeywords = ["outline", "gutter", "roof", "horizontal", "eave", "ridge", "fence"];
 
     /// <summary>
     /// Classifies every real group (<see cref="LayoutSummary.Groups"/>) and individually-addressable
-    /// pixel-heavy model (<see cref="LayoutSummary.TopPixelHeavyModels"/>) in <paramref name="layout"/> by
-    /// name -- accent keywords checked first so e.g. "MiniTrees" classifies as an accent group, not a
-    /// subject one, despite containing "tree". A broad catch-all group like "Everything" matches no
-    /// keyword and is omitted, not misclassified.
+    /// pixel-heavy model (<see cref="LayoutSummary.TopPixelHeavyModels"/>) in <paramref name="layout"/>.
+    /// Coverage is checked first, before any name-based keyword match (build-plan Phase 25 Part A):
+    /// an entry whose own pixel count covers <see cref="WholeCanvasCoverageThreshold"/> or more of the
+    /// layout's own <see cref="LayoutSummary.TotalPixels"/> is <see cref="BandRole.WholeCanvas"/>
+    /// regardless of its name, since no fixed keyword list can cover every way a user might name a
+    /// whole-layout catch-all group (e.g. "Everything", "All", "Master", "WholeHouse"). Everything under
+    /// that threshold falls through to the unchanged name-based keyword match -- accent keywords checked
+    /// first so e.g. "MiniTrees" classifies as an accent group, not a subject one, despite containing
+    /// "tree". An entry matching neither signal is omitted, not misclassified.
     /// </summary>
     public static IReadOnlyList<ClassifiedLayoutEntry> Classify(LayoutSummary layout)
     {
@@ -65,7 +124,7 @@ public static class BandEnergyGroupRoleMapper
                 continue;
             }
 
-            var role = ClassifyName(entry.Reference);
+            var role = ClassifyEntry(entry, layout.TotalPixels);
             if (role is { } r)
             {
                 result.Add(new ClassifiedLayoutEntry(entry.Reference, r));
@@ -73,6 +132,16 @@ public static class BandEnergyGroupRoleMapper
         }
 
         return result;
+    }
+
+    private static BandRole? ClassifyEntry(LayoutSummaryEntry entry, long totalPixels)
+    {
+        if (totalPixels > 0 && entry.NodeCount / (double)totalPixels >= WholeCanvasCoverageThreshold)
+        {
+            return BandRole.WholeCanvas;
+        }
+
+        return ClassifyName(entry.Reference);
     }
 
     private static BandRole? ClassifyName(string reference)

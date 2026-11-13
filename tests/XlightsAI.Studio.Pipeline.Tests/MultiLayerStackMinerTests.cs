@@ -18,10 +18,12 @@ public sealed class MultiLayerStackMinerTests
     [Fact]
     public void RealOverlappingStack_Promoted_WhenSeenInEnoughDistinctSongs()
     {
+        // Build-plan Phase 25 Part D.1: the default minimum is now 3+ distinct layers (raised from 2+).
         var effects = new[]
         {
             Effect("Matrix1", "On", layerIndex: 0, start: 0, end: 10_000),
             Effect("Matrix1", "Twinkle", layerIndex: 1, start: 0, end: 10_000),
+            Effect("Matrix1", "Shockwave", layerIndex: 2, start: 0, end: 10_000),
         };
 
         var songs = Enumerable.Range(0, 6).Select(i => BuildSong($"Song {i}", effects, SectionKind.Chorus)).ToList();
@@ -29,13 +31,16 @@ public sealed class MultiLayerStackMinerTests
 
         var template = Assert.Single(catalog.Templates);
         Assert.Equal("high", template.EnergyBand);
-        Assert.Equal(2, template.Layers.Count);
+        Assert.Equal(3, template.Layers.Count);
         Assert.Equal("On", template.Layers[0].Effect);
         Assert.Equal("subject", template.Layers[0].Role);
         Assert.Equal("Twinkle", template.Layers[1].Effect);
-        Assert.Equal("secondary", template.Layers[1].Role);
+        Assert.Equal("support", template.Layers[1].Role);
+        Assert.Equal("Shockwave", template.Layers[2].Effect);
+        Assert.Equal("secondary", template.Layers[2].Role);
         Assert.Contains("6 distinct real", template.SourceNote);
         Assert.Contains("Song 0", template.SourceNote);
+        Assert.Equal(["Tree", "Matrixes", "Mega Tree"], template.Props);
     }
 
     [Fact]
@@ -45,6 +50,7 @@ public sealed class MultiLayerStackMinerTests
         {
             Effect("Matrix1", "On", layerIndex: 0, start: 0, end: 10_000),
             Effect("Matrix1", "Twinkle", layerIndex: 1, start: 0, end: 10_000),
+            Effect("Matrix1", "Shockwave", layerIndex: 2, start: 0, end: 10_000),
         };
 
         // Only 3 distinct songs -- below the default 5-song "never forced" threshold.
@@ -71,12 +77,13 @@ public sealed class MultiLayerStackMinerTests
     }
 
     [Fact]
-    public void NonTreeMatrixModel_NeverMined_EvenWhenGenuinelyOverlapping()
+    public void BelowThreeLayers_NeverMined_WithDefaultThreshold()
     {
+        // Only 2 distinct layers -- below the new default 3+ minimum (was 2+ pre-Phase-25).
         var effects = new[]
         {
-            Effect("Outline1", "On", layerIndex: 0, start: 0, end: 10_000),
-            Effect("Outline1", "Twinkle", layerIndex: 1, start: 0, end: 10_000),
+            Effect("Matrix1", "On", layerIndex: 0, start: 0, end: 10_000),
+            Effect("Matrix1", "Twinkle", layerIndex: 1, start: 0, end: 10_000),
         };
 
         var songs = Enumerable.Range(0, 6).Select(i => BuildSong($"Song {i}", effects, SectionKind.Chorus)).ToList();
@@ -86,12 +93,64 @@ public sealed class MultiLayerStackMinerTests
     }
 
     [Fact]
+    public void MinDistinctLayers_RemainsConfigurable_ToRecoverTheOriginalTwoPlusThreshold()
+    {
+        var effects = new[]
+        {
+            Effect("Matrix1", "On", layerIndex: 0, start: 0, end: 10_000),
+            Effect("Matrix1", "Twinkle", layerIndex: 1, start: 0, end: 10_000),
+        };
+
+        var songs = Enumerable.Range(0, 6).Select(i => BuildSong($"Song {i}", effects, SectionKind.Chorus)).ToList();
+        var catalog = MultiLayerStackMiner.Build(songs, minSongCount: 5, minDistinctLayers: 2);
+
+        var template = Assert.Single(catalog.Templates);
+        Assert.Equal(2, template.Layers.Count);
+    }
+
+    [Fact]
+    public void NonTreeMatrixModel_NeverMined_WhenRestrictedToTreeMatrixModels()
+    {
+        var effects = new[]
+        {
+            Effect("Outline1", "On", layerIndex: 0, start: 0, end: 10_000),
+            Effect("Outline1", "Twinkle", layerIndex: 1, start: 0, end: 10_000),
+            Effect("Outline1", "Shockwave", layerIndex: 2, start: 0, end: 10_000),
+        };
+
+        var songs = Enumerable.Range(0, 6).Select(i => BuildSong($"Song {i}", effects, SectionKind.Chorus)).ToList();
+        var catalog = MultiLayerStackMiner.Build(songs, minSongCount: 5, restrictToTreeMatrixModels: true);
+
+        Assert.Empty(catalog.Templates);
+    }
+
+    [Fact]
+    public void NonTreeMatrixModel_Mined_ByDefault_WhenGenuinelyLayered()
+    {
+        // Build-plan Phase 25 Part D.1: the tree/matrix-only restriction is now optional, defaulting to
+        // off -- "any model/group with genuine layering is discoverable."
+        var effects = new[]
+        {
+            Effect("Outline1", "On", layerIndex: 0, start: 0, end: 10_000),
+            Effect("Outline1", "Twinkle", layerIndex: 1, start: 0, end: 10_000),
+            Effect("Outline1", "Shockwave", layerIndex: 2, start: 0, end: 10_000),
+        };
+
+        var songs = Enumerable.Range(0, 6).Select(i => BuildSong($"Song {i}", effects, SectionKind.Chorus)).ToList();
+        var catalog = MultiLayerStackMiner.Build(songs, minSongCount: 5);
+
+        var template = Assert.Single(catalog.Templates);
+        Assert.Equal(["Any"], template.Props);
+    }
+
+    [Fact]
     public void LowEnergySection_ClassifiedAsLowTier()
     {
         var effects = new[]
         {
             Effect("Tree1", "Twinkle", layerIndex: 0, start: 0, end: 10_000),
             Effect("Tree1", "Shockwave", layerIndex: 1, start: 0, end: 10_000),
+            Effect("Tree1", "Bars", layerIndex: 2, start: 0, end: 10_000),
         };
 
         var songs = Enumerable.Range(0, 6).Select(i => BuildSong($"Song {i}", effects, SectionKind.Intro)).ToList();

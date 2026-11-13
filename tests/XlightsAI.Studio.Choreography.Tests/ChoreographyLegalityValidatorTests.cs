@@ -1,5 +1,6 @@
 using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Rhythm;
+using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Choreography.Tests;
@@ -442,5 +443,130 @@ public sealed class ChoreographyLegalityValidatorTests
         var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
 
         Assert.DoesNotContain(violations, v => v.Rule == "whole-song-effect-concentration");
+    }
+
+    private static DisplayGraph BuildMultiModelLayout(int modelCount)
+    {
+        var models = Enumerable.Range(1, modelCount)
+            .Select(i => new DisplayModel(new ModelId($"M{i}"), $"M{i}", "Star", [], [], NodeCount: 50))
+            .ToList();
+        return new DisplayGraph("TEST-HASH", models, Groups: [], Warnings: []);
+    }
+
+    private static EffectInstance BuildFocalEffect(int modelIndex, long startTicks, long endTicks) =>
+        new(Guid.NewGuid(), new ModelId($"M{modelIndex}"), 0, startTicks, endTicks, "recipe", "1", new Dictionary<string, string>());
+
+    [Fact]
+    public void ValidateShow_FiveModelsSimultaneouslyFocal_FlagsConcurrentFocalEffectCapViolation()
+    {
+        // Build-plan Phase 26: default (non-dense) cap is 4 concurrent focal models -- a 5th model with a
+        // short, clearly-not-a-hold effect overlapping the same instant must trip the new rule.
+        var layout = BuildMultiModelLayout(5);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("busy-look", "hold", []);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+
+        var effects = Enumerable.Range(1, 5).Select(i => BuildFocalEffect(i, 0, 1 * TicksPerSecond)).ToList();
+        var ir = new ChoreographyIR([], effects, []);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, Enumerable.Range(1, 5).Select(i => new ModelId($"M{i}")).ToList(), window) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.Contains(violations, v => v.Rule == "concurrent-focal-effect-cap");
+    }
+
+    [Fact]
+    public void ValidateShow_FourModelsSimultaneouslyFocal_DoesNotFlagConcurrentFocalEffectCapViolation()
+    {
+        var layout = BuildMultiModelLayout(4);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("ok-look", "hold", []);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+
+        var effects = Enumerable.Range(1, 4).Select(i => BuildFocalEffect(i, 0, 1 * TicksPerSecond)).ToList();
+        var ir = new ChoreographyIR([], effects, []);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, Enumerable.Range(1, 4).Select(i => new ModelId($"M{i}")).ToList(), window) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "concurrent-focal-effect-cap");
+    }
+
+    [Fact]
+    public void ValidateShow_FiveModelsFocalInChorusSection_DoesNotFlagConcurrentFocalEffectCapViolation()
+    {
+        // Build-plan Phase 26: Chorus/Bridge/Solo sections get a one-higher cap (5) than an ordinary
+        // section, grounded in PatternLibrary.DensityBySection measuring those kinds as reliably denser.
+        var layout = BuildMultiModelLayout(5);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("chorus-look", "hold", []);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+
+        var effects = Enumerable.Range(1, 5).Select(i => BuildFocalEffect(i, 0, 1 * TicksPerSecond)).ToList();
+        var ir = new ChoreographyIR([], effects, []);
+        var sections = new[]
+        {
+            new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, Enumerable.Range(1, 5).Select(i => new ModelId($"M{i}")).ToList(), window, Kind: SectionKind.Chorus),
+        };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "concurrent-focal-effect-cap");
+    }
+
+    [Fact]
+    public void ValidateShow_SixModelsFocalInChorusSection_FlagsConcurrentFocalEffectCapViolation()
+    {
+        var layout = BuildMultiModelLayout(6);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("chorus-look", "hold", []);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+
+        var effects = Enumerable.Range(1, 6).Select(i => BuildFocalEffect(i, 0, 1 * TicksPerSecond)).ToList();
+        var ir = new ChoreographyIR([], effects, []);
+        var sections = new[]
+        {
+            new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, Enumerable.Range(1, 6).Select(i => new ModelId($"M{i}")).ToList(), window, Kind: SectionKind.Chorus),
+        };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.Contains(violations, v => v.Rule == "concurrent-focal-effect-cap");
+    }
+
+    [Fact]
+    public void ValidateShow_FiveModelsWithLongHoldEffects_DoesNotFlagConcurrentFocalEffectCapViolation()
+    {
+        // Build-plan Phase 26: an effect spanning >= 60% of its own section's window (here 7s of a 10s
+        // window) is a steady-state "hold," not a focal gesture -- excluded from the concurrency count
+        // even when five of them overlap, so ordinary base+accent layering never trips this rule.
+        var layout = BuildMultiModelLayout(5);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("holds-look", "hold", []);
+        var window = new TimeWindow(0, 10 * TicksPerSecond);
+
+        var effects = Enumerable.Range(1, 5).Select(i => BuildFocalEffect(i, 0, 7 * TicksPerSecond)).ToList();
+        var ir = new ChoreographyIR([], effects, []);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, Enumerable.Range(1, 5).Select(i => new ModelId($"M{i}")).ToList(), window) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "concurrent-focal-effect-cap");
+    }
+
+    [Fact]
+    public void ValidateShow_SectionMissingWindow_SkipsConcurrentFocalEffectCapCheck_RatherThanInventingValues()
+    {
+        var layout = BuildMultiModelLayout(5);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var look = BuildLook("legacy-look", "hold", []);
+
+        var effects = Enumerable.Range(1, 5).Select(i => BuildFocalEffect(i, 0, 1 * TicksPerSecond)).ToList();
+        var ir = new ChoreographyIR([], effects, []);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, Enumerable.Range(1, 5).Select(i => new ModelId($"M{i}")).ToList()) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "concurrent-focal-effect-cap");
     }
 }

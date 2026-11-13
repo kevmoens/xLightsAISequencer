@@ -14,17 +14,17 @@ Diverse Show Bible (3 Looks eligible for Chorus, meeting ceil(5/2)=3): `accepted
 
 ## §2b: real Director prompt excerpt
 ```
-Chorus repeats 5 times: bars [0,3), [3,6), [6,9), [9,12), [12,18) (note: the last one is 6 bars, longer than the others) -- design at least 3 visibly distinct Looks across these 5 occurrences, not one Look reused.
+Chorus repeats 5 times: bars [0,3), [3,6), [6,9), [9,12), [12,18) (note: the last one is 6 bars, longer than the others) -- design at least 3 visibly distinct Looks across these 5 occurrences, not one Look reused. At least 3 Looks must stay eligible for Chorus (AllowedSectionKinds names 'Chorus', or is left unrestricted) or this Show Bible will fail validation -- see the REQUIRED rule above.
 ```
 
 ## §2d: real measured Look/effect diversity across the Chorus sections, before vs after
 | Bible | Distinct LookIds used across 5 Chorus sections | Distinct xLights effect names compiled across those sections |
 |---|---:|---:|
 | Baseline (1 eligible Look) | 3 | 6 |
-| Diverse (ceil(5/2)=3 eligible Looks) | 4 | 6 |
+| Diverse (ceil(5/2)=3 eligible Looks) | 3 | 6 |
 
-Real section-by-section LookId assignment (baseline): look-0, look-3, look-0, look-3, look-9
-Real section-by-section LookId assignment (diverse): look-3, look-7, look-6, look-0, look-7
+Real section-by-section LookId assignment (baseline): look-0, look-3, look-0, look-0, look-9
+Real section-by-section LookId assignment (diverse): look-9, look-0, look-2, look-9, look-9
 
 **Disclosed finding, measured directly by this real run, not assumed:** a Look's own
 `AllowedSectionKinds` is advisory to the real Choreographer call, not a hard filter --

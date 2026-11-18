@@ -117,6 +117,99 @@ public sealed class DirectorPromptBuilderTests
     }
 
     [Fact]
+    public void Build_StablePrefix_ExplainsTravelAsDistinctFromPropDelays_AndShowsBothInTheRequiredShape()
+    {
+        // User feedback (2026-11-13): a real left-to-right/right-to-left sweep across a group's
+        // individual members, landed on actual beats/words, needed its own declared mechanism distinct
+        // from PropDelays' weight-based (non-beat-aligned) cascade -- and neither field previously
+        // appeared in the literal required-JSON-shape example at all, only in prose.
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("\"Travel\"", prompt.StablePrefix);
+        Assert.Contains("LeftToRight", prompt.StablePrefix);
+        Assert.Contains("RightToLeft", prompt.StablePrefix);
+        Assert.Contains("\"Travel\": \"optional", prompt.StablePrefix); // present in the literal required-shape block, not just prose.
+        Assert.Contains("\"PropDelays\": \"optional", prompt.StablePrefix);
+        Assert.Contains("never combine with PropDelays", prompt.StablePrefix);
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-14): the Director's own craft guidance is now externalized into
+    /// condition-tagged lesson files (<see cref="DirectorLessonCatalogLoader"/>) instead of always
+    /// showing every bullet regardless of this song's own layout -- this is the direct, checkable proof
+    /// that conditional inclusion is real, not just relocated text. A layout with no real multi-model
+    /// group never shows the movement-across-models lesson; a layout that has one does.
+    /// </summary>
+    [Fact]
+    public void Build_StablePrefix_MovementLesson_OnlyAppearsWhenLayoutHasAMultiModelGroup()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+        const string movementPhrase = "Use a genuine MIX of all three real options";
+
+        var withoutGroup = new LayoutSummary(1, 100, [], [], HasTreeOrMatrixModel: false, HasMultiModelGroupWithKnownPositions: false);
+        var promptWithoutGroup = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, withoutGroup);
+        Assert.DoesNotContain(movementPhrase, promptWithoutGroup.StablePrefix);
+
+        var withGroup = new LayoutSummary(1, 100, [], [], HasTreeOrMatrixModel: false, HasMultiModelGroupWithKnownPositions: true);
+        var promptWithGroup = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, withGroup);
+        Assert.Contains(movementPhrase, promptWithGroup.StablePrefix);
+    }
+
+    [Fact]
+    public void Build_StablePrefix_TreeOrMatrixOnlyLessons_OnlyAppearWhenLayoutHasATreeOrMatrixModel()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+        const string treeMatrixPhrase = "Tree and Matrixes/Matrix-2/Matrix3";
+
+        var withoutTreeOrMatrix = new LayoutSummary(1, 100, [], [], HasTreeOrMatrixModel: false, HasMultiModelGroupWithKnownPositions: false);
+        var promptWithout = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, withoutTreeOrMatrix);
+        Assert.DoesNotContain(treeMatrixPhrase, promptWithout.StablePrefix);
+
+        var withTreeOrMatrix = new LayoutSummary(1, 100, [], [], HasTreeOrMatrixModel: true, HasMultiModelGroupWithKnownPositions: false);
+        var promptWith = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, withTreeOrMatrix);
+        Assert.Contains(treeMatrixPhrase, promptWith.StablePrefix);
+    }
+
+    [Fact]
+    public void Build_StablePrefix_AlwaysLessons_AppearRegardlessOfLayout()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+        var bareLayout = new LayoutSummary(1, 100, [], [], HasTreeOrMatrixModel: false, HasMultiModelGroupWithKnownPositions: false);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, bareLayout);
+
+        Assert.Contains("Deliberate negative space", prompt.StablePrefix);
+        Assert.Contains("Vary which effect carries each Look", prompt.StablePrefix);
+    }
+
+    [Fact]
     public void Build_StablePrefix_RequiresDistinctZPerLayer_AndShowsATwoLayerExample()
     {
         // Real-run finding (2026-11-11, project "Bang"): Show Bible generation exhausted every retry
@@ -599,6 +692,44 @@ public sealed class DirectorPromptBuilderTests
         var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
 
         Assert.DoesNotContain("Measured energy transitions", prompt.VolatileSuffix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_RendersMeasuredLeadInstrumentWindows_WhenPresent()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000) with
+        {
+            LeadInstrumentWindows = [new LeadInstrumentWindow(TimeSpan.FromSeconds(8).Ticks, TimeSpan.FromSeconds(22).Ticks, 2.0)],
+        };
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.Contains("Measured lead-instrument/section prominence windows", prompt.VolatileSuffix);
+        Assert.Contains("0:08-0:22", prompt.VolatileSuffix);
+    }
+
+    [Fact]
+    public void Build_VolatileSuffix_OmitsMeasuredLeadInstrumentWindows_WhenNoneDetected()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var knowledge = BuildKnowledge();
+        var layout = new LayoutSummary(1, 100, [], []);
+        var song = BuildMusicModel(bpm: 120, durationTicks: 1_800_000_000);
+
+        var prompt = DirectorPromptBuilder.Build(knowledge, "High-Energy / EDM", song, layout);
+
+        Assert.DoesNotContain("Measured lead-instrument/section prominence windows", prompt.VolatileSuffix);
     }
 
     [Fact]

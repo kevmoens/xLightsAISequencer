@@ -22,6 +22,18 @@ public enum MelodicContourShape
 public sealed record SectionMelodicBrief(Guid SectionId, MelodicContourShape ContourShape, double NoteDensity, int PeakNoteBeatOffset);
 
 /// <summary>
+/// Build-plan Phase 28a §4c: one real note-onset-level sample of a section's own melodic movement --
+/// unlike <see cref="SectionMelodicBrief"/>'s own single contour-shape-for-the-whole-section digest, this
+/// is a short ORDERED TIMELINE within the section, anchored to the same real beat offsets
+/// <see cref="SectionTimingMarks"/> renders as "beat-N" anchors, so a <c>SectionCue</c> can directly cite
+/// "the melody peaks at vocalnote-2" instead of only knowing the section's overall shape.
+/// </summary>
+/// <param name="BeatOffset">Zero-based beat offset (from this section's own first beat) of this sample's own real note onset -- same convention as <see cref="SectionMelodicBrief.PeakNoteBeatOffset"/>.</param>
+/// <param name="Direction">"Up"/"Down"/"Flat" -- this sample's own real <see cref="MelodicGesture.Motion"/>, never invented.</param>
+/// <param name="IntervalSemitones">This sample's own real, signed <see cref="MelodicGesture.IntervalSemitones"/> from the previous sounding note -- the real magnitude, never a guessed one.</param>
+public sealed record MelodicContourSample(int BeatOffset, string Direction, int IntervalSemitones);
+
+/// <summary>
 /// Build-plan Phase 10 §3b: joins the real <see cref="MelodyTrack"/> (already computed by
 /// <c>XlightsAI.Studio.Melody</c>, previously only consumed by the bar-fingerprint/section-detection path
 /// and the Piano Roll UI -- never reaching either prompt) against each real section's own bar range, so the
@@ -106,6 +118,65 @@ public static class MelodicContourBriefBuilder
 
             return new SectionMelodicBrief(section.Id, shape, density, peakOffset);
         }).ToList();
+    }
+
+    /// <summary>
+    /// Build-plan Phase 28a §4c: additive alongside <see cref="ComputeSectionBriefs"/> (which stays
+    /// unchanged, for the stable-prefix contour-shape prose) -- the same real per-note
+    /// <see cref="MelodicGesture"/> data, rendered as a short ordered WITHIN-SECTION timeline instead of
+    /// one collapsed shape/peak-offset pair. Returns an empty list (never invented samples) when
+    /// <see cref="MusicModel.Melody"/> is <see langword="null"/>, <paramref name="sectionId"/> does not
+    /// match any real section, its bar range falls outside the song's own beat grid, or it has no real
+    /// gesture-classified note onsets.
+    /// </summary>
+    public static IReadOnlyList<MelodicContourSample> ComputeSectionCurve(MusicModel music, Guid sectionId, int maxSamples = 12)
+    {
+        ArgumentNullException.ThrowIfNull(music);
+
+        var section = music.Sections.Labels.FirstOrDefault(s => s.Id == sectionId);
+        if (section is null || music.Melody is null)
+        {
+            return [];
+        }
+
+        var barGrid = BarGrid.FromBeatGrid(music.BeatGrid, music.SongDurationTicks);
+        var window = barGrid.WindowForBarRange(new BarIndex(section.StartBarIndex), new BarIndex(section.EndBarIndexExclusive));
+        if (window is null)
+        {
+            return [];
+        }
+
+        var melody = music.Melody;
+        var gesturesByNoteId = melody.Gestures.ToDictionary(g => g.NoteId);
+
+        var notesInWindow = melody.Notes
+            .Where(n => n.StartTicks < window.Value.EndTicks && n.EndTicks > window.Value.StartTicks)
+            .OrderBy(n => n.StartTicks)
+            .ToList();
+
+        var samples = new List<MelodicContourSample>();
+        foreach (var note in notesInWindow)
+        {
+            if (!gesturesByNoteId.TryGetValue(note.Id, out var gesture))
+            {
+                continue;
+            }
+
+            var direction = gesture.Motion switch
+            {
+                PitchMotion.StepUp or PitchMotion.LeapUp => "Up",
+                PitchMotion.StepDown or PitchMotion.LeapDown => "Down",
+                _ => "Flat",
+            };
+
+            samples.Add(new MelodicContourSample(BeatOffsetInWindow(barGrid, window.Value, note.StartTicks), direction, gesture.IntervalSemitones));
+            if (samples.Count >= maxSamples)
+            {
+                break;
+            }
+        }
+
+        return samples;
     }
 
     /// <summary>How many of <paramref name="barGrid"/>'s own real beats fall inside <paramref name="window"/> -- the real per-section beat count the §3b digest's <c>NoteDensity</c>/"beat N of M" text is grounded in, never an assumed fixed beats-per-bar count.</summary>

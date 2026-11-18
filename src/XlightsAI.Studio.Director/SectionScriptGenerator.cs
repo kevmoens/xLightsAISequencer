@@ -4,13 +4,23 @@ using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Director;
 
-/// <summary>One <see cref="SectionScriptGenerator.GenerateAsync"/> call's full, inspectable outcome -- mirrors <see cref="ShowBibleGenerationReport"/>'s own shape.</summary>
+/// <summary>
+/// One <see cref="SectionScriptGenerator.GenerateAsync"/> call's full, inspectable outcome -- mirrors
+/// <see cref="ShowBibleGenerationReport"/>'s own shape.
+/// </summary>
+/// <param name="Timeline">
+/// Build-plan Phase 28a: the full <see cref="SectionTimeline"/> this call validated against, including
+/// any real <see cref="SectionTimeline.Cues"/> -- <see langword="null"/> whenever <see cref="Script"/>
+/// is (the same "no validated result" case). Additive/trailing: every pre-existing caller that only
+/// reads <see cref="Script"/> is unaffected.
+/// </param>
 public sealed record SectionScriptGenerationReport(
     SectionScript? Script,
     int AttemptCount,
     bool ValidatedOnFirstAttempt,
     IReadOnlyList<SectionScriptValidationError> FinalViolations,
-    IReadOnlyList<AiUsage?> UsagePerAttempt);
+    IReadOnlyList<AiUsage?> UsagePerAttempt,
+    SectionTimeline? Timeline = null);
 
 /// <summary>
 /// Build-plan Phase 6 task 1: one section's own Choreographer call, with the same "validate, and on
@@ -22,7 +32,7 @@ public sealed record SectionScriptGenerationReport(
 /// </summary>
 public sealed class SectionScriptGenerator
 {
-    private readonly StructuredJsonAiClient<SectionScript> _client;
+    private readonly StructuredJsonAiClient<SectionTimeline> _client;
     private readonly int _maxAttempts;
     private readonly JsonAiCallLogStore? _callLog;
     private readonly string? _modelName;
@@ -35,16 +45,24 @@ public sealed class SectionScriptGenerator
             throw new ArgumentOutOfRangeException(nameof(maxAttempts), maxAttempts, "Must be positive.");
         }
 
-        _client = new StructuredJsonAiClient<SectionScript>(client);
+        _client = new StructuredJsonAiClient<SectionTimeline>(client);
         _maxAttempts = maxAttempts;
         _callLog = callLog;
         _modelName = modelName;
     }
 
+    /// <param name="anchorContext">
+    /// Build-plan Phase 28a: this section's own real music context/signals, or <see langword="null"/>
+    /// (the default, and every pre-existing caller's behavior) -- required for
+    /// <see cref="SectionTimelineValidator"/> to run against a real response's <see cref="SectionTimeline.Cues"/>.
+    /// A response with no real Cues (every caller today, and any caller that has not wired §4's new
+    /// prompt sections to actually request them) always falls back to today's
+    /// <see cref="SectionScriptValidator"/> path unchanged, regardless of whether this is supplied.
+    /// </param>
     public async Task<SectionScriptGenerationReport> GenerateAsync(
         string stablePrefix, string volatileSuffix, Guid songId, LookLibrary lookLibrary, DisplayGraph layout,
         EffectVocabularyCatalog vocabulary, int maxOutputTokens, CancellationToken ct,
-        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null)
+        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null, SectionTimelineAnchorContext? anchorContext = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
         ArgumentException.ThrowIfNullOrWhiteSpace(volatileSuffix);
@@ -55,6 +73,7 @@ public sealed class SectionScriptGenerator
         var usages = new List<AiUsage?>();
         IReadOnlyList<SectionScriptValidationError> violations = [];
         var correction = "";
+        SectionTimeline? lastParsedValue = null;
 
         for (var attempt = 1; attempt <= _maxAttempts; attempt++)
         {
@@ -64,7 +83,7 @@ public sealed class SectionScriptGenerator
 
             var request = new ChatCompletionRequest(stablePrefix, userPrompt, CacheSystemPrompt: true, maxOutputTokens);
 
-            StructuredAiCallResult<SectionScript> result;
+            StructuredAiCallResult<SectionTimeline> result;
             try
             {
                 result = await _client.CompleteAsync(request, ct).ConfigureAwait(false);
@@ -79,18 +98,65 @@ public sealed class SectionScriptGenerator
             }
 
             usages.Add(result.Usage);
-            violations = SectionScriptValidator.Validate(result.Value, lookLibrary, layout, vocabulary, phraseCountBySectionId);
-            await LogAsync(songId, result.Usage, $"attempt {attempt}/{_maxAttempts}: {(violations.Count == 0 ? "validated" : $"{violations.Count} violation(s)")}", result.Diagnostics, ct).ConfigureAwait(false);
+            lastParsedValue = result.Value;
+            violations = Validate(result.Value, lookLibrary, layout, vocabulary, phraseCountBySectionId, anchorContext);
+            // TEMPORARY DIAGNOSTIC (not a logic change -- revert before merging): full violation detail +
+            // raw response JSON, so a real retry's actual cause is inspectable from the call log instead
+            // of only a bare count.
+            var diagnosticDetail = violations.Count == 0
+                ? "validated"
+                : $"{violations.Count} violation(s): {string.Join(" | ", violations.Select(v => $"[{v.Rule}] {v.Message}"))}";
+            await LogAsync(songId, result.Usage, $"attempt {attempt}/{_maxAttempts}: {diagnosticDetail}\nRAW RESPONSE: {result.RawJson}", result.Diagnostics, ct).ConfigureAwait(false);
 
             if (violations.Count == 0)
             {
-                return new SectionScriptGenerationReport(result.Value, attempt, attempt == 1, [], usages);
+                return new SectionScriptGenerationReport(result.Value.ToSectionScript(), attempt, attempt == 1, [], usages, result.Value);
             }
 
             correction = string.Join("\n", violations.Select(v => $"- [{v.Rule}] {v.Message}"));
         }
 
+        // Build-plan Phase 28c: "a model that can't produce valid cues should degrade to the old
+        // behavior, not fail the whole section." Every retry above re-validated the FULL response
+        // (including Cues) through SectionTimelineValidator. If the retry budget is exhausted but the
+        // LAST real attempt still parsed into a structurally sound SectionTimeline, try once more
+        // dropping its own Cues entirely and validating the resulting flat SectionScript through
+        // today's unchanged SectionScriptValidator -- the exact old flat-LookId-only path, reused as a
+        // last-resort fallback rather than a hard dependency on the model ever producing valid cues.
+        // Never attempted for a transport-only failure (lastParsedValue stays null when every attempt
+        // was a transport rejection, never a real parsed response to fall back to).
+        if (lastParsedValue is { CuesOrEmpty.Count: > 0 } cuedValue)
+        {
+            var flatScript = cuedValue.ToSectionScript();
+            var flatViolations = SectionScriptValidator.Validate(flatScript, lookLibrary, layout, vocabulary, phraseCountBySectionId);
+            if (flatViolations.Count == 0)
+            {
+                return new SectionScriptGenerationReport(flatScript, _maxAttempts, false, [], usages);
+            }
+        }
+
         return new SectionScriptGenerationReport(null, _maxAttempts, false, violations, usages);
+    }
+
+    /// <summary>
+    /// Build-plan Phase 28a §6's own backward-compatibility seam: a response with real
+    /// <see cref="SectionTimeline.Cues"/> AND a real <paramref name="anchorContext"/> to check anchors
+    /// against validates through <see cref="SectionTimelineValidator"/>; every other response (no real
+    /// Cues, or no anchor context supplied) validates through today's unchanged
+    /// <see cref="SectionScriptValidator"/> path, via <see cref="SectionTimeline.ToSectionScript"/>.
+    /// </summary>
+    internal static IReadOnlyList<SectionScriptValidationError> Validate(
+        SectionTimeline timeline, LookLibrary lookLibrary, DisplayGraph layout, EffectVocabularyCatalog vocabulary,
+        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId, SectionTimelineAnchorContext? anchorContext)
+    {
+        if (timeline.CuesOrEmpty.Count > 0 && anchorContext is not null)
+        {
+            return SectionTimelineValidator.Validate(
+                timeline, lookLibrary, layout, anchorContext.Context, anchorContext.Phrases, anchorContext.TransientHits,
+                anchorContext.VocalNotes, anchorContext.LeadInstrumentWindows);
+        }
+
+        return SectionScriptValidator.Validate(timeline.ToSectionScript(), lookLibrary, layout, vocabulary, phraseCountBySectionId);
     }
 
     private async Task LogAsync(Guid songId, AiUsage usage, string note, RequestDiagnostics? diagnostics, CancellationToken ct)

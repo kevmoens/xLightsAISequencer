@@ -1,6 +1,7 @@
 using XlightsAI.Studio.Choreography;
 using XlightsAI.Studio.Contracts;
 using XlightsAI.Studio.Refinement.Harness;
+using XlightsAI.Studio.Rhythm;
 
 namespace XlightsAI.Studio.Director.Tests;
 
@@ -109,6 +110,122 @@ public sealed class RevisionDirectiveDeriverTests
         };
 
         Assert.Empty(RevisionDirectiveDeriver.FromModelCoverageViolations(violations, new Dictionary<Guid, (long Start, long End)>()));
+    }
+
+    [Fact]
+    public void FromModelCoverageViolations_GroupOnlyCoveredModel_ProducesDirectDirective()
+    {
+        // User feedback (2026-11-15): a model only ever reached through some other group's own effect
+        // (never directly) gets its own directive too, worded to ask for a direct binding specifically --
+        // "directly, or via a group" would be a no-op instruction here, since a group already happened.
+        var onlySection = Guid.NewGuid();
+        var windows = new Dictionary<Guid, (long Start, long End)> { [onlySection] = (0, 10_000) };
+        var violations = new[]
+        {
+            new LegalityViolation(ChoreographyLegalityValidator.RuleModelOnlyGroupCovered, "Model 'Matrix 2' only ever received an effect via a group.", AffectedModelId: "Matrix 2"),
+        };
+
+        var directives = RevisionDirectiveDeriver.FromModelCoverageViolations(violations, windows);
+
+        var directive = Assert.Single(directives);
+        Assert.Equal(onlySection, directive.SectionId);
+        Assert.Equal("model-coverage", directive.Kind);
+        Assert.Contains("Matrix 2", directive.Instruction);
+        Assert.Contains("not only via a group", directive.Instruction);
+    }
+
+    [Fact]
+    public void FromHeroLookViolations_TargetsTheLongestSection_AndNamesTheExactLook()
+    {
+        // User feedback (2026-11-15), confirmed against a real generation ("Carol of the Bells"): the
+        // Show Bible's own declared peak Look was never selected by any section -- the directive must
+        // name it exactly so the next attempt has a real chance of reproducing it.
+        var shortSection = Guid.NewGuid();
+        var longSection = Guid.NewGuid();
+        var windows = new Dictionary<Guid, (long Start, long End)>
+        {
+            [shortSection] = (0, 1_000),
+            [longSection] = (0, 50_000),
+        };
+        var violations = new[]
+        {
+            new LegalityViolation(ChoreographyLegalityValidator.RuleHeroLookNeverUsed, "Look 'chorus-final-surge' never used.", AffectedModelId: "chorus-final-surge"),
+        };
+
+        var directives = RevisionDirectiveDeriver.FromHeroLookViolations(violations, windows);
+
+        var directive = Assert.Single(directives);
+        Assert.Equal(longSection, directive.SectionId);
+        Assert.Equal("hero-look-unused", directive.Kind);
+        Assert.Contains("chorus-final-surge", directive.Instruction);
+        Assert.Contains("Set THIS section's LookId to exactly 'chorus-final-surge'", directive.Instruction);
+    }
+
+    [Fact]
+    public void FromHeroLookViolations_IgnoresOtherRules_AndMissingAffectedModelId()
+    {
+        var windows = new Dictionary<Guid, (long Start, long End)> { [Guid.NewGuid()] = (0, 10_000) };
+        var violations = new[]
+        {
+            new LegalityViolation("some-other-rule", "Unrelated finding.", AffectedModelId: "chorus-final-surge"),
+            new LegalityViolation(ChoreographyLegalityValidator.RuleHeroLookNeverUsed, "No AffectedModelId set."),
+        };
+
+        Assert.Empty(RevisionDirectiveDeriver.FromHeroLookViolations(violations, windows));
+    }
+
+    [Fact]
+    public void FromHeroLookViolations_NoSectionWindows_ProducesNoDirective()
+    {
+        var violations = new[]
+        {
+            new LegalityViolation(ChoreographyLegalityValidator.RuleHeroLookNeverUsed, "Look 'chorus-final-surge' never used.", AffectedModelId: "chorus-final-surge"),
+        };
+
+        Assert.Empty(RevisionDirectiveDeriver.FromHeroLookViolations(violations, new Dictionary<Guid, (long Start, long End)>()));
+    }
+
+    [Fact]
+    public void FromMissedLeadInstrumentWindows_TargetsTheClosestOverlappingSection()
+    {
+        var earlySection = Guid.NewGuid();
+        var lateSection = Guid.NewGuid();
+        var windows = new Dictionary<Guid, (long Start, long End)>
+        {
+            [earlySection] = (TimeSpan.FromSeconds(0).Ticks, TimeSpan.FromSeconds(20).Ticks),
+            [lateSection] = (TimeSpan.FromSeconds(20).Ticks, TimeSpan.FromSeconds(40).Ticks),
+        };
+        var missed = new[]
+        {
+            new LeadInstrumentWindow(TimeSpan.FromSeconds(24).Ticks, TimeSpan.FromSeconds(27).Ticks, 2.0),
+        };
+
+        var directives = RevisionDirectiveDeriver.FromMissedLeadInstrumentWindows(missed, windows);
+
+        var directive = Assert.Single(directives);
+        Assert.Equal(lateSection, directive.SectionId);
+        Assert.Equal("lead-instrument-prominence", directive.Kind);
+        Assert.Contains("2.0x", directive.Instruction);
+    }
+
+    [Fact]
+    public void FromMissedLeadInstrumentWindows_WindowOverlapsNoSection_ProducesNoDirective()
+    {
+        var windows = new Dictionary<Guid, (long Start, long End)> { [Guid.NewGuid()] = (0, TimeSpan.FromSeconds(10).Ticks) };
+        var missed = new[]
+        {
+            new LeadInstrumentWindow(TimeSpan.FromSeconds(100).Ticks, TimeSpan.FromSeconds(101).Ticks, 1.8),
+        };
+
+        Assert.Empty(RevisionDirectiveDeriver.FromMissedLeadInstrumentWindows(missed, windows));
+    }
+
+    [Fact]
+    public void FromMissedLeadInstrumentWindows_EmptyList_ProducesNoDirective()
+    {
+        var windows = new Dictionary<Guid, (long Start, long End)> { [Guid.NewGuid()] = (0, TimeSpan.FromSeconds(10).Ticks) };
+
+        Assert.Empty(RevisionDirectiveDeriver.FromMissedLeadInstrumentWindows([], windows));
     }
 
     [Fact]
@@ -290,5 +407,45 @@ public sealed class RevisionDirectiveDeriverTests
             AgreedWinner: PairwiseWinner.Candidate);
 
         Assert.Empty(RevisionDirectiveDeriver.FromVisualCritiques([critique], new Dictionary<Guid, string>()));
+    }
+
+    /// <summary>User feedback (2026-11-16): unlike every other self-healing deriver, this one needs no sectionWindowsById fallback -- the rule's own AffectedSectionId already names the exact affected section.</summary>
+    [Fact]
+    public void FromSectionModelBreadthViolations_TargetsTheExactAffectedSection()
+    {
+        var sectionId = Guid.NewGuid();
+        var violations = new[]
+        {
+            new LegalityViolation(
+                ChoreographyLegalityValidator.RuleSectionModelBreadth,
+                $"Section '{sectionId}' only lights 1 distinct real model(s) across its whole compiled window.",
+                AffectedSectionId: sectionId.ToString()),
+        };
+
+        var directives = RevisionDirectiveDeriver.FromSectionModelBreadthViolations(violations);
+
+        var directive = Assert.Single(directives);
+        Assert.Equal(sectionId, directive.SectionId);
+        Assert.Equal("section-model-breadth", directive.Kind);
+        Assert.Contains("multiple", directive.Instruction, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
+    public void FromSectionModelBreadthViolations_IgnoresOtherRules_AndMissingOrUnparseableAffectedSectionId()
+    {
+        var violations = new[]
+        {
+            new LegalityViolation(ChoreographyLegalityValidator.RuleModelCoverage, "unrelated rule", AffectedModelId: "Arch 1"),
+            new LegalityViolation(ChoreographyLegalityValidator.RuleSectionModelBreadth, "no section id at all"),
+            new LegalityViolation(ChoreographyLegalityValidator.RuleSectionModelBreadth, "not a real guid", AffectedSectionId: "not-a-guid"),
+        };
+
+        Assert.Empty(RevisionDirectiveDeriver.FromSectionModelBreadthViolations(violations));
+    }
+
+    [Fact]
+    public void FromSectionModelBreadthViolations_NoViolations_ProducesNoDirective()
+    {
+        Assert.Empty(RevisionDirectiveDeriver.FromSectionModelBreadthViolations([]));
     }
 }

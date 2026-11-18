@@ -11,6 +11,23 @@ public sealed record LookCurveBinding(string Type, string? Track = null);
 public sealed record LookTransition(string Type, NoteValue Duration, bool Reverse = false);
 
 /// <summary>
+/// User feedback (2026-11-13): a true "moving from one prop to the next" sweep across a group's real
+/// individual members, left-to-right or right-to-left by their own real physical position, each
+/// member's own moment landing exactly on a mark of a declared timing track (a beat, a transient, a
+/// sung word) -- so a chase across several same-type props (arches, mini trees) reads as deliberately
+/// timed to the music, not an arbitrary stagger. This is independent of <see cref="Look.PropDelays"/>
+/// (a weight-based cascade with no musical alignment) -- a Look declares one or the other, never both
+/// meaningfully at once; <see cref="LookCompiler"/> prefers <see cref="Look.Travel"/> when both are set.
+/// </summary>
+/// <param name="Order">One of <see cref="OrderLeftToRight"/>/<see cref="OrderRightToLeft"/> -- real physical ordering by <c>DisplayModel.Bounds.X</c>, never a guessed/declared layout.</param>
+/// <param name="Timescale">The real timing track (e.g. <c>"Beats"</c>, <c>"Transients"</c>, <c>"VocalNotes"</c>) whose successive marks each ordered member is assigned to, one mark per member -- the same real track vocabulary a layer's own <see cref="LookLayer.Timescale"/> already uses.</param>
+public sealed record LookTravel(string Order, string Timescale)
+{
+    public const string OrderLeftToRight = "LeftToRight";
+    public const string OrderRightToLeft = "RightToLeft";
+}
+
+/// <summary>
 /// Architecture §4: one layer of a <see cref="Look"/> -- one effect bound to one prop group at one
 /// z-order, with its own role, blend and timing.
 /// </summary>
@@ -71,7 +88,7 @@ public sealed record LookLayer(
 /// <param name="PaletteRef">A named reference into the Show Bible's palette set -- resolved to a real <c>ColorPaletteDefinition</c> at compile time.</param>
 /// <param name="Subject">The one prop/group this Look's subject layer targets -- architecture §4: "every Look names one subject."</param>
 /// <param name="Layers">This Look's own layers, in declared z-order.</param>
-/// <param name="PropDelays">Mass-tier-keyed stagger offsets (e.g. <c>{"mass":"+0ms","mid":"+60ms","accent":"+120ms"}</c>) -- architecture §4's <c>propDelays</c>, resolved by <see cref="PropDelayResolver"/>.</param>
+/// <param name="PropDelays">Mass-tier-keyed stagger offsets (e.g. <c>{"mass":"+0ms","mid":"+60ms","accent":"+120ms"}</c>) -- architecture §4's <c>propDelays</c>, resolved by <see cref="PropDelayResolver"/>. A weight-based cascade, not aligned to the music -- see <see cref="Travel"/> for a beat/word-aligned left-to-right sweep instead.</param>
 /// <param name="Uniqueness">A reservation tag (e.g. <c>"reserved:peak"</c>) -- <see cref="ChoreographyLegalityValidator"/>'s own "a Look reserved for a peak binds to exactly one section" rule enforces this, never fabricated as satisfied.</param>
 /// <param name="Variations">Declared variation names this Look supports (e.g. <c>"escalate"</c>, <c>"invert"</c>) -- consumed by a later phase's variation scheduler; carried here as declared capability, not yet applied by Phase 4's own compiler.</param>
 /// <param name="DeclaredDarkness">
@@ -89,6 +106,7 @@ public sealed record LookLayer(
 /// it being inferred after the fact -- so the Shell can show a user watching a generation run which seed
 /// pattern actually shaped a given Look, instead of that mechanism being invisible.
 /// </param>
+/// <param name="Travel">A real left-to-right/right-to-left sweep across a group's individual members, each landing on a successive mark of a declared timing track -- see <see cref="LookTravel"/>. Takes precedence over <see cref="PropDelays"/> when both are declared.</param>
 public sealed record Look(
     string Id,
     string Name,
@@ -103,7 +121,8 @@ public sealed record Look(
     IReadOnlyList<string>? Variations = null,
     bool DeclaredDarkness = false,
     IReadOnlyList<SectionKind>? AllowedSectionKinds = null,
-    string? TemplateRef = null)
+    string? TemplateRef = null,
+    LookTravel? Travel = null)
 {
     public IReadOnlyDictionary<string, string> PropDelaysOrEmpty => PropDelays ?? EmptyDelays;
 

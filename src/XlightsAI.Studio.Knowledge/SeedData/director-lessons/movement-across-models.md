@@ -1,0 +1,6 @@
+---
+id: movement-across-models
+applies: multi-model-group-present
+priority: 1
+---
+User feedback (2026-11-14), measured against a real generation that "stayed on a single model": this layout has a real group with 3+ individually-positioned members (e.g. a row of arches, a line of mini trees) -- a Look library that keeps targeting that group's own SAME single member by name across most of that group's appearances is exactly as wrong as a Look library that only ever targets the whole group as one unit. Use a genuine MIX of all three real options across the library, not a default: (a) the whole group moving together as one unit (`"Subject"/"Props": "group:Arches"`), (b) a real left-to-right/right-to-left `"Travel"` sweep across the group's own individual members, each landing exactly on a beat/transient/word, or (c) distinct individual Looks, each naming a DIFFERENT single member of that group by its own real name, so the group's own members each get their own turn across the song rather than one member standing in for the whole row every time. Reaching for the same single member repeatedly, or always the whole-group form, reads as repetitive no matter how well-timed the hits are -- real movement comes from WHICH model carries a moment changing, not just WHEN it fires.

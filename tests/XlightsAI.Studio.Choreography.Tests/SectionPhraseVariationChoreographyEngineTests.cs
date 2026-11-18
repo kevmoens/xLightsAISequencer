@@ -96,7 +96,10 @@ public sealed class SectionPhraseVariationChoreographyEngineTests
 
         var result = ChoreographyEngine.Compile(input);
 
-        Assert.Empty(result.Violations);
+        // This fixture's own layout only has 2 real models total (Tree/Outline) -- section-model-breadth's
+        // own floor (3+) can never be cleared here regardless of how the Look is authored; irrelevant to
+        // what this test exercises (phrase-scoped IR actually differing per phrase).
+        Assert.DoesNotContain(result.Violations, v => v.Rule != ChoreographyLegalityValidator.RuleSectionModelBreadth);
 
         var outlineModel = new ModelId("Outline");
         var secondPhraseStartTicks = 2 * BarTicks;

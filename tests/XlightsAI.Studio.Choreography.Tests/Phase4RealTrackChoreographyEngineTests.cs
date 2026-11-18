@@ -178,6 +178,25 @@ public sealed class Phase4RealTrackChoreographyEngineTests : IDisposable
         {
             "declared-vs-measured-change-density", "whole-song-effect-concentration",
             ChoreographyLegalityValidator.RuleModelCoverage, "concurrent-focal-effect-cap",
+            // User feedback (2026-11-14): also soft/advisory (see RuleIndividualModelDiversity's own doc
+            // comment) -- this fixture's fixed Phase4LookLibraryFixture/lookIdBySection mapping was never
+            // designed to vary which individual member of a multi-model group gets its own moment, the
+            // same real-AI-generation craft gap this rule exists to surface, not something this
+            // deterministic compiler-only fixture was ever meant to demonstrate avoiding.
+            ChoreographyLegalityValidator.RuleIndividualModelDiversity,
+            // User feedback (2026-11-14): same reasoning -- RuleGroupNeverTargetedDirectly surfaces a
+            // real craft gap (a named group, e.g. "Everything," never fired as its own group-level
+            // effect) a real AI-generated Look library is expected to avoid, not something this fixed
+            // hand-authored fixture (built well before this rule existed) was ever designed to satisfy.
+            ChoreographyLegalityValidator.RuleGroupNeverTargetedDirectly,
+            // User feedback (2026-11-15): same reasoning again -- RuleModelOnlyGroupCovered surfaces a
+            // real craft gap (a multi-member group's own members never individually targeted, only
+            // incidentally covered via the group) a real AI-generated Look library is expected to avoid,
+            // not something this fixed, 3-5-Look hand-authored fixture (built long before this rule
+            // existed) was ever designed to satisfy. (RuleHeroLookNeverUsed, the other rule added
+            // alongside it, cannot appear here at all -- this fixture's own ChoreographyEngine.Input never
+            // supplies HeroLookIds, so that rule is always skipped entirely for this test.)
+            ChoreographyLegalityValidator.RuleModelOnlyGroupCovered,
         };
         var preExistingViolations = result.Violations.Where(v => !postPhase7Rules.Contains(v.Rule)).ToList();
         if (preExistingViolations.Count > 0)
@@ -186,17 +205,29 @@ public sealed class Phase4RealTrackChoreographyEngineTests : IDisposable
             Assert.Fail($"{preExistingViolations.Count} legality violation(s):\n{summary}");
         }
 
-        // Required acceptance: "The always-moving rule holds on the output (max gap <= 1 bar) for a
-        // full song."
-        var songWindow = new TimeWindow(0, songEndTicks);
+        // Required acceptance (scoped 2026-11-13 -- see AlwaysMovingGapSplitter's own doc comment): "the
+        // always-moving rule holds (max gap <= 1 bar)" now applies only WHILE a target is actually in
+        // play -- targeted by that section's own compiled Look -- not across the whole song regardless
+        // of whether any later section even addresses it. A target's real dark stretches outside every
+        // section that targets it are the intended new behavior (real negative space), not a violation.
+        var maxBarTicks = result.BarGrid.Bars.Count == 0 ? songEndTicks : result.BarGrid.Bars.Max(b => b.Window.EndTicks - b.Window.StartTicks);
         var targets = result.IR.Effects.Select(e => e.Target).Distinct().ToList();
         Assert.NotEmpty(targets);
+        Assert.NotNull(result.SectionAssignments);
         foreach (var target in targets)
         {
-            var maxBarTicks = result.BarGrid.Bars.Count == 0 ? songEndTicks : result.BarGrid.Bars.Max(b => b.Window.EndTicks - b.Window.StartTicks);
-            var largestGap = AlwaysMovingGapSplitter.LargestGapTicks(target, result.IR.Effects, songWindow);
-            Assert.True(largestGap <= maxBarTicks,
-                $"Target '{target.Value}' has a gap of {largestGap} ticks, exceeding one bar ({maxBarTicks} ticks).");
+            var activeWindows = result.SectionAssignments!
+                .Where(s => s.Window is not null && s.TargetedModels.Contains(target))
+                .Select(s => s.Window!.Value)
+                .OrderBy(w => w.StartTicks)
+                .ToList();
+
+            foreach (var window in activeWindows)
+            {
+                var largestGap = AlwaysMovingGapSplitter.LargestGapTicks(target, result.IR.Effects, window);
+                Assert.True(largestGap <= maxBarTicks,
+                    $"Target '{target.Value}' has a gap of {largestGap} ticks within its own active window [{window.StartTicks},{window.EndTicks}), exceeding one bar ({maxBarTicks} ticks).");
+            }
         }
 
         // Required acceptance: "Pixel coverage ladder is monotone."

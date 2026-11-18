@@ -212,6 +212,163 @@ public sealed class ChoreographyLegalityValidatorTests
         var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
 
         Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage);
+        // "Arches" has only one real member ("Arch 1") -- the group's own effect IS that member's own
+        // direct moment, so there is nothing distinct for RuleModelOnlyGroupCovered to flag.
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelOnlyGroupCovered);
+    }
+
+    [Fact]
+    public void ValidateShow_MultiMemberGroupMemberCoveredOnlyViaTheGroup_FlagsModelOnlyGroupCovered()
+    {
+        // User feedback (2026-11-15), confirmed against a real generation ("Carol of the Bells"): a
+        // 3-member group's single group-level effect correctly satisfies RuleModelCoverage for every
+        // member (real pixels genuinely lit up for all three), but two of those members ("Matrix 2",
+        // "Matrix 3") never received their own direct, individually-targeted effect anywhere else in the
+        // whole show -- a viewer scrubbing their own row in xLights sees them completely empty.
+        var layout = new DisplayGraph(
+            "TEST-HASH",
+            Models:
+            [
+                new DisplayModel(new ModelId("Matrix 1"), "Matrix 1", "Matrix", [], [], NodeCount: 1488),
+                new DisplayModel(new ModelId("Matrix 2"), "Matrix 2", "Matrix", [], [], NodeCount: 900),
+                new DisplayModel(new ModelId("Matrix 3"), "Matrix 3", "Matrix", [], [], NodeCount: 900),
+            ],
+            Groups:
+            [
+                new DisplayModelGroup("Matrixes",
+                [
+                    new DisplayGroupMember("Matrix 1", DisplayGroupMemberKind.Model),
+                    new DisplayGroupMember("Matrix 2", DisplayGroupMemberKind.Model),
+                    new DisplayGroupMember("Matrix 3", DisplayGroupMemberKind.Model),
+                ]),
+            ],
+            Warnings: []);
+        var look = BuildLook("covers-via-group-only", "hold", []);
+        // Only ONE compiled effect touches this group all show long, and it targets the group itself --
+        // never any individual member directly.
+        var groupEffect = new EffectInstance(Guid.NewGuid(), new ModelId("Matrixes"), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>());
+        var ir = new ChoreographyIR([], [groupEffect], []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Matrixes")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        // RuleModelCoverage stays silent -- every member genuinely received real pixels via the group.
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage);
+
+        var flagged = violations.Where(v => v.Rule == ChoreographyLegalityValidator.RuleModelOnlyGroupCovered)
+            .Select(v => v.AffectedModelId)
+            .ToHashSet();
+        Assert.Equal(new HashSet<string?> { "Matrix 1", "Matrix 2", "Matrix 3" }, flagged);
+    }
+
+    [Fact]
+    public void ValidateShow_HeroLookIdSuppliedButNeverSelectedByAnySection_FlagsHeroLookNeverUsed()
+    {
+        // User feedback (2026-11-15), confirmed against a real generation ("Carol of the Bells"): the
+        // Show Bible's own declared peak/held-back Look ("chorus-final-surge", built around
+        // "group:Everything") was never selected by any of the 13 independent per-section calls.
+        var layout = BuildLayout();
+        var usedLook = BuildLook("verse-glass", "hold", []);
+        var ir = BuildIrWithEffectCount(1);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", usedLook, ir, [new ModelId("Tree")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage,
+            heroLookIds: ["verse-glass", "chorus-final-surge"]);
+
+        var violation = Assert.Single(violations, v => v.Rule == ChoreographyLegalityValidator.RuleHeroLookNeverUsed);
+        Assert.Equal("chorus-final-surge", violation.AffectedModelId);
+    }
+
+    [Fact]
+    public void ValidateShow_EveryHeroLookIdSelectedBySomeSection_DoesNotFlagHeroLookNeverUsed()
+    {
+        var layout = BuildLayout();
+        var look = BuildLook("chorus-final-surge", "hold", []);
+        var ir = BuildIrWithEffectCount(1);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Tree")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage,
+            heroLookIds: ["chorus-final-surge"]);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleHeroLookNeverUsed);
+    }
+
+    [Fact]
+    public void ValidateShow_NoHeroLookIdsSupplied_NeverFlagsHeroLookNeverUsed()
+    {
+        // A caller that predates Show Bible hero-Look awareness (heroLookIds omitted, the default)
+        // behaves exactly as before -- this rule is simply never attempted.
+        var layout = BuildLayout();
+        var look = BuildLook("has-tree", "hold", []);
+        var ir = BuildIrWithEffectCount(1);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Tree")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleHeroLookNeverUsed);
+    }
+
+    /// <summary>User feedback (2026-11-14): a real generated show never once used "Everything"/"Roof"/etc. as
+    /// their own real group-level effect, even though every member happened to be covered some other way --
+    /// RuleModelCoverage stayed silent the whole time. This rule targets the group's own identity directly.</summary>
+    [Fact]
+    public void ValidateShow_GroupUsedDirectlyAtLeastOnce_DoesNotFlagGroupNeverTargetedDirectly()
+    {
+        var layout = new DisplayGraph(
+            "TEST-HASH",
+            Models:
+            [
+                new DisplayModel(new ModelId("Arch 1"), "Arch 1", "Arch", [], [], NodeCount: 50),
+                new DisplayModel(new ModelId("Tree"), "Tree", "Tree", [], [], NodeCount: 900),
+            ],
+            Groups: [new DisplayModelGroup("Arches", [new DisplayGroupMember("Arch 1", DisplayGroupMemberKind.Model)])],
+            Warnings: []);
+        var look = BuildLook("covers-group", "hold", []);
+        var groupEffect = new EffectInstance(Guid.NewGuid(), new ModelId("Arches"), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>());
+        var treeEffect = new EffectInstance(Guid.NewGuid(), new ModelId("Tree"), 0, 1000, 2000, "recipe", "1", new Dictionary<string, string>());
+        var ir = new ChoreographyIR([], [groupEffect, treeEffect], []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arches"), new ModelId("Tree")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleGroupNeverTargetedDirectly);
+    }
+
+    [Fact]
+    public void ValidateShow_GroupMembersCoveredOnlyIndividually_FlagsGroupNeverTargetedDirectly()
+    {
+        var layout = new DisplayGraph(
+            "TEST-HASH",
+            Models:
+            [
+                new DisplayModel(new ModelId("Arch 1"), "Arch 1", "Arch", [], [], NodeCount: 50),
+                new DisplayModel(new ModelId("Tree"), "Tree", "Tree", [], [], NodeCount: 900),
+            ],
+            Groups: [new DisplayModelGroup("Arches", [new DisplayGroupMember("Arch 1", DisplayGroupMemberKind.Model)])],
+            Warnings: []);
+        var look = BuildLook("covers-member-only", "hold", []);
+        // "Arch 1" is covered directly, but the "Arches" group itself is never the target of any effect.
+        var archEffect = new EffectInstance(Guid.NewGuid(), new ModelId("Arch 1"), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>());
+        var treeEffect = new EffectInstance(Guid.NewGuid(), new ModelId("Tree"), 0, 1000, 2000, "recipe", "1", new Dictionary<string, string>());
+        var ir = new ChoreographyIR([], [archEffect, treeEffect], []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arch 1"), new ModelId("Tree")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        var violation = Assert.Single(violations, v => v.Rule == ChoreographyLegalityValidator.RuleGroupNeverTargetedDirectly);
+        Assert.Equal("Arches", violation.AffectedModelId);
     }
 
     [Fact]
@@ -235,6 +392,199 @@ public sealed class ChoreographyLegalityValidatorTests
         var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
 
         Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage && v.AffectedModelId == "Bookkeeping");
+    }
+
+    private static DisplayGraph BuildArchesLayout(params (string Name, double X)[] arches) => new(
+        "TEST-HASH",
+        Models: arches.Select(a => new DisplayModel(new ModelId(a.Name), a.Name, "Arches", [], [], NodeCount: 50, Bounds: new DisplayBounds(a.X, 0, 0))).ToList(),
+        Groups: [new DisplayModelGroup("Arches", arches.Select(a => new DisplayGroupMember(a.Name, DisplayGroupMemberKind.Model)).ToList())],
+        Warnings: []);
+
+    /// <summary>User feedback (2026-11-14): the real "stayed on a single model" pattern -- one of a qualifying group's own 3+ positioned members gets a real per-member effect more than once, while the group's other members never get one at all.</summary>
+    [Fact]
+    public void ValidateShow_SameSingleGroupMemberRepeated_FlagsIndividualModelDiversityAdvisory()
+    {
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300));
+        var look = BuildLook("arch1-twice", "hold", []);
+        var effects = new[]
+        {
+            new EffectInstance(Guid.NewGuid(), new ModelId("Arch1"), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>()),
+            new EffectInstance(Guid.NewGuid(), new ModelId("Arch1"), 0, 1000, 2000, "recipe", "1", new Dictionary<string, string>()),
+        };
+        var ir = new ChoreographyIR([], effects, []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arch1")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        var violation = Assert.Single(violations, v => v.Rule == ChoreographyLegalityValidator.RuleIndividualModelDiversity);
+        Assert.Equal("Arch1", violation.AffectedModelId);
+    }
+
+    [Fact]
+    public void ValidateShow_DifferentGroupMembersEachGetTheirOwnMoment_DoesNotFlagIndividualModelDiversity()
+    {
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300));
+        var look = BuildLook("each-arch-once", "hold", []);
+        var effects = new[]
+        {
+            new EffectInstance(Guid.NewGuid(), new ModelId("Arch1"), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>()),
+            new EffectInstance(Guid.NewGuid(), new ModelId("Arch2"), 0, 1000, 2000, "recipe", "1", new Dictionary<string, string>()),
+            new EffectInstance(Guid.NewGuid(), new ModelId("Arch3"), 0, 2000, 3000, "recipe", "1", new Dictionary<string, string>()),
+        };
+        var ir = new ChoreographyIR([], effects, []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arch1"), new ModelId("Arch2"), new ModelId("Arch3")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleIndividualModelDiversity);
+    }
+
+    [Fact]
+    public void ValidateShow_GroupWithFewerThanThreePositionedMembers_NeverFlaggedForIndividualModelDiversity()
+    {
+        // Only 2 positioned members -- below the real threshold where "only one named directly" is even
+        // a meaningful observation.
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200));
+        var look = BuildLook("arch1-twice", "hold", []);
+        var effects = new[]
+        {
+            new EffectInstance(Guid.NewGuid(), new ModelId("Arch1"), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>()),
+            new EffectInstance(Guid.NewGuid(), new ModelId("Arch1"), 0, 1000, 2000, "recipe", "1", new Dictionary<string, string>()),
+        };
+        var ir = new ChoreographyIR([], effects, []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arch1")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleIndividualModelDiversity);
+    }
+
+    private static EffectInstance[] EffectsOn(params string[] modelNames) =>
+        modelNames.Select(name => new EffectInstance(Guid.NewGuid(), new ModelId(name), 0, 0, 1000, "recipe", "1", new Dictionary<string, string>())).ToArray();
+
+    /// <summary>User feedback (2026-11-16): "much of the sequence... only a single model with an effect" -- a section whose Look's compiled IR only ever touches one real model, for its whole window, is exactly the sparse pattern this self-healing rule exists to catch (and its own real SectionId, carried for RevisionDirectiveDeriver to target the fix at).</summary>
+    [Fact]
+    public void ValidateShow_SectionLightsOnlyOneModel_FlagsSectionModelBreadth()
+    {
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300));
+        var look = BuildLook("arch1-only", "hold", []);
+        var ir = new ChoreographyIR([], EffectsOn("Arch1", "Arch1"), []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arch1")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        var violation = Assert.Single(violations, v => v.Rule == ChoreographyLegalityValidator.RuleSectionModelBreadth);
+        Assert.Equal("s1", violation.AffectedSectionId);
+    }
+
+    /// <summary>User feedback (2026-11-16): the floor was raised from 2 to 3 ("multiple at a time on multiple models... more and more") -- two distinct models is now still below it.</summary>
+    [Fact]
+    public void ValidateShow_SectionLightsTwoDistinctModels_StillFlagsSectionModelBreadth()
+    {
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300));
+        var look = BuildLook("arch1-and-arch2", "hold", []);
+        var ir = new ChoreographyIR([], EffectsOn("Arch1", "Arch2"), []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arch1"), new ModelId("Arch2")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.Contains(violations, v => v.Rule == ChoreographyLegalityValidator.RuleSectionModelBreadth);
+    }
+
+    [Fact]
+    public void ValidateShow_SectionLightsThreeDistinctModels_DoesNotFlagSectionModelBreadth()
+    {
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300));
+        var look = BuildLook("arch1-arch2-arch3", "hold", []);
+        var ir = new ChoreographyIR([], EffectsOn("Arch1", "Arch2", "Arch3"), []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[]
+        {
+            new ChoreographyLegalityValidator.SectionAssignment(
+                "s1", look, ir, [new ModelId("Arch1"), new ModelId("Arch2"), new ModelId("Arch3")]),
+        };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleSectionModelBreadth);
+    }
+
+    /// <summary>Phrase-scoped sub-windows (build-plan Phase 10 §3e) compile to several separate SectionAssignment entries sharing one SectionId -- a later phrase deliberately receding to one subject must not be flagged on its own slice; only the whole section's own union across every phrase is measured.</summary>
+    [Fact]
+    public void ValidateShow_PhraseScopedSectionUnionsAcrossSlices_DoesNotFlagSectionModelBreadth()
+    {
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300));
+        var fullLook = BuildLook("full", "hold", []);
+        var recedeLook = BuildLook("recede", "hold", []);
+        var fullIr = new ChoreographyIR([], EffectsOn("Arch1", "Arch2", "Arch3"), []);
+        var recedeIr = new ChoreographyIR([], EffectsOn("Arch1"), []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[]
+        {
+            new ChoreographyLegalityValidator.SectionAssignment("s1", fullLook, fullIr, [new ModelId("Arch1"), new ModelId("Arch2"), new ModelId("Arch3")]),
+            new ChoreographyLegalityValidator.SectionAssignment("s1", recedeLook, recedeIr, [new ModelId("Arch1")]),
+        };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleSectionModelBreadth);
+    }
+
+    [Fact]
+    public void ValidateShow_DeclaredDarkSectionLightsOnlyOneModel_DoesNotFlagSectionModelBreadth()
+    {
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300));
+        var look = BuildLook("arch1-only-dark", "hold", [], declaredDarkness: true);
+        var ir = new ChoreographyIR([], EffectsOn("Arch1"), []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[] { new ChoreographyLegalityValidator.SectionAssignment("s1", look, ir, [new ModelId("Arch1")]) };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleSectionModelBreadth);
+    }
+
+    [Fact]
+    public void ValidateShow_DenseSectionKindLightsThreeModels_StillFlagsSectionModelBreadth()
+    {
+        // Dense (Chorus/Bridge/Solo) section kinds need 5+, not 3+ -- three is still below their own,
+        // two-higher floor.
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300), ("Arch4", 400), ("Arch5", 500));
+        var look = BuildLook("arch-trio-chorus", "hold", []);
+        var ir = new ChoreographyIR([], EffectsOn("Arch1", "Arch2", "Arch3"), []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[]
+        {
+            new ChoreographyLegalityValidator.SectionAssignment(
+                "s1", look, ir, [new ModelId("Arch1"), new ModelId("Arch2"), new ModelId("Arch3")], Kind: SectionKind.Chorus),
+        };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.Contains(violations, v => v.Rule == ChoreographyLegalityValidator.RuleSectionModelBreadth);
+    }
+
+    [Fact]
+    public void ValidateShow_DenseSectionKindLightsFiveModels_DoesNotFlagSectionModelBreadth()
+    {
+        var layout = BuildArchesLayout(("Arch1", 100), ("Arch2", 200), ("Arch3", 300), ("Arch4", 400), ("Arch5", 500));
+        var look = BuildLook("arch-quintet-chorus", "hold", []);
+        var ir = new ChoreographyIR([], EffectsOn("Arch1", "Arch2", "Arch3", "Arch4", "Arch5"), []);
+        var coverage = PixelCoverageLadder.Build(layout, 7);
+        var sections = new[]
+        {
+            new ChoreographyLegalityValidator.SectionAssignment(
+                "s1", look, ir, [new ModelId("Arch1"), new ModelId("Arch2"), new ModelId("Arch3"), new ModelId("Arch4"), new ModelId("Arch5")], Kind: SectionKind.Chorus),
+        };
+
+        var violations = ChoreographyLegalityValidator.ValidateShow(sections, layout, coverage);
+
+        Assert.DoesNotContain(violations, v => v.Rule == ChoreographyLegalityValidator.RuleSectionModelBreadth);
     }
 
     private static ChoreographyIR BuildIrWithEffectCount(int count)

@@ -62,7 +62,7 @@ public sealed class BeatGridBuilder : IBeatGridBuilder
         // case): reject a meter/tolerance that cannot produce a meaningful result, and reject a
         // tempo/onset pair that does not actually belong together, before any computation or cache
         // lookup.
-        if (settings.BeatsPerBar <= 0)
+        if (settings.BeatsPerBar is <= 0)
         {
             throw new BeatGridInvalidException(onsets.SongId, $"BeatGridSettings.BeatsPerBar ({settings.BeatsPerBar}) must be positive.");
         }
@@ -106,9 +106,10 @@ public sealed class BeatGridBuilder : IBeatGridBuilder
         // TempoDetector's own construction, no onsets either) cannot support a beat grid at all —
         // report that plainly as a null selected tempo and an empty, non-throwing beat list.
         var selectedTempo = tempo.Candidates.Length > 0 ? tempo.Candidates[0] : null;
+        var (resolvedBeatsPerBar, resolvedBeatsPerBarSource) = ResolveBeatsPerBar(settings, selectedTempo);
         var beats = selectedTempo is null || onsets.Onsets.Length == 0
             ? []
-            : ComputeBeats(onsets.Onsets, selectedTempo, settings, ct);
+            : ComputeBeats(onsets.Onsets, selectedTempo, resolvedBeatsPerBar, settings, ct);
 
         var grid = new BeatGrid(
             VersionId: Guid.NewGuid(),
@@ -121,7 +122,9 @@ public sealed class BeatGridBuilder : IBeatGridBuilder
             SelectedTempo: selectedTempo,
             Beats: beats,
             Candidates: tempo.Candidates,
-            CorrectionVersion: 0);
+            CorrectionVersion: 0,
+            ResolvedBeatsPerBar: resolvedBeatsPerBar,
+            ResolvedBeatsPerBarSource: resolvedBeatsPerBarSource);
 
         await _store.SaveAsync(grid, ct).ConfigureAwait(false);
         return grid;
@@ -172,7 +175,37 @@ public sealed class BeatGridBuilder : IBeatGridBuilder
         }
     }
 
-    private static BeatMarker[] ComputeBeats(OnsetEvent[] onsetEvents, TempoHypothesis tempo, BeatGridSettings settings, CancellationToken ct)
+    /// <summary>
+    /// PHASE-28 §3.1 — resolves the actual <c>BeatsPerBar</c> this grid is built with: an explicit
+    /// <see cref="BeatGridSettings.BeatsPerBar"/> always wins (the usual nullable-optional-signal
+    /// convention: a non-null value is a deliberate override); otherwise falls back to the selected
+    /// tempo's own detected meter (<see cref="TempoHypothesis.MeterGuess"/>, e.g. <c>"3/4"</c> → <c>3</c>);
+    /// <c>4</c> is the absolute last resort when neither is available (no explicit setting and no viable
+    /// tempo candidate, e.g. silence). Always returns which tier actually won — never a silent default.
+    /// </summary>
+    private static (int BeatsPerBar, string Source) ResolveBeatsPerBar(BeatGridSettings settings, TempoHypothesis? selectedTempo)
+    {
+        if (settings.BeatsPerBar is { } explicitValue)
+        {
+            return (explicitValue, "ExplicitSetting");
+        }
+
+        if (selectedTempo is not null && TryParseMeterNumerator(selectedTempo.MeterGuess, out var detected))
+        {
+            return (detected, "DetectedMeter");
+        }
+
+        return (4, "DefaultFallback");
+    }
+
+    private static bool TryParseMeterNumerator(string meterGuess, out int numerator)
+    {
+        var slashIndex = meterGuess.IndexOf('/');
+        var numeratorText = slashIndex < 0 ? meterGuess : meterGuess[..slashIndex];
+        return int.TryParse(numeratorText, out numerator) && numerator > 0;
+    }
+
+    private static BeatMarker[] ComputeBeats(OnsetEvent[] onsetEvents, TempoHypothesis tempo, int beatsPerBar, BeatGridSettings settings, CancellationToken ct)
     {
         const long TicksPerSecond = 10_000_000L;
 
@@ -216,8 +249,8 @@ public sealed class BeatGridBuilder : IBeatGridBuilder
             beats.Add(new BeatMarker(
                 Id: Guid.NewGuid(),
                 TimeTicks: beatTicks,
-                BeatWithinBar: k % settings.BeatsPerBar,
-                BarIndex: k / settings.BeatsPerBar,
+                BeatWithinBar: k % beatsPerBar,
+                BarIndex: k / beatsPerBar,
                 Confidence: confidence,
                 UserCorrected: false));
 

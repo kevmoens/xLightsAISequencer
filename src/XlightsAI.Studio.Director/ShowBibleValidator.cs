@@ -269,6 +269,20 @@ public static class ShowBibleValidator
                 errors.Add(new ShowBibleValidationError("look-template-ref", $"Look '{look.Id}' declares TemplateRef '{templateRef}', which is not in the seed template catalog."));
             }
 
+            // User feedback (2026-11-13): Travel.Timescale is deliberately NOT checked against this
+            // song's own real timing tracks here -- same precedent as a plain layer's own Timescale,
+            // which TimescaleResolver's graceful fallback resolves (or safely ignores) at compile time,
+            // not at Show-Bible-validation time. Order is a closed, cheap-to-check, always-knowable set.
+            if (look.Travel is { } travel && travel.Order != LookTravel.OrderLeftToRight && travel.Order != LookTravel.OrderRightToLeft)
+            {
+                errors.Add(new ShowBibleValidationError("look-travel-order", $"Look '{look.Id}' declares Travel.Order '{travel.Order}', which must be exactly '{LookTravel.OrderLeftToRight}' or '{LookTravel.OrderRightToLeft}'."));
+            }
+
+            if (look.Travel is { Timescale.Length: 0 })
+            {
+                errors.Add(new ShowBibleValidationError("look-travel-timescale", $"Look '{look.Id}' declares Travel with a blank Timescale -- a real timing track name (e.g. 'Beats', 'Transients', 'VocalNotes') is required."));
+            }
+
             if (look.Layers.Count == 0)
             {
                 errors.Add(new ShowBibleValidationError("look-layers", $"Look '{look.Id}' has no layers."));

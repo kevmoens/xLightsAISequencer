@@ -29,7 +29,7 @@ public sealed class BeatGridEditor : IBeatGridEditor
             .OrderBy(b => b.TimeTicks)
             .ToArray();
 
-        return WithEditedBeats(grid, RenumberPositional(reordered, grid.Settings.BeatsPerBar));
+        return WithEditedBeats(grid, RenumberPositional(reordered, grid.ResolvedBeatsPerBar));
     }
 
     public BeatGrid SetDownbeat(BeatGrid grid, Guid beatId, long expectedCorrectionVersion)
@@ -44,7 +44,7 @@ public sealed class BeatGridEditor : IBeatGridEditor
             throw new BeatGridEditInvalidException(grid.SongId, $"No beat with Id '{beatId}' exists in this grid.");
         }
 
-        var beatsPerBar = grid.Settings.BeatsPerBar;
+        var beatsPerBar = grid.ResolvedBeatsPerBar;
         var renumbered = new BeatMarker[ordered.Length];
         for (var i = 0; i < ordered.Length; i++)
         {
@@ -84,7 +84,7 @@ public sealed class BeatGridEditor : IBeatGridEditor
 
         var reordered = grid.Beats.Append(inserted).OrderBy(b => b.TimeTicks).ToArray();
 
-        return WithEditedBeats(grid, RenumberPositional(reordered, grid.Settings.BeatsPerBar));
+        return WithEditedBeats(grid, RenumberPositional(reordered, grid.ResolvedBeatsPerBar));
     }
 
     public BeatGrid RemoveBeat(BeatGrid grid, Guid beatId, long expectedCorrectionVersion)
@@ -96,7 +96,7 @@ public sealed class BeatGridEditor : IBeatGridEditor
 
         var remaining = grid.Beats.Where((_, i) => i != index).OrderBy(b => b.TimeTicks).ToArray();
 
-        return WithEditedBeats(grid, RenumberPositional(remaining, grid.Settings.BeatsPerBar));
+        return WithEditedBeats(grid, RenumberPositional(remaining, grid.ResolvedBeatsPerBar));
     }
 
     private static void EnsureVersion(BeatGrid grid, long expectedCorrectionVersion)

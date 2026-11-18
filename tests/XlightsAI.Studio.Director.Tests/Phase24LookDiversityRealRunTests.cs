@@ -94,7 +94,7 @@ public sealed class Phase24LookDiversityRealRunTests : IDisposable
 
         var baseMusic = await AnalyzeAsync(clipPath, realSequencePath, "Dubstep Christmas Light Show (Phase 24 real run, 30s clip)", ct);
 
-        var beatsPerBar = baseMusic.BeatGrid.Settings.BeatsPerBar;
+        var beatsPerBar = baseMusic.BeatGrid.ResolvedBeatsPerBar;
         var totalBars = baseMusic.BeatGrid.Beats.Length / beatsPerBar;
         if (totalBars < ChorusOccurrenceCount * 2)
         {

@@ -12,4 +12,12 @@ namespace XlightsAI.Studio.Choreography;
 /// every rule that is not about one specific model, and for every violation produced before this field
 /// existed.
 /// </param>
-public sealed record LegalityViolation(string Rule, string Message, string? AffectedModelId = null);
+/// <param name="AffectedSectionId">
+/// User feedback (2026-11-16): the one real section (its own <see cref="ChoreographyLegalityValidator.SectionAssignment.SectionId"/>,
+/// stringified) this violation is about, when the rule already knows exactly which section is affected
+/// (e.g. <c>"section-model-breadth"</c>) rather than needing a downstream consumer to guess one (the
+/// "target the single longest section" fallback <see cref="XlightsAI.Studio.Director.RevisionDirectiveDeriver"/>'s
+/// other self-healing methods use when the rule itself has no section of its own). <see langword="null"/>
+/// for every rule that is not about one specific, already-known section.
+/// </param>
+public sealed record LegalityViolation(string Rule, string Message, string? AffectedModelId = null, string? AffectedSectionId = null);

@@ -39,6 +39,15 @@ public sealed record MultiLayerTemplateLayer(
 /// <param name="Motion">The <c>Look.Motion</c> value this template's overall feel maps to (<c>"hold"</c>, <c>"chase"</c>, <c>"build"</c>, <c>"pop"</c>, <c>"decay"</c>).</param>
 /// <param name="Layers">This template's own layers, in declared z-order (index 0 is the base/bottom layer).</param>
 /// <param name="SourceNote">Where this pattern was derived from and the licensing boundary it respects -- no literal palette or song-specific timing, only the generic structural shape.</param>
+/// <param name="ConfidenceTier">
+/// Build-plan Phase 27 (2026-11-14): <c>"corpus-validated"</c> (the default, for every hand-curated
+/// and every corpus-mined-and-promoted template -- repeated across <c>MultiLayerStackMiner</c>'s own
+/// <c>minSongCount</c> threshold worth of distinct real songs) or <c>"single-song-showcase"</c> (a
+/// genuine 3+-layer stack observed in exactly one real song -- below the promotion bar, but still a
+/// real, inspirational example worth surfacing rather than discarding). Defaults to
+/// <c>"corpus-validated"</c> so every existing seed/mined template keeps compiling and behaving
+/// identically without this field ever being set explicitly.
+/// </param>
 public sealed record MultiLayerTemplate(
     string Id,
     string Name,
@@ -46,7 +55,8 @@ public sealed record MultiLayerTemplate(
     IReadOnlyList<string> Props,
     string Motion,
     IReadOnlyList<MultiLayerTemplateLayer> Layers,
-    string SourceNote);
+    string SourceNote,
+    string ConfidenceTier = "corpus-validated");
 
 /// <summary>
 /// The full shippable catalog -- <see cref="MultiLayerTemplateCatalogLoader"/>'s own return shape, and

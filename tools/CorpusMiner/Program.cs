@@ -131,10 +131,15 @@ stopwatch.Stop();
 var minedTemplates = minLayerStackSongCount == MultiLayerStackMiner.DefaultMinSongCount
     ? result.MinedTemplates
     : MultiLayerStackMiner.Build(result.Analyses, minSongCount: minLayerStackSongCount);
+var showcaseTemplates = minLayerStackSongCount == MultiLayerStackMiner.DefaultMinSongCount
+    ? result.ShowcaseTemplates
+    : MultiLayerStackMiner.BuildShowcase(result.Analyses, minSongCount: minLayerStackSongCount);
 if (minLayerStackSongCount != MultiLayerStackMiner.DefaultMinSongCount)
 {
     var overriddenPath = await new JsonMultiLayerTemplateCatalogStore(knowledgeDirectory).SaveAsync(minedTemplates, cts.Token);
-    Log($"Multi-layer stack promotion floor overridden to {minLayerStackSongCount} distinct song(s) (default {MultiLayerStackMiner.DefaultMinSongCount}) -- re-wrote '{overriddenPath}'.");
+    var overriddenShowcasePath = await new JsonMultiLayerTemplateCatalogStore(knowledgeDirectory, "multilayer-templates-showcase.json")
+        .SaveAsync(showcaseTemplates, cts.Token);
+    Log($"Multi-layer stack promotion floor overridden to {minLayerStackSongCount} distinct song(s) (default {MultiLayerStackMiner.DefaultMinSongCount}) -- re-wrote '{overriddenPath}', '{overriddenShowcasePath}'.");
 }
 
 Log("");
@@ -197,6 +202,15 @@ Log($"  Mined templates promoted: {minedTemplates.Templates.Count}");
 foreach (var template in minedTemplates.Templates)
 {
     Log($"    [{template.Id}] {template.Name} ({template.EnergyBand} energy, {template.Layers.Count} layers)");
+    Log($"      {template.SourceNote}");
+}
+
+Log("");
+Log($"---- MultiLayerTemplateCatalog showcase tier (build-plan Phase 27 -- genuine single-song 3+-layer stacks below the promotion bar, additive) ----");
+Log($"  Showcase templates: {showcaseTemplates.Templates.Count}");
+foreach (var template in showcaseTemplates.Templates)
+{
+    Log($"    [{template.Id}] {template.Name} ({template.EnergyBand} energy, {template.Layers.Count} layers, tier={template.ConfidenceTier})");
     Log($"      {template.SourceNote}");
 }
 

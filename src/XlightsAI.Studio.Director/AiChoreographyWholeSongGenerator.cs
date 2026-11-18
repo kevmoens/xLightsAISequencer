@@ -171,13 +171,16 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         var energyTransitions = audio.BandEnergy is { } bandEnergyForTransitions
             ? EnergyTransitionDetector.Detect(bandEnergyForTransitions)
             : null;
+        var leadInstrumentWindows = audio.BandEnergy is { } bandEnergyForLeadInstrument
+            ? LeadInstrumentWindowDetector.Detect(bandEnergyForLeadInstrument)
+            : null;
         var keyChanges = KeyDetector.DetectKeyChanges(structure.FingerprintSet);
         var transcript = await TryTranscribeAsync(audio.Stems, ct).ConfigureAwait(false);
         var music = new MusicModel(
             song.Id, song.DurationTicks, audio.BeatGrid, structure.Labels, structure.Phrases,
             BandEnergy: audio.BandEnergy, VocalActivity: audio.VocalActivity, VisemeMarks: audio.VisemeMarks,
             Melody: audio.Melody, Motifs: structure.Motifs, TransientHits: transientHits, EnergyTransitions: energyTransitions,
-            Energy: audio.Energy, KeyChanges: keyChanges, Transcript: transcript);
+            Energy: audio.Energy, KeyChanges: keyChanges, Transcript: transcript, LeadInstrumentWindows: leadInstrumentWindows);
         var layoutSummary = LayoutSummary.Build(layout);
 
         var catalogs = EffectCatalogFactory.BuildFromMetadataDirectory(_effectMetadataDirectory);
@@ -200,7 +203,8 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
             EffectVisualCharacterCatalogLoader.Load(),
             patternLibrary,
             wholeCanvasCoOccurrence,
-            layerComplexity);
+            layerComplexity,
+            DirectorLessonCatalogLoader.Load(_knowledgeDirectory));
 
         var registry = new EffectRecipeRegistry(catalogs.Recipes);
 
@@ -284,13 +288,16 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
             .ConfigureAwait(false);
 
         var transientHits = audio.Onsets is { } onsets ? TransientHitDetector.Detect(onsets, audio.BandEnergy) : null;
+        var leadInstrumentWindows = audio.BandEnergy is { } bandEnergyForLeadInstrument
+            ? LeadInstrumentWindowDetector.Detect(bandEnergyForLeadInstrument)
+            : null;
         var keyChanges = KeyDetector.DetectKeyChanges(structure.FingerprintSet);
         var transcript = await TryTranscribeAsync(audio.Stems, ct).ConfigureAwait(false);
         var music = new MusicModel(
             song.Id, song.DurationTicks, audio.BeatGrid, structure.Labels, structure.Phrases,
             BandEnergy: audio.BandEnergy, VocalActivity: audio.VocalActivity, VisemeMarks: audio.VisemeMarks,
             Melody: audio.Melody, Motifs: structure.Motifs, TransientHits: transientHits,
-            Energy: audio.Energy, KeyChanges: keyChanges, Transcript: transcript);
+            Energy: audio.Energy, KeyChanges: keyChanges, Transcript: transcript, LeadInstrumentWindows: leadInstrumentWindows);
         var layoutSummary = LayoutSummary.Build(layout);
 
         var catalogs = EffectCatalogFactory.BuildFromMetadataDirectory(_effectMetadataDirectory);
@@ -307,7 +314,7 @@ public sealed class AiChoreographyWholeSongGenerator : IWholeSongGenerator
         var existingScripts = await ChoreographyGenerationPipeline.LoadPersistedScriptsAsync(scriptsDir, generationRunId, ct).ConfigureAwait(false);
 
         var (craftRules, exemplarIndex, patternLibrary, wholeCanvasCoOccurrence, layerComplexity) = await LoadCorpusKnowledgeAsync(_knowledgeDirectory, ct).ConfigureAwait(false);
-        var knowledge = new DirectorKnowledgeContext(catalogs.Vocabulary, craftRules, exemplarIndex, MultiLayerTemplateCatalogLoader.Load(_knowledgeDirectory), EffectVisualCharacterCatalogLoader.Load(), patternLibrary, wholeCanvasCoOccurrence, layerComplexity);
+        var knowledge = new DirectorKnowledgeContext(catalogs.Vocabulary, craftRules, exemplarIndex, MultiLayerTemplateCatalogLoader.Load(_knowledgeDirectory), EffectVisualCharacterCatalogLoader.Load(), patternLibrary, wholeCanvasCoOccurrence, layerComplexity, DirectorLessonCatalogLoader.Load(_knowledgeDirectory));
 
         var pipeline = new ChoreographyGenerationPipeline(
             knowledge, _style, directorClient: null, directorModelName: null, choreographerClient, choreographerModel, _maxOutputTokens,

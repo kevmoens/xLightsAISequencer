@@ -195,6 +195,7 @@ public static class CorpusMiningRunner
         var exemplarIndex = ExemplarIndexBuilder.Build(analyses);
         var craftRules = CraftRuleInducer.InduceAndVerify(analyses, favoriteSongWeightMultiplier: favoriteSongWeightMultiplier);
         var minedTemplates = MultiLayerStackMiner.Build(analyses);
+        var showcaseTemplates = MultiLayerStackMiner.BuildShowcase(analyses);
 
         if (descriptionClient is not null && exemplarIndex.Entries.Count > 0)
         {
@@ -208,9 +209,11 @@ public static class CorpusMiningRunner
         var indexPath = await new JsonExemplarIndexStore(knowledgeDirectory).SaveAsync(exemplarIndex, ct).ConfigureAwait(false);
         var rulesPath = await new JsonCraftRulesStore(knowledgeDirectory).SaveAsync(craftRules, ct).ConfigureAwait(false);
         var minedTemplatesPath = await new JsonMultiLayerTemplateCatalogStore(knowledgeDirectory).SaveAsync(minedTemplates, ct).ConfigureAwait(false);
-        Report($"Wrote '{libraryPath}', '{indexPath}', '{rulesPath}', '{minedTemplatesPath}'.");
+        var showcaseTemplatesPath = await new JsonMultiLayerTemplateCatalogStore(knowledgeDirectory, "multilayer-templates-showcase.json")
+            .SaveAsync(showcaseTemplates, ct).ConfigureAwait(false);
+        Report($"Wrote '{libraryPath}', '{indexPath}', '{rulesPath}', '{minedTemplatesPath}', '{showcaseTemplatesPath}'.");
 
-        return new CorpusMiningResult(manifest, analyses, failures, library, exemplarIndex, craftRules, minedTemplates, libraryPath, indexPath, rulesPath, minedTemplatesPath);
+        return new CorpusMiningResult(manifest, analyses, failures, library, exemplarIndex, craftRules, minedTemplates, showcaseTemplates, libraryPath, indexPath, rulesPath, minedTemplatesPath, showcaseTemplatesPath);
     }
 }
 
@@ -223,7 +226,9 @@ public sealed record CorpusMiningResult(
     ExemplarIndex ExemplarIndex,
     CraftRules CraftRules,
     Knowledge.MultiLayerTemplateCatalog MinedTemplates,
+    Knowledge.MultiLayerTemplateCatalog ShowcaseTemplates,
     string PatternLibraryPath,
     string ExemplarIndexPath,
     string CraftRulesPath,
-    string MinedTemplatesPath);
+    string MinedTemplatesPath,
+    string ShowcaseTemplatesPath);

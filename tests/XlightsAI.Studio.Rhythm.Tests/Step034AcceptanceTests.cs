@@ -109,8 +109,8 @@ public sealed class Step034AcceptanceTests : IDisposable
         // correctly and every beat has an absolute (never bar-relative) TimeTicks.
         for (var i = 0; i < grid.Beats.Length; i++)
         {
-            Assert.Equal(i % GridSettings.BeatsPerBar, grid.Beats[i].BeatWithinBar);
-            Assert.Equal(i / GridSettings.BeatsPerBar, grid.Beats[i].BarIndex);
+            Assert.Equal(i % GridSettings.BeatsPerBar!.Value, grid.Beats[i].BeatWithinBar);
+            Assert.Equal(i / GridSettings.BeatsPerBar!.Value, grid.Beats[i].BarIndex);
         }
 
         // "likely downbeats": every BeatsPerBar-th beat (BeatWithinBar == 0) is a likely downbeat,

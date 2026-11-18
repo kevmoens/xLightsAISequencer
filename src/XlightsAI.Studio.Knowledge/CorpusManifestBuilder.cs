@@ -53,10 +53,20 @@ public static class CorpusManifestBuilder
             SequenceRelativePath: @"All I Want for Christmas--Mariah Carey--Michael Bourassa\All i want for christmas 2.xsq",
             AudioRelativePath: "All I Want For Christmas Is You shortened.mp3",
             Provenance: CorpusProvenanceTag.LikelyVendorOrCommunityDownload,
-            DuplicateRelativePaths: ["All I Want For Christmas Is You shortened.xsq"],
+            DuplicateRelativePaths: [],
             Notes: "orig_zip/All I Want for Christmas--Mariah Carey--Michael Bourassa.zip. Own directory's only " +
                    "audio candidate is under a folder literally named '_lost' (a broken-media-reference backup), " +
                    "so the confirmed root-level audio for the same song is used instead."),
+        new(
+            SequenceRelativePath: "All I Want For Christmas Is You shortened.xsq",
+            AudioRelativePath: "All I Want For Christmas Is You shortened.mp3",
+            Provenance: CorpusProvenanceTag.LikelyVendorOrCommunityDownload,
+            DuplicateRelativePaths: [],
+            Notes: "Build-plan Phase 27 finding (2026-11-14): previously folded into the resolution above as a " +
+                   "mere duplicate of the same song -- but a real review of this file's own Tree effect layers " +
+                   "(a genuine 5-layer Shape/Pinwheel/Pictures/Garlands/Snowflakes stack) showed it is NOT the " +
+                   "same real choreography as 'All i want for christmas 2.xsq', just the same song's audio. " +
+                   "Mined as its own distinct entry so that real layering is no longer discarded."),
         new(
             SequenceRelativePath: "Carrie Underwood - Away In A Manger Lite.xsq",
             AudioRelativePath: "Carrie Underwood - Away In A Manger Lite.mp3",

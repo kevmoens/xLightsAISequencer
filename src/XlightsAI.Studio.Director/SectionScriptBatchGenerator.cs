@@ -50,10 +50,18 @@ public sealed class SectionScriptBatchGenerator
         _modelName = modelName;
     }
 
+    /// <param name="anchorContextsBySectionId">
+    /// Build-plan Phase 28a: per-section real music context/signals, keyed by <see cref="SectionScriptBatchItem.SectionId"/>,
+    /// or <see langword="null"/> (the default, and every pre-existing caller's behavior) -- a section
+    /// missing an entry here (or a response with no real Cues) always validates through today's
+    /// <see cref="SectionScriptValidator"/> path unchanged, same discipline as <see cref="SectionScriptGenerator.GenerateAsync"/>'s
+    /// own <c>anchorContext</c> parameter.
+    /// </param>
     public async Task<IReadOnlyDictionary<Guid, SectionScriptGenerationReport>> GenerateAllAsync(
         string stablePrefix, IReadOnlyList<SectionScriptBatchItem> items, Guid songId, LookLibrary lookLibrary, DisplayGraph layout,
         EffectVocabularyCatalog vocabulary, int maxOutputTokens, CancellationToken ct,
-        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null)
+        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null,
+        IReadOnlyDictionary<Guid, SectionTimelineAnchorContext>? anchorContextsBySectionId = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
         ArgumentNullException.ThrowIfNull(items);
@@ -99,19 +107,20 @@ public sealed class SectionScriptBatchGenerator
                 }
 
                 string json;
-                SectionScript? script = null;
+                SectionTimeline? timeline = null;
                 IReadOnlyList<SectionScriptValidationError> violations;
                 try
                 {
                     json = StructuredJsonExtractor.ExtractJson(batchResult.Result.Text);
-                    script = System.Text.Json.JsonSerializer.Deserialize<SectionScript>(json, new System.Text.Json.JsonSerializerOptions
+                    timeline = System.Text.Json.JsonSerializer.Deserialize<SectionTimeline>(json, new System.Text.Json.JsonSerializerOptions
                     {
                         UnmappedMemberHandling = System.Text.Json.Serialization.JsonUnmappedMemberHandling.Disallow,
                         PropertyNameCaseInsensitive = true,
                     });
-                    violations = script is null
+                    var anchorContext = anchorContextsBySectionId?.GetValueOrDefault(item.SectionId);
+                    violations = timeline is null
                         ? [new SectionScriptValidationError("transport", "Batch item's JSON deserialized to null.")]
-                        : SectionScriptValidator.Validate(script, lookLibrary, layout, vocabulary, phraseCountBySectionId);
+                        : SectionScriptGenerator.Validate(timeline, lookLibrary, layout, vocabulary, phraseCountBySectionId, anchorContext);
                 }
                 catch (Exception ex) when (ex is System.Text.Json.JsonException or AiCallRejectedException)
                 {
@@ -120,9 +129,9 @@ public sealed class SectionScriptBatchGenerator
 
                 await LogAsync(songId, batchResult.Result.Usage, $"section {item.SectionId}: batch attempt 1/{_maxAttempts}: {(violations.Count == 0 ? "validated" : $"{violations.Count} violation(s)")}", batchResult.Result.Diagnostics, ct).ConfigureAwait(false);
 
-                if (violations.Count == 0 && script is not null)
+                if (violations.Count == 0 && timeline is not null)
                 {
-                    results[item.SectionId] = new SectionScriptGenerationReport(script, 1, true, [], [batchResult.Result.Usage]);
+                    results[item.SectionId] = new SectionScriptGenerationReport(timeline.ToSectionScript(), 1, true, [], [batchResult.Result.Usage], timeline);
                 }
                 else
                 {
@@ -145,7 +154,8 @@ public sealed class SectionScriptBatchGenerator
                 await semaphore.WaitAsync(ct).ConfigureAwait(false);
                 try
                 {
-                    var report = await generator.GenerateAsync(stablePrefix, item.VolatileSuffix, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct, phraseCountBySectionId).ConfigureAwait(false);
+                    var anchorContext = anchorContextsBySectionId?.GetValueOrDefault(item.SectionId);
+                    var report = await generator.GenerateAsync(stablePrefix, item.VolatileSuffix, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct, phraseCountBySectionId, anchorContext).ConfigureAwait(false);
                     return (item.SectionId, report);
                 }
                 finally

@@ -30,6 +30,16 @@ namespace XlightsAI.Studio.Xlights;
 /// <c>(recipeId, ModelId, startTicks, endTicks)</c> — a palette reference, blend mode, transitions and
 /// value curves. Each is appended as a trailing optional parameter (the same convention
 /// <see cref="Locked"/> already established) so every existing construction site keeps compiling.
+///
+/// Build-plan Phase 28a: <see cref="SourceAnnotation"/> is the equally-additive trailing field closing
+/// "the intent loop" -- when a <c>XlightsAI.Studio.Choreography.SectionCue.Annotation</c> compiles an
+/// effect via <c>XlightsAI.Studio.Choreography.SectionTimelineCompiler</c>, that cue's own grounded
+/// "why" is written here, so a human (or a later automated audit) can trace a compiled effect back to
+/// the stated reason it exists instead of that reason being silently discarded at compile time. Never
+/// populated by the pre-existing <see cref="XlightsAI.Studio.Choreography.LookCompiler"/> path (a
+/// <c>LookLayer.Annotation</c>/<c>SectionEventBinding.Annotation</c> is still never read by the
+/// compiler, per Phase 28's own diagnosis) -- <see langword="null"/> there, same as every pre-existing
+/// construction site.
 /// </summary>
 public sealed record EffectInstance(
     Guid Id,
@@ -44,7 +54,8 @@ public sealed record EffectInstance(
     int? PaletteIndex = null,
     string BlendMode = "Normal",
     IReadOnlyList<EffectTransition>? Transitions = null,
-    IReadOnlyList<EffectValueCurve>? ValueCurves = null)
+    IReadOnlyList<EffectValueCurve>? ValueCurves = null,
+    string? SourceAnnotation = null)
 {
     public IReadOnlyList<EffectTransition> TransitionsOrEmpty => Transitions ?? [];
 

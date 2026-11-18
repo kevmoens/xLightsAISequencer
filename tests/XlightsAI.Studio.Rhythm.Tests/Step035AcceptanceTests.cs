@@ -104,8 +104,8 @@ public sealed class Step035AcceptanceTests : IDisposable
         // Beats remain strictly time-ordered and contiguously renumbered after the move.
         for (var i = 0; i < moved.Beats.Length; i++)
         {
-            Assert.Equal(i % GridSettings.BeatsPerBar, moved.Beats[i].BeatWithinBar);
-            Assert.Equal(i / GridSettings.BeatsPerBar, moved.Beats[i].BarIndex);
+            Assert.Equal(i % GridSettings.BeatsPerBar!.Value, moved.Beats[i].BeatWithinBar);
+            Assert.Equal(i / GridSettings.BeatsPerBar!.Value, moved.Beats[i].BarIndex);
             if (i > 0)
             {
                 Assert.True(moved.Beats[i].TimeTicks > moved.Beats[i - 1].TimeTicks);
@@ -170,7 +170,7 @@ public sealed class Step035AcceptanceTests : IDisposable
         for (var i = 0; i < ordered.Length; i++)
         {
             var relative = i - anchorIndex;
-            var beatsPerBar = GridSettings.BeatsPerBar;
+            var beatsPerBar = GridSettings.BeatsPerBar!.Value;
             var expectedBeatWithinBar = ((relative % beatsPerBar) + beatsPerBar) % beatsPerBar;
             var expectedBarIndex = (relative - expectedBeatWithinBar) / beatsPerBar;
             Assert.Equal(expectedBeatWithinBar, ordered[i].BeatWithinBar);
@@ -209,8 +209,8 @@ public sealed class Step035AcceptanceTests : IDisposable
         var ordered = result.Beats.OrderBy(b => b.TimeTicks).ToArray();
         for (var i = 0; i < ordered.Length; i++)
         {
-            Assert.Equal(i % GridSettings.BeatsPerBar, ordered[i].BeatWithinBar);
-            Assert.Equal(i / GridSettings.BeatsPerBar, ordered[i].BarIndex);
+            Assert.Equal(i % GridSettings.BeatsPerBar!.Value, ordered[i].BeatWithinBar);
+            Assert.Equal(i / GridSettings.BeatsPerBar!.Value, ordered[i].BarIndex);
         }
     }
 
@@ -250,8 +250,8 @@ public sealed class Step035AcceptanceTests : IDisposable
         var ordered = result.Beats.OrderBy(b => b.TimeTicks).ToArray();
         for (var i = 0; i < ordered.Length; i++)
         {
-            Assert.Equal(i % GridSettings.BeatsPerBar, ordered[i].BeatWithinBar);
-            Assert.Equal(i / GridSettings.BeatsPerBar, ordered[i].BarIndex);
+            Assert.Equal(i % GridSettings.BeatsPerBar!.Value, ordered[i].BeatWithinBar);
+            Assert.Equal(i / GridSettings.BeatsPerBar!.Value, ordered[i].BarIndex);
         }
     }
 

@@ -6,7 +6,13 @@ namespace XlightsAI.Studio.Choreography;
 /// Build-plan Phase 4 task 2 ("The always-moving rule: gap-splitting pass that loops until no gap
 /// survives... the original inserted one beat per gap and declared victory, leaving a 17-second frozen
 /// block past the last detected beat"). Architecture §7: "No model holds unchanged longer than one bar...
-/// Calm sections get gentler motion and a slower grid, never no motion."
+/// Calm sections get gentler motion and a slower grid, never no motion." User feedback (2026-11-13)
+/// scoped that one-bar-max guarantee to real negative space, exactly the section(s) a target was
+/// actually named by; user feedback (2026-11-16), after that shipped and most of a real display went
+/// dark for most of a real song, widened the scope back out -- see <see cref="FillGaps"/>'s own
+/// <c>activeWindows</c> parameter, now every section the caller (<see cref="ChoreographyEngine"/>) does
+/// not itself mark as declared negative space, not only the ones that happened to name the target
+/// directly.
 /// </summary>
 public static class AlwaysMovingGapSplitter
 {
@@ -30,18 +36,43 @@ public static class AlwaysMovingGapSplitter
     /// not shared globally), so switching sections mid-song never skips or repeats states in a pool this
     /// gap has not actually used yet.
     /// </param>
+    /// <param name="activeWindows">
+    /// The real windows (sorted, non-overlapping) where the always-moving guarantee holds for
+    /// <paramref name="target"/>. User feedback (2026-11-13) scoped this to exactly the sections that
+    /// named <paramref name="target"/> directly (measured against a real reference show: the prior
+    /// "entire rest of the song" scoping averaged 0.0% idle time per prop vs. a real hand-made
+    /// reference's 82.1%); user feedback (2026-11-16) widened it back out after that left most of a real
+    /// display dark for most of a real song -- the caller (<see cref="ChoreographyEngine"/>) now passes
+    /// every section's window except ones its own Look marks <c>DeclaredDarkness</c> (a deliberate
+    /// negative-space moment is still exempt; an ordinary section that simply didn't happen to name this
+    /// target is not). A gap entirely outside every active window is left fully dark (no filler, no
+    /// one-bar cap); a gap inside an active window keeps the exact one-bar-max behavior this rule always
+    /// had. An empty list means "never in play anywhere" (nothing to fill, matching today's own silent
+    /// handling of a target this song's own Look library never addresses at all).
+    /// </param>
+    /// <param name="ceilingAtTick">
+    /// User feedback (2026-11-13): replaces a single flat whole-song-average energy ceiling (the
+    /// disclosed simplification <see cref="ChoreographyEngine"/> used to carry: "a per-tick-aware
+    /// cadence would need this pass to re-enter each section's own declared ceiling") with the real
+    /// per-tick section ceiling -- a quiet section now reliably gets the full one-bar-fraction
+    /// <see cref="ComputeFillerDurationTicks"/> already allows it, instead of sometimes getting a
+    /// tighter cap because some OTHER section elsewhere in the song happened to be louder.
+    /// </param>
     public static IReadOnlyList<EffectInstance> FillGaps(
         ModelId target,
         IReadOnlyList<EffectInstance> existingEffects,
         TimeWindow coverageWindow,
         BarGrid barGrid,
         Func<long, FillerPool> fillerPoolResolver,
-        double sectionEnergyCeiling,
+        IReadOnlyList<TimeWindow> activeWindows,
+        Func<long, double> ceilingAtTick,
         IEffectRecipeRegistry recipeRegistry)
     {
         ArgumentNullException.ThrowIfNull(existingEffects);
         ArgumentNullException.ThrowIfNull(barGrid);
         ArgumentNullException.ThrowIfNull(fillerPoolResolver);
+        ArgumentNullException.ThrowIfNull(activeWindows);
+        ArgumentNullException.ThrowIfNull(ceilingAtTick);
         ArgumentNullException.ThrowIfNull(recipeRegistry);
 
         var result = new List<EffectInstance>();
@@ -52,9 +83,25 @@ public static class AlwaysMovingGapSplitter
             .OrderBy(e => e.StartTicks)
             .ToList();
 
-        var cursor = coverageWindow.StartTicks;
+        var sortedActiveWindows = activeWindows.OrderBy(w => w.StartTicks).ToList();
 
         void FillGap(long gapStart, long gapEnd)
+        {
+            // Only fill the sub-ranges of [gapStart, gapEnd) that genuinely overlap a real active
+            // window -- a sub-range this target is never "in play" for (no section's own Look
+            // addresses it there) is left fully dark, never forced into motion.
+            foreach (var active in sortedActiveWindows)
+            {
+                var segmentStart = Math.Max(gapStart, active.StartTicks);
+                var segmentEnd = Math.Min(gapEnd, active.EndTicks);
+                if (segmentEnd > segmentStart)
+                {
+                    FillActiveSubGap(segmentStart, segmentEnd);
+                }
+            }
+        }
+
+        void FillActiveSubGap(long gapStart, long gapEnd)
         {
             // Built as a local segment list first, then emitted, so a too-short trailing remainder (an
             // effect shorter than one exported frame -- XsqExporter cannot represent it at all, "rounds
@@ -77,7 +124,7 @@ public static class AlwaysMovingGapSplitter
                 var maxGapTicks = barWindow is { } w
                     ? Math.Max(1, w.EndTicks - w.StartTicks)
                     : Math.Min(FallbackBarTicks(barGrid), gapEnd - position);
-                var fillerDurationTicks = ComputeFillerDurationTicks(maxGapTicks, sectionEnergyCeiling);
+                var fillerDurationTicks = ComputeFillerDurationTicks(maxGapTicks, ceilingAtTick(position));
 
                 var fillerEnd = Math.Min(position + fillerDurationTicks, gapEnd);
                 if (fillerEnd <= position)
@@ -117,6 +164,7 @@ public static class AlwaysMovingGapSplitter
             }
         }
 
+        var cursor = coverageWindow.StartTicks;
         foreach (var effect in sorted)
         {
             if (effect.StartTicks > cursor)
@@ -173,21 +221,42 @@ public static class AlwaysMovingGapSplitter
         return 2 * TimeSpan.TicksPerSecond; // A plausible single-bar duration order of magnitude, same canonical 100ns tick unit this codebase uses throughout.
     }
 
-    /// <summary>The longest gap (no existing effect) on <paramref name="target"/> within <paramref name="coverageWindow"/>, in ticks -- 0 when fully covered. Used to verify the always-moving rule against *compiled* output (the real acceptance check, not just this splitter's own internal invariant).</summary>
+    /// <summary>
+    /// The longest gap (no existing effect) on <paramref name="target"/> within <paramref name="coverageWindow"/>,
+    /// in ticks -- 0 when fully covered. Used to verify the always-moving rule against *compiled*
+    /// output (the real acceptance check, not just this splitter's own internal invariant).
+    /// </summary>
+    /// <remarks>
+    /// Bug fix (2026-11-13): <paramref name="effects"/> is now filtered (and clamped) to only the span
+    /// overlapping <paramref name="coverageWindow"/> before measuring gaps -- previously every one of
+    /// <paramref name="target"/>'s effects across its ENTIRE input list was considered regardless of
+    /// <paramref name="coverageWindow"/>'s own bounds, which was harmless while every real caller always
+    /// passed the whole song as the window (every effect trivially fell inside it), but produces a
+    /// nonsensical "gap" far exceeding the window's own span once a caller legitimately asks about a
+    /// narrower window (e.g. one target's own real "in play" window) -- a real effect from a much
+    /// earlier or later unrelated active window would otherwise be read as part of THIS window's own
+    /// timeline.
+    /// </remarks>
     public static long LargestGapTicks(ModelId target, IReadOnlyList<EffectInstance> effects, TimeWindow coverageWindow)
     {
-        var sorted = effects.Where(e => e.Target == target).OrderBy(e => e.StartTicks).ToList();
+        var sorted = effects
+            .Where(e => e.Target == target && e.StartTicks < coverageWindow.EndTicks && e.EndTicks > coverageWindow.StartTicks)
+            .OrderBy(e => e.StartTicks)
+            .ToList();
+
         long largest = 0;
         var cursor = coverageWindow.StartTicks;
 
         foreach (var effect in sorted)
         {
-            if (effect.StartTicks > cursor)
+            var start = Math.Max(effect.StartTicks, coverageWindow.StartTicks);
+            var end = Math.Min(effect.EndTicks, coverageWindow.EndTicks);
+            if (start > cursor)
             {
-                largest = Math.Max(largest, effect.StartTicks - cursor);
+                largest = Math.Max(largest, start - cursor);
             }
 
-            cursor = Math.Max(cursor, effect.EndTicks);
+            cursor = Math.Max(cursor, end);
         }
 
         if (cursor < coverageWindow.EndTicks)

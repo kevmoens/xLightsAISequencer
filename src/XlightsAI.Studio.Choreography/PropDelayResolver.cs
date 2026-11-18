@@ -1,4 +1,5 @@
 using System.Globalization;
+using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Choreography;
 
@@ -82,6 +83,38 @@ public static class PropDelayResolver
         foreach (var (model, tier) in tiers)
         {
             result[model] = propDelays.TryGetValue(tier, out var offset) ? ParseOffsetTicks(offset) : 0L;
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-13): <see cref="Look.Travel"/>'s own real-world assignment -- the
+    /// <paramref name="orderedModels"/>[i] (already ordered left-to-right/right-to-left by
+    /// <see cref="PropGroupResolver.OrderByPhysicalPosition"/>) gets exactly the i-th surviving mark's
+    /// own window as its <c>(start, end)</c>, clamped to <paramref name="sectionStart"/>/
+    /// <paramref name="sectionEnd"/> the same way <c>LookCompiler.ResolveEventWindows</c> clamps every
+    /// other mark-window lookup. A model beyond the real mark count gets no entry at all -- never a
+    /// fabricated window; the caller skips a model with no assigned window, same as every other
+    /// "nothing real to assign" case in this resolver.
+    /// </summary>
+    public static IReadOnlyDictionary<ModelId, TimeWindow> ResolveTravelWindows(
+        IReadOnlyList<ModelId> orderedModels, IReadOnlyList<TimingMark> marks, long sectionStart, long sectionEnd)
+    {
+        ArgumentNullException.ThrowIfNull(orderedModels);
+        ArgumentNullException.ThrowIfNull(marks);
+
+        var usableMarks = marks
+            .Where(m => m.StartTicks < sectionEnd && m.EndTicks > sectionStart)
+            .OrderBy(m => m.StartTicks)
+            .Select(m => new TimeWindow(Math.Max(m.StartTicks, sectionStart), Math.Min(m.EndTicks, sectionEnd)))
+            .Where(w => w.EndTicks > w.StartTicks)
+            .ToList();
+
+        var result = new Dictionary<ModelId, TimeWindow>();
+        for (var i = 0; i < orderedModels.Count && i < usableMarks.Count; i++)
+        {
+            result[orderedModels[i]] = usableMarks[i];
         }
 
         return result;

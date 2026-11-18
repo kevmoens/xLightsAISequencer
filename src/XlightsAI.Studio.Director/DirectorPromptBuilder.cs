@@ -46,6 +46,17 @@ namespace XlightsAI.Studio.Director;
 /// <see cref="DirectorPromptBuilder.AppendLayerComplexityGuidance"/> can ground how often the Director is
 /// told to reach for a genuinely layered moment in real numbers instead of pure hand-tuned prose.
 /// </param>
+/// <param name="Lessons">
+/// User feedback (2026-11-14): the Director's own baseline craft guidance, externalized out of hardcoded
+/// C# string literals into Markdown lesson files (<see cref="DirectorLessonCatalogLoader"/>) --
+/// <see langword="null"/> falls back to <see cref="LessonsOrEmpty"/>'s own SEED-catalog default (not an
+/// empty one, unlike every other optional field above): unlike <see cref="Templates"/>/<see cref="PatternLibrary"/>,
+/// which start genuinely empty until a real corpus-mining run produces them, the lessons ARE the
+/// baseline guidance itself and must never silently vanish just because a caller has not been updated to
+/// pass <see cref="DirectorLessonCatalogLoader.Load(string?)"/>'s merged (seed + loose) result. A real
+/// composition root should still pass that merged result so a loose lesson file actually reaches the
+/// prompt.
+/// </param>
 public sealed record DirectorKnowledgeContext(
     EffectVocabularyCatalog Vocabulary,
     CraftRules CraftRules,
@@ -54,9 +65,12 @@ public sealed record DirectorKnowledgeContext(
     EffectVisualCharacterCatalog? EffectVisualCharacters = null,
     PatternLibrary? PatternLibrary = null,
     WholeCanvasCoOccurrenceStats? WholeCanvasCoOccurrence = null,
-    LayerComplexityStats? LayerComplexity = null)
+    LayerComplexityStats? LayerComplexity = null,
+    DirectorLessonCatalog? Lessons = null)
 {
     public MultiLayerTemplateCatalog TemplatesOrEmpty => Templates ?? EmptyCatalog;
+
+    public DirectorLessonCatalog LessonsOrEmpty => Lessons ?? DirectorLessonCatalogLoader.Load();
 
     public PatternLibrary PatternLibraryOrEmpty => PatternLibrary ?? EmptyPatternLibrary;
 
@@ -139,7 +153,7 @@ public static class DirectorPromptBuilder
         // would defeat that purpose to make this Random deterministic/seeded from the song itself.
         var stayCloseToExemplars = customPrompt?.StayCloseToExemplars ?? true;
         var reuseTracker = new ExemplarReuseTracker();
-        var stablePrefix = BuildStablePrefix(knowledge, style, music, stayCloseToExemplars, stayCloseToExemplars ? null : new Random(), reuseTracker);
+        var stablePrefix = BuildStablePrefix(knowledge, style, music, layout, stayCloseToExemplars, stayCloseToExemplars ? null : new Random(), reuseTracker);
         return new DirectorPrompt(
             stablePrefix,
             BuildVolatileSuffix(music, layout, customPrompt, knowledge.WholeCanvasCoOccurrence),
@@ -169,7 +183,7 @@ public static class DirectorPromptBuilder
     /// </summary>
     private const int SecondaryComplexityFloor = 2;
 
-    private static string BuildStablePrefix(DirectorKnowledgeContext knowledge, string style, MusicModel music, bool stayCloseToExemplars, Random? variationRandom, ExemplarReuseTracker reuseTracker)
+    private static string BuildStablePrefix(DirectorKnowledgeContext knowledge, string style, MusicModel music, LayoutSummary layout, bool stayCloseToExemplars, Random? variationRandom, ExemplarReuseTracker reuseTracker)
     {
         var preset = StylePresetCatalog.Resolve(style);
 
@@ -207,20 +221,7 @@ public static class DirectorPromptBuilder
 
         sb.AppendLine("## Baseline craft guidance");
         sb.AppendLine("Always true, independent of any corpus rules below:");
-        sb.AppendLine("- Not every prop/group needs to be lit every second. Deliberate negative space -- some props dark or idle while others carry a section -- reads as composed; everything active all the time reads as cluttered and amateur.");
-        sb.AppendLine("- Vary which effect carries each Look. A single effect (e.g. Color Wash) repeated across most Looks reads as static regardless of color changes -- prefer a genuine mix across the library.");
-        sb.AppendLine("- Match perceived motion to the section's actual energy. A high-energy/chorus/drop section needs effects that visibly track the beat (bound to a labelled timing track, short duty cycles, chase/strobe-family motion) -- a slow color wash under an intense section reads as unreactive no matter how bright or saturated it is, even at a high EnergyCeiling.");
-        sb.AppendLine("- Design for pops and build-ups, not a flat energy floor. A pop is a sudden, unmistakable jump (a hard cut to full brightness/full canvas after a held or sparse moment) -- it needs the quiet moment right before it to land; a build-up is a deliberate climb (adding props/density/brightness over several bars, never all at once) that resolves into that pop or into a chorus reveal. Every song needs both somewhere, usually more than once.");
-        sb.AppendLine("- The section list below may classify long stretches of this song under the same Kind (common for a repetitive/loop-based song) -- never treat \"same Kind\" as \"identical treatment.\" Within a run of same-Kind sections, still plan real variation: hold back a Look/prop/palette-accent for a later repeat so it reads as an escalation, and use PeakMoments/Withholding to mark which specific repeat is THE peak, not every one of them equally.");
-        sb.AppendLine("- A \"hold\"-motion layer is a steady state, never a dead one. Confirmed against a real exported show: a layer using the plain \"On\" effect, reused across several consecutive sections for the same subject/group, renders as one long, visually unbroken, boring block -- exactly as lifeless as the bare negative-space problem above, just on the opposite (always-on) extreme. \"On\" has no animation of its own, so reserve it for brief transitional moments (well under a bar) -- never as the sole, long-duration content of a \"hold\" layer or a Look reused across many consecutive sections. For an actual held/steady look, pick an effect with its own real per-frame animation instead (Color Wash, Twinkle, SingleStrand, Bars, ...) -- it still reads as calm and steady at a low duty cycle, but it is never a single dead frame stretched over a minute.");
-        sb.AppendLine("- Give every section's subject layer a long-duration base layer spanning most of that section's own window -- a real hand-sequenced reference for this exact craft brief runs one steady color-wash/VU-meter-style base layer across nearly the whole song, with short accent effects layered on top of it, never standing alone. A generation that compiles only short discrete hits (a handful of seconds each, repeated) has no anchor for a listener's eye to settle on during a quiet stretch, even if the hits themselves are well-placed. This is additive, not a replacement: keep the short accent/overlay layers this guidance already calls for elsewhere -- bind one of a Look's own layers (ordinarily the subject, timing-track-bound in Mode A, e.g. a long Color Wash/Twinkle/SingleStrand spanning the whole section) to be that base, and let the rest ride on top of it.");
-        sb.AppendLine("- Stack real layers on high-resolution canvas props, not just one effect at a time. Tree and Matrixes/Matrix-2/Matrix3 (and similarly dense multi-node props) have enough pixels to carry a base effect PLUS one or two overlay effects simultaneously (Z-ordered layers, blended with Additive/Max/Average so the base shows through) -- a single flat effect on these props under-uses them and reads as plain motion rather than genuine texture. Favor Looks with 2-3 layers on these specific props: a slower base wash or chase for the subject's color/identity, plus a faster-moving accent layer (Twinkle, Sparkles, Snowflakes) riding on top for sparkle and detail. This is not occasional set-dressing -- for Tree/Matrixes specifically, a single-layer Look should be the exception, reserved for quiet/sparse moments, not the default. Low-resolution props (short strings, small accent models) should usually stay single-layer -- they rarely have enough pixels for a second layer to read as anything but noise.");
-        sb.AppendLine("- Use Butterfly sparingly. It is a valid effect, not a forbidden one, but it reads as a strong, busy, high-duty-cycle signature move -- reserve it for a genuine rare moment (a specific peak/pop), not a default go-to for a hold layer or a Tree/Matrixes accent layer. When in doubt, prefer Twinkle, Sparkles, Snowflakes, or Color Wash instead.");
-        sb.AppendLine("- SingleStrand reads as a single moving point/segment of color along one real axis -- it is most legible on Single Line models and Arches, where that one-axis motion is the whole prop's geometry. On a Tree or Matrix (dense, radial/2D props with plenty of pixels to spare), a single bare SingleStrand layer alone gets lost or reads as a flat shimmer rather than the intentional chase/wipe it is on a line or arch. User feedback (2026-11-12), confirmed against real corpus-mined multi-layer stacks: this is specifically about SingleStrand used ALONE as a Tree/Matrix's only layer -- 2-3 SingleStrand layers stacked together (different colors/offsets), or SingleStrand layered over a Color Wash base, is a genuinely different, denser visual (real shows do this) and is fine on Tree/Matrix. So: never a single standalone SingleStrand layer as a Tree/Matrix's whole look -- favor Twinkle, Sparkles, Snowflakes, or Color Wash for that single-layer case -- but SingleStrand stacked 2-3 deep with other layers is a legitimate Tree/Matrix choice, not just a Single Line/Arch one.");
-        sb.AppendLine("- User feedback: increase the overall number of effects and layers across the whole show, not just on Tree/Matrixes. Layering is not limited to those two props -- any prop or group with enough resolution for a second layer to read as real texture (not noise) benefits from one during a Chorus/Drop/peak section: a base effect carrying color/identity plus a brighter or faster accent layer on top. Push for MORE total Looks using 2+ layers, MORE distinct Looks overall (use more of the MinLooks-MaxLooks range, not the floor), and faster composition-change rates toward the upper end of this style's own density band below -- while still respecting negative space during genuinely quiet sections. \"More layered/more frequent\" and \"everything on constantly\" are not the same goal; the first makes high-energy sections feel richer, the second just reads as noise.");
-        sb.AppendLine("- A stated minimum, not just \"more\": a real hand-sequenced reference for this exact craft brief ran up to 8 concurrent EffectLayers on its richest prop and 3 on typical secondary props, against a generated show that peaked at 3 on its richest prop and 0-2 on secondary ones. Concretely: a Chorus/Drop/peak-energy Look's subject prop should carry 3 or more concurrent layers (the multi-layer template catalog below demonstrates real corpus-derived 2-layer patterns at every energy band; this floor pushes higher specifically for peak-energy sections, on top of that catalog, not instead of it); a Verse/ballad/low-energy Look's subject prop should still carry at least 2 (one steady base, one accent) -- never a bare single-layer Look outside a genuinely sparse/negative-space moment. Secondary props on a Chorus/Drop/peak section should carry 2-3 layers where their own resolution supports it, not just the subject.");
-        sb.AppendLine("- Also use a genuinely wide slice of the real effect vocabulary above, not a narrow handful repeated everywhere: the same reference used 22 distinct effect names across the whole song, with its two most-used effects together covering only about half of all effects; a generated show that leans on 2 effects for well over a third of everything reads as monotone regardless of how its colors or timing vary. Spread Look design across many different effects from the vocabulary -- reserve any one effect (however good it looks) for a clear minority of this song's own Looks.");
-        sb.AppendLine("- User follow-up (2026-11-10), measured directly against a real hand-sequenced reference show: its single dominant technique for making a hit/note actually feel like emphasis was a SHORT, full-brightness \"On\" flash (median ~200ms) landing on roughly 60% of every real detected transient hit -- used 326 times across one 81-second clip, nearly three-quarters of every effect it placed. A generated show compared against it instead ran every effect on the regular bar grid (median ~1700ms, i.e. about a whole bar) with only 4-19% of placements landing anywhere near a real hit -- reacting to the regular grid, never to the actual hits. Concretely: give at least one Look's own accent (or subject) layer a SHORT-duty (0.7-1.0, since the window itself is already brief -- not the low-duty trick used for a Beats/Bars-bound layer), non-timing-track-bound effect (e.g. \"On\", or any effect not in the seven-effect timing-track-bound family) with \"Timescale\": \"Transients\" (or \"VocalNotes\" for a vocal-driven section) whenever this song's own volatile section below reports real detected hits/notes -- this is what turns \"timed to the beat\" into \"timed to THIS song's own real hits,\" and it is the single highest-leverage change available for making emphasis actually read as emphasis. One real difference between the two: a \"Transients\" mark is always a short, fixed flash (a hit is a single instant, nothing to hold); a \"VocalNotes\" mark spans that REAL sung note's own actual duration whenever one is known -- a long held note gets a correspondingly long effect, a short one a short effect -- so the same high duty cycle now means \"stay lit for as long as the note is actually sung,\" not just \"flash briefly.\"");
+        AppendApplicableLessons(sb, knowledge.LessonsOrEmpty, layout);
         sb.AppendLine();
 
         AppendMultiLayerTemplates(sb, knowledge.TemplatesOrEmpty);
@@ -335,6 +336,7 @@ public static class DirectorPromptBuilder
 
         AppendRepeatingKindStructure(sb, music);
         AppendEnergyTransitions(sb, music);
+        AppendLeadInstrumentWindows(sb, music);
         AppendKeyChanges(sb, music);
         AppendEmphasisTrackAvailability(sb, music);
 
@@ -434,6 +436,28 @@ public static class DirectorPromptBuilder
             .OrderBy(t => t.TimeTicks)
             .Select(t => $"{TimeSpan.FromTicks(t.TimeTicks):m\\:ss} {(t.Kind == EnergyTransitionKind.Buildup ? "build-up" : "drop")}");
         sb.AppendLine($"Measured energy transitions (real, from the audio -- not assumed): {string.Join(", ", rendered)}.");
+    }
+
+    /// <summary>
+    /// Build-plan Phase 27 (2026-11-14): surfaces this song's own real, measured sustained lead-
+    /// instrument/section windows (<see cref="LeadInstrumentWindowDetector"/>) -- a real horn/riff/lead
+    /// phrase genuinely more prominent than its own recent surroundings, measured against a real gap this
+    /// exact signal was missing when a hand-made show used a tight, repeating "stab" pattern during a
+    /// horn phrase (00:08-00:22) that a generated show instead treated as a generic flourish. Appends
+    /// nothing when <see cref="MusicModel.LeadInstrumentWindows"/> was never computed or came back empty
+    /// (same disclosed-empty idiom as every other optional <see cref="MusicModel"/> signal).
+    /// </summary>
+    private static void AppendLeadInstrumentWindows(StringBuilder sb, MusicModel music)
+    {
+        if (music.LeadInstrumentWindows is not { Count: > 0 } windows)
+        {
+            return;
+        }
+
+        var rendered = windows
+            .OrderBy(w => w.StartTicks)
+            .Select(w => $"{TimeSpan.FromTicks(w.StartTicks):m\\:ss}-{TimeSpan.FromTicks(w.EndTicks):m\\:ss} ({w.RelativeProminence:0.0}x baseline)");
+        sb.AppendLine($"Measured lead-instrument/section prominence windows (real, from the audio -- a real instrument/section genuinely standing out above its own recent surroundings, not assumed): {string.Join(", ", rendered)}. Favor the rhythmic-stab-pattern technique (see baseline guidance above) or a dedicated reactive layer bound to this window, instead of the regular beat grid or one generic synchronized flourish.");
     }
 
     /// <summary>
@@ -690,16 +714,40 @@ public static class DirectorPromptBuilder
     /// (property names are case-insensitive on read, but must otherwise match exactly, no more, no fewer)
     /// -- keep it in sync with those types rather than letting it drift.
     /// </summary>
+    /// <summary>
+    /// User feedback (2026-11-14): renders only the lessons whose own <see cref="DirectorLesson.Applies"/>
+    /// tag actually holds for THIS layout -- real conditional inclusion, replacing the old "always show
+    /// every bullet regardless of this song's layout" behavior every one of these lessons used to have as
+    /// hardcoded <c>AppendLine</c> calls. Ordered by <see cref="DirectorLesson.Priority"/> (lower first)
+    /// so the highest-priority lesson (the movement-across-models fix) reads first among lessons that
+    /// apply to this generation, not buried after a dozen others.
+    /// </summary>
+    private static void AppendApplicableLessons(StringBuilder sb, DirectorLessonCatalog lessons, LayoutSummary layout)
+    {
+        foreach (var lesson in lessons.Lessons.OrderBy(l => l.Priority).ThenBy(l => l.Id, StringComparer.Ordinal))
+        {
+            if (LessonApplies(lesson.Applies, layout))
+            {
+                sb.AppendLine($"- {lesson.Body}");
+            }
+        }
+    }
+
+    private static bool LessonApplies(string applies, LayoutSummary layout) => applies switch
+    {
+        DirectorLesson.AppliesAlways => true,
+        DirectorLesson.AppliesTreeOrMatrixPresent => layout.HasTreeOrMatrixModel,
+        DirectorLesson.AppliesMultiModelGroupPresent => layout.HasMultiModelGroupWithKnownPositions,
+        _ => false, // An unrecognized tag is never guessed into "always" -- see DirectorLesson.Applies's own doc comment.
+    };
+
     private static void AppendRequiredJsonShape(StringBuilder sb)
     {
         sb.AppendLine("## Required JSON shape (exact -- no extra top-level or nested keys, no title/summary/commentary fields)");
         sb.AppendLine("Output ONLY the JSON object below, with exactly these keys at each level. Omit optional keys entirely rather than setting them to null, except where shown as nullable.");
         sb.AppendLine($"Provide exactly {ShowBibleValidator.MinPalettes}-{ShowBibleValidator.MaxPalettes} palettes and exactly {ShowBibleValidator.MinLooks}-{ShowBibleValidator.MaxLooks} Looks -- not fewer, not more.");
         sb.AppendLine("You do not know each effect's own real parameter names (they vary per effect and are not listed here) -- OMIT \"Params\" entirely on every layer unless you are certain of a real setting key; every effect already has sensible defaults, so an empty Params is always safe and preferred over a guessed one.");
-        sb.AppendLine("\"Subject\"/\"Props\" accept either a real individual prop name OR a real group reference from the Layout section below (e.g. \"group:Matrixes\", \"group:MiniTrees\", \"group:Outline\") -- use a group reference when every member of that group should genuinely carry the exact same effect at the same time (it compiles to one real, editable group-level effect instead of silently repeating the same effect once per member model). This is a MIX, not a default: a Look library that leans on \"group:Everything\"/a couple of broad groups for most of its Looks is exactly as wrong as one that never uses a group at all -- individual high-value props (the matrices, the tree, a hero arch) deserve their own direct moments too, especially for a peak/solo Look naming one specific subject. Vary it deliberately across the library, the same way a real designer alternates between a full-canvas moment and a single prop carrying a line.");
-        sb.AppendLine("Reach across the WHOLE real prop/group list below over the course of the Look library, not just the handful of broad groups and heaviest individual props -- a prop that never appears as any Look's own Subject/Props (not even inside a group) never gets its own moment in the finished show. Spread deliberate attention across small/outline props too (an arch, a mini tree, the front door), not only the matrices and the tree.");
         sb.AppendLine("Every layer within one Look's own \"Layers\" array MUST have a distinct \"Z\" value (0, 1, 2, ... in the order you list them) -- two layers left at the same Z (most commonly both left at the default-looking 0) is a hard validation failure, not a cosmetic detail. The first/base layer is Z=0, the next layer stacked on top of it is Z=1, and so on -- this applies to every multi-layer Look, including every Look built from a seed multi-layer template below (REQUIRED to have 2 layers): its subject layer is Z=0 and its secondary/accent layer is Z=1, never both Z=0.");
-        sb.AppendLine("A literal \"moving from one prop to the next\" sweep (light prop A, then B, then C in turn) is NOT something a single group-targeted effect can produce -- a group effect always treats every member identically and simultaneously. For that specific traveling effect, declare \"PropDelays\" on a Look whose Props/Subject is a group with genuinely different-sized members (mass/mid/accent tiers by real pixel weight -- e.g. \"{\\\"mass\\\":\\\"+0ms\\\",\\\"mid\\\":\\\"+80ms\\\",\\\"accent\\\":\\\"+160ms\\\"}\"), which staggers each tier's own reveal instead of firing every member at once -- reserve this for Looks where that graduated, traveling reveal is the actual intent, not every Look using a group.");
         sb.AppendLine($"REQUIRED (build-plan Phase 24 §2a -- a hard validation failure, same tier as the {ShowBibleValidator.MinLooks}-{ShowBibleValidator.MaxLooks}-Look count rule above): a Look is \"eligible\" for a SectionKind when its own \"AllowedSectionKinds\" either omits that Kind's restriction entirely (unrestricted -- eligible for every Kind) or explicitly names it. For any SectionKind that repeats {ShowBibleValidator.MinOccurrencesForDiversityFloor}+ times in this song (named below, under \"This song\", with every one of that Kind's own real bar ranges listed together), at least ceil(occurrences/2) Looks must stay eligible for it. This means: if you give a Look an explicit \"AllowedSectionKinds\" list at all, make sure you still leave enough OTHER Looks eligible for every repeating Kind -- do not restrict so many Looks away from a repeating Kind that fewer than this minimum remain. The simplest way to always satisfy this is to leave \"AllowedSectionKinds\" omitted (unrestricted) on most Looks, and only restrict the few Looks where a real creative reason calls for it.");
         sb.AppendLine("""
             {
@@ -746,7 +794,9 @@ public static class DirectorPromptBuilder
                     "Variations": ["optional array of strings, omit if none"],
                     "DeclaredDarkness": false,
                     "AllowedSectionKinds": ["optional array, e.g. Intro, Verse, PreChorus, Chorus, Bridge, Solo, Outro -- omit for unrestricted"],
-                    "TemplateRef": "optional -- the Id of a seed multi-layer template (from the list below) this Look's Layers were directly modeled on; omit entirely when this Look does not draw on any of them"
+                    "TemplateRef": "optional -- the Id of a seed multi-layer template (from the list below) this Look's Layers were directly modeled on; omit entirely when this Look does not draw on any of them",
+                    "Travel": "optional, omit unless this Look is a real left-to-right/right-to-left sweep across a group's individual members (see the Travel guidance above) -- {\"Order\":\"LeftToRight\"|\"RightToLeft\",\"Timescale\":\"Beats\"}; never combine with PropDelays",
+                    "PropDelays": "optional, omit unless this Look is a weight-based mass/mid/accent cascade (see the PropDelays guidance above) -- {\"mass\":\"+0ms\",\"mid\":\"+80ms\",\"accent\":\"+160ms\"}; never combine with Travel"
                   }
                 ]
               },
@@ -780,7 +830,13 @@ public static class DirectorPromptBuilder
 
         foreach (var template in templates.Templates)
         {
-            sb.AppendLine($"- Id \"{template.Id}\" -- {template.Name} ({template.EnergyBand} energy, props: {string.Join("/", template.Props)}, motion: {template.Motion}):");
+            // Build-plan Phase 27 (2026-11-14): a "single-song-showcase" template is a genuine real
+            // example, not a reliably-repeated corpus pattern -- say so explicitly in the prompt text
+            // itself (not buried in SourceNote alone) so the Director can tell the two apart.
+            var tierNote = template.ConfidenceTier == "single-song-showcase"
+                ? " [SHOWCASE: observed in only one real song so far -- real inspiration, not a corpus-validated repeated pattern]"
+                : "";
+            sb.AppendLine($"- Id \"{template.Id}\" -- {template.Name} ({template.EnergyBand} energy, props: {string.Join("/", template.Props)}, motion: {template.Motion}){tierNote}:");
             foreach (var layer in template.Layers)
             {
                 sb.AppendLine($"  - {layer.Role}: {layer.Effect}, duty {layer.DutyMin:0.00}-{layer.DutyMax:0.00}, cadence {layer.Cadence}. {layer.Notes}");

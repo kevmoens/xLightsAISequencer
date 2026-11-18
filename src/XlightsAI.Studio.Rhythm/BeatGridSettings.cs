@@ -9,9 +9,16 @@ namespace XlightsAI.Studio.Rhythm;
 /// </summary>
 /// <param name="BeatsPerBar">
 /// Meter numerator used to group generated beats into bars (<see cref="BeatMarker.BarIndex"/>/<see cref="BeatMarker.BeatWithinBar"/>).
-/// Must be positive. Step 034's own implementation guidance: "meter must be user correctable" — this
-/// value is a plain, replaceable setting (a later rebuild with a different <see cref="BeatsPerBar"/>
-/// simply invalidates the cache like any other setting change), not a hardcoded constant.
+/// When non-<see langword="null"/> this is an explicit, user-supplied override and always wins — the
+/// same nullable-optional-signal convention already used elsewhere in this codebase (e.g. <c>MusicModel</c>'s
+/// own optional analyses). <see langword="null"/> means "take it from the source <c>TempoAnalysis</c>'s own
+/// detected meter" (PHASE-28 §3.1's real meter detection, not a hardcoded assumption); <see cref="BeatGridBuilder"/>
+/// falls back to <c>4</c> only when neither an explicit value nor a detected meter is available, and
+/// always records which of the three it actually used on the resulting <see cref="BeatGrid"/> — never a
+/// silent default. When supplied, must be positive. Step 034's own implementation guidance: "meter must be
+/// user correctable" — this value is a plain, replaceable setting (a later rebuild with a different
+/// <see cref="BeatsPerBar"/> simply invalidates the cache like any other setting change), not a hardcoded
+/// constant.
 /// </param>
 /// <param name="AlignmentToleranceTicks">
 /// Maximum absolute distance, in ticks, between a generated beat position and its nearest real onset
@@ -20,4 +27,4 @@ namespace XlightsAI.Studio.Rhythm;
 /// non-negative. A beat with no onset inside this tolerance is still generated (not dropped) but
 /// reports a lower <see cref="BeatMarker.Confidence"/> — never silently treated as equally certain.
 /// </param>
-public sealed record BeatGridSettings(int BeatsPerBar, long AlignmentToleranceTicks);
+public sealed record BeatGridSettings(int? BeatsPerBar, long AlignmentToleranceTicks);

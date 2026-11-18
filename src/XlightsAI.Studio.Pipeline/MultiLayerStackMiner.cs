@@ -46,6 +46,32 @@ public static class MultiLayerStackMiner
     }
 
     /// <summary>
+    /// Build-plan Phase 27 (2026-11-14): a real, genuine 3+-layer stack observed in exactly one real
+    /// song today has no path into the shippable catalog at all -- <see cref="Build"/> only ever ships
+    /// what clears <paramref name="minSongCount"/>. This surfaces every candidate that falls BELOW that
+    /// bar (never one that already promoted via <see cref="Build"/> -- no double-listing), tagged
+    /// <c>ConfidenceTier: "single-song-showcase"</c> so the Director prompt (and any human reader) can
+    /// tell "real shows reliably do this" apart from "one real show did this once, it's good
+    /// inspiration." Never replaces <see cref="Build"/>'s own output -- always additive.
+    /// </summary>
+    public static MultiLayerTemplateCatalog BuildShowcase(
+        IReadOnlyList<CorpusSongAnalysis> songs,
+        int minSongCount = DefaultMinSongCount,
+        int minDistinctLayers = LayerComplexityAnalyzer.DefaultMinDistinctLayers,
+        bool restrictToTreeMatrixModels = false)
+    {
+        var showcased = BuildAggregates(songs, minDistinctLayers, restrictToTreeMatrixModels)
+            .Where(a => a.SongTitles.Count < minSongCount)
+            .OrderByDescending(a => a.SongTitles.Count)
+            .ThenBy(a => a.Tier, StringComparer.Ordinal)
+            .ThenBy(a => string.Join(">", a.EffectNames), StringComparer.Ordinal)
+            .Select((a, index) => BuildTemplate(a, index, minSongCount, idPrefix: "showcase", confidenceTier: "single-song-showcase"))
+            .ToList();
+
+        return new MultiLayerTemplateCatalog(Version: 1, GeneratedAtUtc: DateTimeOffset.UtcNow, Templates: showcased);
+    }
+
+    /// <summary>
     /// User feedback (2026-11-12): <see cref="Build"/> only ever surfaces the stacks that actually
     /// cleared <paramref name="minSongCount"/> -- a near-miss stack seen in, say, 4 of a required 5
     /// distinct songs is silently discarded with no visibility at all, the same blind spot
@@ -183,7 +209,8 @@ public static class MultiLayerStackMiner
         return segmentDurationMs <= phraseMs ? "phrase" : "section";
     }
 
-    private static MultiLayerTemplate BuildTemplate(StackAggregate aggregate, int index, int minSongCount)
+    private static MultiLayerTemplate BuildTemplate(
+        StackAggregate aggregate, int index, int minSongCount, string idPrefix = "mined", string confidenceTier = "corpus-validated")
     {
         var cadence = aggregate.CadenceVotes
             .GroupBy(c => c, StringComparer.Ordinal)
@@ -226,19 +253,30 @@ public static class MultiLayerStackMiner
         var isTreeOrMatrix = aggregate.IsTreeOrMatrixVotes.Count(v => v) * 2 >= aggregate.IsTreeOrMatrixVotes.Count;
         var props = isTreeOrMatrix ? new[] { "Tree", "Matrixes", "Mega Tree" } : new[] { "Any" };
 
+        var sourceNote = confidenceTier == "single-song-showcase"
+            ? $"Build-plan Phase 27 (2026-11-14): auto-mined from the real sequence corpus -- this exact " +
+                $"{aggregate.EffectNames.Count}-layer stack ({string.Join(" + ", aggregate.EffectNames)}) was observed " +
+                $"genuinely time-overlapping on a real prop in only {aggregate.SongTitles.Count} distinct real song(s) " +
+                $"(below the {minSongCount}-song 'never forced' promotion threshold Phase 19 established) -- e.g. " +
+                $"{string.Join(", ", exampleSongs)}. Not corpus-validated: treat as a real, inspirational example of " +
+                "what one real show did, not a reliably-repeated technique. Palette-free and song-free -- only effect " +
+                "names, measured duty-cycle ranges, and a cadence bucket are retained, no literal color or exact timing copied."
+            : $"Build-plan Phase 20 §2a/§2b: auto-mined from the real sequence corpus -- this exact " +
+                $"{aggregate.EffectNames.Count}-layer stack ({string.Join(" + ", aggregate.EffectNames)}) was observed " +
+                $"genuinely time-overlapping on a real Tree/Matrix-class prop in {aggregate.SongTitles.Count} distinct real " +
+                $"songs (>= the {minSongCount}-song 'never forced' promotion threshold Phase 19 established), e.g. " +
+                $"{string.Join(", ", exampleSongs)}. Palette-free and song-free -- only effect names, measured duty-cycle " +
+                "ranges, and a cadence bucket are retained, no literal color or exact timing copied.";
+
         return new MultiLayerTemplate(
-            Id: $"mined-{aggregate.Tier}-{slug}-{index}",
+            Id: $"{idPrefix}-{aggregate.Tier}-{slug}-{index}",
             Name: $"Mined {aggregate.Tier}-energy {string.Join(" + ", aggregate.EffectNames)}",
             EnergyBand: aggregate.Tier,
             Props: props,
             Motion: motion,
             Layers: layers,
-            SourceNote: $"Build-plan Phase 20 §2a/§2b: auto-mined from the real sequence corpus -- this exact " +
-                $"{aggregate.EffectNames.Count}-layer stack ({string.Join(" + ", aggregate.EffectNames)}) was observed " +
-                $"genuinely time-overlapping on a real Tree/Matrix-class prop in {aggregate.SongTitles.Count} distinct real " +
-                $"songs (>= the {minSongCount}-song 'never forced' promotion threshold Phase 19 established), e.g. " +
-                $"{string.Join(", ", exampleSongs)}. Palette-free and song-free -- only effect names, measured duty-cycle " +
-                "ranges, and a cadence bucket are retained, no literal color or exact timing copied.");
+            SourceNote: sourceNote,
+            ConfidenceTier: confidenceTier);
     }
 
     /// <summary>One real candidate multi-layer stack signature and how many distinct real songs it was seen in, whether or not it actually promoted -- see <see cref="BuildCandidates"/>.</summary>

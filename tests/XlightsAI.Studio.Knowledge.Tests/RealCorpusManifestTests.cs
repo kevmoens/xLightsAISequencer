@@ -27,8 +27,13 @@ public sealed class RealCorpusManifestTests
         // ExternalReference counts are unchanged (Phase 16 §1c's 5 broken-copy swaps were swaps within
         // that same category, not additions). Build-plan Phase 19 §2a: the remaining 5 of the 12 (re-
         // verified 2026-11-09 to now parse cleanly) bring UserAuthored from 12 to 17, total from 27 to 32.
-        Assert.Equal(32, manifest.Entries.Count);
-        Assert.Equal(14, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.LikelyVendorOrCommunityDownload));
+        // Build-plan Phase 27 (2026-11-14): "All I Want For Christmas Is You shortened.xsq" was
+        // previously folded into "All i want for christmas 2.xsq" as a mere audio-duplicate -- a real
+        // review of its own Tree effect layers showed it is NOT the same choreography, just the same
+        // song's audio, so it is now mined as its own distinct LikelyVendorOrCommunityDownload entry
+        // (32 -> 33, 14 -> 15 of that provenance).
+        Assert.Equal(33, manifest.Entries.Count);
+        Assert.Equal(15, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.LikelyVendorOrCommunityDownload));
         Assert.Equal(1, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.ExternalReference));
         Assert.Equal(17, manifest.Entries.Count(e => e.Provenance == CorpusProvenanceTag.UserAuthored));
 

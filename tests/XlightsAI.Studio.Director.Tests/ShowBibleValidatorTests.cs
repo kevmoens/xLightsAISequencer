@@ -132,6 +132,64 @@ public sealed class ShowBibleValidatorTests
     }
 
     [Fact]
+    public async Task Validate_LookTravelWithInvalidOrder_FlagsViolation()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var brokenLook = content.Looks.Looks[0] with { Travel = new Choreography.LookTravel("Sideways", "Beats") };
+        var broken = content with { Looks = new Choreography.LookLibrary([brokenLook, .. content.Looks.Looks.Skip(1)]) };
+
+        var violations = ShowBibleValidator.Validate(broken, layout, vocabulary, recipes);
+
+        Assert.Contains(violations, v => v.Rule == "look-travel-order");
+    }
+
+    [Fact]
+    public async Task Validate_LookTravelWithBlankTimescale_FlagsViolation()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var brokenLook = content.Looks.Looks[0] with { Travel = new Choreography.LookTravel(Choreography.LookTravel.OrderLeftToRight, "") };
+        var broken = content with { Looks = new Choreography.LookLibrary([brokenLook, .. content.Looks.Looks.Skip(1)]) };
+
+        var violations = ShowBibleValidator.Validate(broken, layout, vocabulary, recipes);
+
+        Assert.Contains(violations, v => v.Rule == "look-travel-timescale");
+    }
+
+    [Fact]
+    public async Task Validate_LookTravelWithValidOrderAndTimescale_HasNoTravelViolation()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = await new XlightsAI.Studio.Xlights.ShowLayoutImporter().ImportReadOnlyAsync(RealXLightsFixture.ShowDirectory, CancellationToken.None);
+        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
+        var content = ShowBibleContentFixture.BuildValid();
+        var validLook = content.Looks.Looks[0] with { Travel = new Choreography.LookTravel(Choreography.LookTravel.OrderRightToLeft, "Beats") };
+        var updated = content with { Looks = new Choreography.LookLibrary([validLook, .. content.Looks.Looks.Skip(1)]) };
+
+        var violations = ShowBibleValidator.Validate(updated, layout, vocabulary, recipes);
+
+        Assert.DoesNotContain(violations, v => v.Rule == "look-travel-order");
+        Assert.DoesNotContain(violations, v => v.Rule == "look-travel-timescale");
+    }
+
+    [Fact]
     public async Task Validate_RealLayoutHasTreeOrMatrixProp_ButNoLookDeclaresATemplateRef_FlagsRequiredViolation()
     {
         // Build-plan Phase 10 §6b acceptance criterion enforcement: a Director told about a non-empty

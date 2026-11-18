@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Contracts;
+using XlightsAI.Studio.Xlights;
 
 namespace XlightsAI.Studio.Choreography.Tests;
 
@@ -71,5 +72,55 @@ public sealed class PropDelayResolverTests
         Assert.Equal(0, offsets[new ModelId("Heavy")]);
         Assert.Equal(600_000, offsets[new ModelId("Mid")]);
         Assert.Equal(1_200_000, offsets[new ModelId("Light")]);
+    }
+
+    [Fact]
+    public void ResolveTravelWindows_AssignsOneMarkPerOrderedModel_InOrder()
+    {
+        var orderedModels = new[] { new ModelId("Arch1"), new ModelId("Arch2"), new ModelId("Arch3") };
+        var marks = new[]
+        {
+            new TimingMark("1", 0, 1_000_000),
+            new TimingMark("2", 1_000_000, 2_000_000),
+            new TimingMark("3", 2_000_000, 3_000_000),
+        };
+
+        var windows = PropDelayResolver.ResolveTravelWindows(orderedModels, marks, sectionStart: 0, sectionEnd: 3_000_000);
+
+        Assert.Equal(3, windows.Count);
+        Assert.Equal(new TimeWindow(0, 1_000_000), windows[new ModelId("Arch1")]);
+        Assert.Equal(new TimeWindow(1_000_000, 2_000_000), windows[new ModelId("Arch2")]);
+        Assert.Equal(new TimeWindow(2_000_000, 3_000_000), windows[new ModelId("Arch3")]);
+    }
+
+    [Fact]
+    public void ResolveTravelWindows_FewerMarksThanModels_ExtraModelsGetNoWindow_NeverFabricated()
+    {
+        var orderedModels = new[] { new ModelId("Arch1"), new ModelId("Arch2"), new ModelId("Arch3") };
+        var marks = new[] { new TimingMark("1", 0, 1_000_000) };
+
+        var windows = PropDelayResolver.ResolveTravelWindows(orderedModels, marks, sectionStart: 0, sectionEnd: 3_000_000);
+
+        var window = Assert.Single(windows);
+        Assert.Equal(new ModelId("Arch1"), window.Key);
+        Assert.DoesNotContain(new ModelId("Arch2"), windows.Keys);
+        Assert.DoesNotContain(new ModelId("Arch3"), windows.Keys);
+    }
+
+    [Fact]
+    public void ResolveTravelWindows_MarksOutsideSectionWindow_ExcludedOrClamped()
+    {
+        var orderedModels = new[] { new ModelId("Arch1"), new ModelId("Arch2") };
+        var marks = new[]
+        {
+            new TimingMark("before", -1_000_000, -500_000), // entirely before the section -- excluded.
+            new TimingMark("straddling", -500_000, 500_000), // starts before, ends inside -- clamped to sectionStart.
+            new TimingMark("inside", 500_000, 1_500_000),
+        };
+
+        var windows = PropDelayResolver.ResolveTravelWindows(orderedModels, marks, sectionStart: 0, sectionEnd: 2_000_000);
+
+        Assert.Equal(new TimeWindow(0, 500_000), windows[new ModelId("Arch1")]);
+        Assert.Equal(new TimeWindow(500_000, 1_500_000), windows[new ModelId("Arch2")]);
     }
 }

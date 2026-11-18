@@ -50,7 +50,7 @@ public sealed class AlwaysMovingGapSplitterTests
         var barGrid = BuildBarGrid(barCount: 10, barTicks);
         var coverage = new TimeWindow(0, 10 * barTicks);
 
-        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, sectionEnergyCeiling: 0.5, new StubRecipeRegistry());
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, [coverage], _ => 0.5, new StubRecipeRegistry());
 
         Assert.NotEmpty(result);
         Assert.Equal(0, result.Min(e => e.StartTicks));
@@ -83,7 +83,7 @@ public sealed class AlwaysMovingGapSplitterTests
             registry.CreateVerified("seed", Target, 7 * barTicks, 10 * barTicks), // bars 7-9 covered
         };
 
-        var result = AlwaysMovingGapSplitter.FillGaps(Target, existing, coverage, barGrid, _ => SixStateFillerPool, sectionEnergyCeiling: 0.2, registry);
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, existing, coverage, barGrid, _ => SixStateFillerPool, [coverage], _ => 0.2, registry);
 
         var largestGap = AlwaysMovingGapSplitter.LargestGapTicks(Target, result, coverage);
         Assert.True(largestGap <= barTicks, $"Largest gap {largestGap} ticks exceeds one bar ({barTicks} ticks).");
@@ -101,7 +101,7 @@ public sealed class AlwaysMovingGapSplitterTests
         var barGrid = BuildBarGrid(barCount: 60, barTicks);
         var coverage = new TimeWindow(0, 60 * barTicks);
 
-        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, sectionEnergyCeiling: 0.9, new StubRecipeRegistry());
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, [coverage], _ => 0.9, new StubRecipeRegistry());
 
         var distinctRecipesUsed = result.Select(e => e.RecipeId).Distinct().Count();
         Assert.True(distinctRecipesUsed >= FillerPool.MinimumDistinctStates,
@@ -144,7 +144,7 @@ public sealed class AlwaysMovingGapSplitterTests
         var barGrid = BarGrid.FromBeatGrid(beatGrid, songEndTicks: preRollTicks + (10 * barTicks));
 
         var coverage = new TimeWindow(0, preRollTicks + (10 * barTicks));
-        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, sectionEnergyCeiling: 0.2, new StubRecipeRegistry());
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, [coverage], _ => 0.2, new StubRecipeRegistry());
 
         var largestGap = AlwaysMovingGapSplitter.LargestGapTicks(Target, result, coverage);
         Assert.True(largestGap <= barTicks, $"Largest gap {largestGap} ticks exceeds one bar ({barTicks} ticks) -- the pre-roll gap before the first detected bar was not split.");
@@ -152,6 +152,76 @@ public sealed class AlwaysMovingGapSplitterTests
         // The pre-roll span itself must have been split into more than one filler segment, not one giant one.
         var fillersInPreRoll = result.Count(e => e.StartTicks < preRollTicks);
         Assert.True(fillersInPreRoll > 1, $"Expected the {preRollTicks}-tick pre-roll gap to be split into multiple segments; got {fillersInPreRoll}.");
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-13), measured against a real reference show (generated: 0.0% average
+    /// idle time per prop; reference: 82.1%): a gap entirely outside every real "in play" window for
+    /// this target must stay fully dark -- no filler at all, not even capped at one bar.
+    /// </summary>
+    [Fact]
+    public void FillGaps_GapEntirelyOutsideActiveWindows_StaysFullyDark_NoFillerAtAll()
+    {
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(barCount: 10, barTicks);
+        var coverage = new TimeWindow(0, 10 * barTicks);
+
+        // This target is only ever "in play" for the first 2 bars -- the remaining 8 bars (far more
+        // than one bar) must compile with zero filler effects.
+        var activeWindows = new[] { new TimeWindow(0, 2 * barTicks) };
+
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, activeWindows, _ => 0.5, new StubRecipeRegistry());
+
+        Assert.All(result, e => Assert.True(e.EndTicks <= 2 * barTicks, $"Effect [{e.StartTicks},{e.EndTicks}) falls outside the only active window but was filled."));
+    }
+
+    [Fact]
+    public void FillGaps_GapStraddlingActiveWindowBoundary_OnlyFillsThePortionInsideIt()
+    {
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(barCount: 10, barTicks);
+        var coverage = new TimeWindow(0, 10 * barTicks);
+
+        // In play only for bars [3,7) -- a gap spanning the WHOLE song straddles both edges of it.
+        var activeWindows = new[] { new TimeWindow(3 * barTicks, 7 * barTicks) };
+
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, activeWindows, _ => 0.5, new StubRecipeRegistry());
+
+        Assert.NotEmpty(result);
+        Assert.All(result, e =>
+        {
+            Assert.True(e.StartTicks >= 3 * barTicks, $"Effect started at {e.StartTicks}, before the active window.");
+            Assert.True(e.EndTicks <= 7 * barTicks, $"Effect ended at {e.EndTicks}, after the active window.");
+        });
+
+        var largestGapInsideActiveWindow = AlwaysMovingGapSplitter.LargestGapTicks(Target, result, activeWindows[0]);
+        Assert.True(largestGapInsideActiveWindow <= barTicks, $"Largest gap {largestGapInsideActiveWindow} inside the active window exceeds one bar.");
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-13): replaces a flat whole-song-average energy ceiling with a real
+    /// per-tick lookup -- two different ranges of the same gap, given different ceilings, must produce
+    /// measurably different filler segment lengths (proving per-tick resolution, not one flat average).
+    /// </summary>
+    [Fact]
+    public void FillGaps_DifferentCeilingAtDifferentTicks_ProducesDifferentFillerSegmentLengths()
+    {
+        const long barTicks = 4 * TicksPerSecond;
+        var barGrid = BuildBarGrid(barCount: 10, barTicks);
+        var coverage = new TimeWindow(0, 10 * barTicks);
+        var boundary = 5 * barTicks;
+
+        double CeilingAtTick(long tick) => tick < boundary ? 0.1 : 0.95; // calm first half, energetic second half.
+
+        var result = AlwaysMovingGapSplitter.FillGaps(Target, [], coverage, barGrid, _ => SixStateFillerPool, [coverage], CeilingAtTick, new StubRecipeRegistry());
+
+        var calmSegmentLengths = result.Where(e => e.EndTicks <= boundary).Select(e => e.EndTicks - e.StartTicks).ToList();
+        var energeticSegmentLengths = result.Where(e => e.StartTicks >= boundary).Select(e => e.EndTicks - e.StartTicks).ToList();
+
+        Assert.NotEmpty(calmSegmentLengths);
+        Assert.NotEmpty(energeticSegmentLengths);
+        Assert.True(calmSegmentLengths.Average() > energeticSegmentLengths.Average(),
+            "The calm (low-ceiling) range should use measurably longer filler segments than the energetic (high-ceiling) range.");
     }
 
     [Fact]

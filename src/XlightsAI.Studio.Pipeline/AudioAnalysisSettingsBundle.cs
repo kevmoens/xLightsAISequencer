@@ -41,7 +41,7 @@ public sealed record AudioAnalysisSettingsBundle(
             Rhythm: new RhythmSettings(AnalysisSampleRate: sampleRate, FftSize: fftSize, HopSamples: hop),
             Onset: new OnsetDetectionSettings(SensitivityMultiplier: 1.5f, MinInterOnsetSamples: hop),
             Tempo: new TempoDetectionSettings(MinBpm: 60, MaxBpm: 200, TimeResolutionSeconds: 0.01, MaxCandidates: 5),
-            BeatGrid: new BeatGridSettings(BeatsPerBar: 4, AlignmentToleranceTicks: alignmentToleranceTicks),
+            BeatGrid: new BeatGridSettings(BeatsPerBar: null, AlignmentToleranceTicks: alignmentToleranceTicks),
             // PitchTrackingSettings.FrameSize must exceed sampleRate/MinFrequencyHz (80 Hz here) so the
             // lowest detectable pitch can complete a full period inside one window; fftSize*2 clears that
             // bound at any realistic sample rate (it only needs to clear sampleRate/80, far smaller).

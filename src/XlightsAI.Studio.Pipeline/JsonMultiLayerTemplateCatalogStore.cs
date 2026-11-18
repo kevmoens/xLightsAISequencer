@@ -13,18 +13,21 @@ namespace XlightsAI.Studio.Pipeline;
 /// </summary>
 public sealed class JsonMultiLayerTemplateCatalogStore
 {
-    private const string FileName = "multilayer-templates-mined.json";
+    private const string DefaultFileName = "multilayer-templates-mined.json";
     private static readonly JsonSerializerOptions JsonOptions = new() { WriteIndented = true };
 
     private readonly string _directory;
+    private readonly string _fileName;
 
-    public JsonMultiLayerTemplateCatalogStore(string directory)
+    public JsonMultiLayerTemplateCatalogStore(string directory, string fileName = DefaultFileName)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
+        ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
         _directory = directory;
+        _fileName = fileName;
     }
 
-    public string Path => System.IO.Path.Combine(_directory, FileName);
+    public string Path => System.IO.Path.Combine(_directory, _fileName);
 
     public async Task<string> SaveAsync(MultiLayerTemplateCatalog catalog, CancellationToken ct)
     {
@@ -54,11 +57,11 @@ public sealed class JsonMultiLayerTemplateCatalogStore
     {
         if (!File.Exists(Path))
         {
-            throw new FileNotFoundException($"No mined multi-layer template catalog exists at '{Path}'.", Path);
+            throw new FileNotFoundException($"No multi-layer template catalog exists at '{Path}'.", Path);
         }
 
         await using var stream = File.OpenRead(Path);
         var catalog = await JsonSerializer.DeserializeAsync<MultiLayerTemplateCatalog>(stream, cancellationToken: ct).ConfigureAwait(false);
-        return catalog ?? throw new InvalidOperationException($"Mined multi-layer template catalog at '{Path}' deserialized to null.");
+        return catalog ?? throw new InvalidOperationException($"Multi-layer template catalog at '{Path}' deserialized to null.");
     }
 }

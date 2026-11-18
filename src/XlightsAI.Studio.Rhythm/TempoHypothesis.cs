@@ -10,5 +10,12 @@ namespace XlightsAI.Studio.Rhythm;
 /// </summary>
 /// <param name="Bpm">Beats per minute this candidate represents.</param>
 /// <param name="Confidence">Unit-normalized periodicity strength in <c>[0, 1]</c> — this candidate's own autocorrelation score divided by the single largest score found across the whole scanned BPM range, same "unit normalization" convention <see cref="OnsetEvent.Strength"/> and <c>EnergyFrame.NormalizedEnergy</c> already use.</param>
-/// <param name="MeterGuess">A simple, disclosed-as-approximate meter label (e.g. <c>"4/4"</c>) — Section 3 names downbeat/meter estimation as "optional... with confidence and manual labeling," not a solved problem this step claims to fully answer.</param>
-public sealed record TempoHypothesis(double Bpm, double Confidence, string MeterGuess);
+/// <param name="MeterGuess">A meter label (e.g. <c>"4/4"</c>) chosen by real downbeat/offbeat onset-strength comparison (PHASE-28 §3.1) — never a bare, undisclosed guess; see <see cref="MeterConfidence"/> for how certain this particular label is.</param>
+/// <param name="MeterConfidence">
+/// PHASE-28 §3.1 — unit-normalized confidence, in <c>[0, 1]</c>, that <see cref="MeterGuess"/> is the real
+/// meter: how much the winning meter's downbeat/offbeat onset-strength ratio exceeds "no distinction at
+/// all" (ratio of exactly 1). <c>0</c> when no candidate meter could be distinguished from the others at
+/// all (e.g. a perfectly isochronous, unaccented click train) — still a real, disclosed label plus an
+/// honest confidence, never a silently-assumed meter.
+/// </param>
+public sealed record TempoHypothesis(double Bpm, double Confidence, string MeterGuess, double MeterConfidence = 0.0);

@@ -19,10 +19,15 @@
   </ItemGroup>
 
   <ItemGroup>
+    <None Include="Fixtures\**\*.mp3" CopyToOutputDirectory="PreserveNewest" />
+  </ItemGroup>
+
+  <ItemGroup>
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Rhythm\XlightsAI.Studio.Rhythm.csproj" />
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Audio\XlightsAI.Studio.Audio.csproj" />
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Reference\XlightsAI.Studio.Reference.csproj" />
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Pipeline\XlightsAI.Studio.Pipeline.csproj" />
   </ItemGroup>
 
 </Project>

@@ -28,4 +28,5 @@ public sealed record MusicModel(
     IReadOnlyList<EnergyTransition>? EnergyTransitions = null,
     EnergyEnvelope? Energy = null,
     IReadOnlyList<KeyChange>? KeyChanges = null,
-    IReadOnlyList<TranscribedWord>? Transcript = null);
+    IReadOnlyList<TranscribedWord>? Transcript = null,
+    IReadOnlyList<LeadInstrumentWindow>? LeadInstrumentWindows = null);

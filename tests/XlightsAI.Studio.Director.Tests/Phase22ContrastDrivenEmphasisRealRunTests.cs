@@ -155,14 +155,21 @@ public sealed class Phase22ContrastDrivenEmphasisRealRunTests : IDisposable
         // hand-authored Show Bible never assigned to any Look at all (a separate, pre-existing concern
         // ChoreographyLegalityValidator.RuleModelCoverage already reports advisory-only) would otherwise
         // read as one giant "gap" spanning the whole song, which is not a regression THIS phase's own
-        // deliberate dips could have caused.
+        // deliberate dips could have caused. Further scoped (2026-11-13) to each target's own real "in
+        // play" windows -- see AlwaysMovingGapSplitter's own doc comment: the always-moving guarantee
+        // now only holds while a target is actually targeted by that section's own compiled Look, not
+        // across the whole song, so a target's real dark stretches outside its own active windows are
+        // expected negative space, not a regression.
         var touchedTargets = report.CompiledResult.IR.Effects.Select(e => e.Target).Distinct().ToList();
+        var sectionAssignments = report.CompiledResult.SectionAssignments ?? [];
         var maxGapTicksAcrossTargets = touchedTargets
-            .Select(t => AlwaysMovingGapSplitter.LargestGapTicks(t, report.CompiledResult.IR.Effects, new TimeWindow(0, music.SongDurationTicks)))
+            .SelectMany(t => sectionAssignments
+                .Where(s => s.Window is not null && s.TargetedModels.Contains(t))
+                .Select(s => AlwaysMovingGapSplitter.LargestGapTicks(t, report.CompiledResult.IR.Effects, s.Window!.Value)))
             .DefaultIfEmpty(0L)
             .Max();
         var barTicksApprox = music.BeatGrid.Beats.Length >= 2
-            ? (music.BeatGrid.Beats[1].TimeTicks - music.BeatGrid.Beats[0].TimeTicks) * music.BeatGrid.Settings.BeatsPerBar
+            ? (music.BeatGrid.Beats[1].TimeTicks - music.BeatGrid.Beats[0].TimeTicks) * music.BeatGrid.ResolvedBeatsPerBar
             : TicksPerSecond * 2;
 
         var evidenceDir = Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", "..", "implementation-evidence");

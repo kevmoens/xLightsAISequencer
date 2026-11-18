@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Knowledge;
+using XlightsAI.Studio.Melody;
 using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Stems;
 using XlightsAI.Studio.Structure;
@@ -66,19 +67,42 @@ public static class ChoreographyEngine
         EnergyEnvelope? AudioEnergy = null,
         IReadOnlyList<EmphasisInstant>? EmphasisInstants = null,
         EffectVisualCharacterCatalog? BrightnessCatalog = null,
-        Random? EmphasisTravelRandom = null);
+        Random? EmphasisTravelRandom = null,
+        IReadOnlyList<string>? HeroLookIds = null,
+        /* Build-plan Phase 28a: an optional, additive override of LookIdBySectionId's own per-section
+         * compile -- a section present here whose own SectionTimeline.CuesOrEmpty is non-empty compiles
+         * via SectionTimelineCompiler.Compile instead of LookCompiler.Compile, merging into the exact
+         * same ChoreographyIR and flowing through the exact same downstream AlwaysMovingGapSplitter/
+         * EmphasisContrastPlanner/ChoreographyLegalityValidator.ValidateShow passes every other section's
+         * compiled output already does -- never a parallel/bypassed pipeline. A section with no entry
+         * (the default, and every pre-existing caller's own behavior), an entry with empty Cues, or a
+         * section already compiled via PhraseLookAssignmentsBySectionId (that branch takes precedence,
+         * same as it already does over LookIdBySectionId) compiles exactly as before.
+         * TransientHits/VocalNotes/LeadInstrumentWindows below are consulted only when resolving a
+         * SectionCue.AnchorId for a section named here. */
+        IReadOnlyDictionary<Guid, SectionTimeline>? SectionTimelinesBySectionId = null,
+        IReadOnlyList<TransientHit>? TransientHits = null,
+        IReadOnlyList<NoteEvent>? VocalNotes = null,
+        IReadOnlyList<LeadInstrumentWindow>? LeadInstrumentWindows = null);
 
     /// <param name="EmphasisContrast">
     /// Build-plan Phase 22 §2a/§2d: non-null exactly when both <see cref="Input.EmphasisInstants"/> and
     /// <see cref="Input.BrightnessCatalog"/> were supplied -- <see langword="null"/> (the default, and
     /// every pre-existing caller's own behavior) otherwise, never a fabricated empty report.
     /// </param>
+    /// <param name="SectionAssignments">
+    /// User feedback (2026-11-13): every section's own compiled assignment (window, Look, targeted
+    /// models) -- exposed so a caller can determine, for any target, the real windows it was actually
+    /// "in play" for (see <see cref="AlwaysMovingGapSplitter.FillGaps"/>'s own <c>activeWindows</c>
+    /// parameter, which this same list already feeds internally) without re-deriving it.
+    /// </param>
     public sealed record Result(
         ChoreographyIR IR,
         IReadOnlyList<LegalityViolation> Violations,
         IReadOnlyList<PixelCoverageLadder.Rung> CoverageLadder,
         BarGrid BarGrid,
-        EmphasisContrastReport? EmphasisContrast = null);
+        EmphasisContrastReport? EmphasisContrast = null,
+        IReadOnlyList<ChoreographyLegalityValidator.SectionAssignment>? SectionAssignments = null);
 
     public static Result Compile(Input input)
     {
@@ -128,7 +152,20 @@ public static class ChoreographyEngine
         var sectionAssignments = new List<ChoreographyLegalityValidator.SectionAssignment>();
         var violations = new List<LegalityViolation>();
 
-        void CompileOneWindow(SectionLabelCandidate section, string lookId, TimeWindow window)
+        // Build-plan Phase 28b bugfix: a SectionTimeline's own Cues are generated/validated against the
+        // REAL anchors of the section's own WHOLE window (see BuildSectionPromptMaterial/
+        // SectionTimelineValidator, both section-scoped, never phrase-scoped). A phrase-scoped section
+        // (PhraseLookAssignmentsBySectionId below) instead compiles as several NARROWER sub-window calls
+        // to this same local function, each for one real phrase -- applying the whole-section timeline's
+        // cues uniformly against every one of those narrower windows resolves a real anchor (valid for
+        // the WHOLE section) against a phrase window that may not contain it at all, throwing a hard
+        // ChoreographyCompilationException at compile time for an anchor the model never did anything
+        // wrong to name (confirmed against a real Carol of the Bells run: AnchorId 'beat-25' valid for a
+        // section's own full real mark set, invalid for one of its own real phrase sub-windows). A
+        // phrase-scoped section's own cues are therefore never applied here -- same precedence
+        // PhraseLookAssignmentsBySectionId already has over LookIdBySectionId itself (that branch fully
+        // replaces this function's plain, whole-section call) now also applies to SectionTimelinesBySectionId.
+        void CompileOneWindow(SectionLabelCandidate section, string lookId, TimeWindow window, bool allowSectionTimelineOverride)
         {
             var look = input.LookLibrary.Find(lookId)
                 ?? throw new ChoreographyCompilationException($"Look '{lookId}' assigned to section '{section.Id}' is not in the supplied library.");
@@ -138,7 +175,25 @@ public static class ChoreographyEngine
             var targetChangeRate = SectionDensityMapper.TargetChangeRatePerSecond(ceiling);
 
             var context = new SectionMusicContext(window, section.Kind, ceiling, barGrid, tracks, vocalActive, targetChangeRate);
-            var compiled = LookCompiler.Compile(look, context, input.Layout, input.CompilerSettings);
+
+            ChoreographyIR compiled;
+            if (allowSectionTimelineOverride &&
+                input.SectionTimelinesBySectionId is { } timelinesBySectionId &&
+                timelinesBySectionId.TryGetValue(section.Id, out var timeline) &&
+                timeline.CuesOrEmpty.Count > 0)
+            {
+                var sectionPhrases = input.Phrases.Phrases
+                    .Where(p => p.SectionLabelId == section.Id)
+                    .OrderBy(p => p.StartBarIndex)
+                    .ToList();
+                compiled = SectionTimelineCompiler.Compile(
+                    look, timeline, context, input.Layout, input.CompilerSettings,
+                    sectionPhrases, input.TransientHits, input.VocalNotes, input.LeadInstrumentWindows);
+            }
+            else
+            {
+                compiled = LookCompiler.Compile(look, context, input.Layout, input.CompilerSettings);
+            }
 
             mergedIR = mergedIR.Merge(compiled);
 
@@ -162,7 +217,7 @@ public static class ChoreographyEngine
                     var phraseWindow = barGrid.WindowForBarRange(assignment.StartBar, assignment.EndBarExclusive)
                         ?? throw new ChoreographyCompilationException($"Phrase-scoped assignment for section '{section.Id}' bar range [{assignment.StartBar},{assignment.EndBarExclusive}) does not resolve against the bar grid.");
 
-                    CompileOneWindow(section, assignment.LookId, phraseWindow);
+                    CompileOneWindow(section, assignment.LookId, phraseWindow, allowSectionTimelineOverride: false);
                 }
 
                 continue;
@@ -176,7 +231,7 @@ public static class ChoreographyEngine
             var window = barGrid.WindowForBarRange(new BarIndex(section.StartBarIndex), new BarIndex(section.EndBarIndexExclusive))
                 ?? throw new ChoreographyCompilationException($"Section '{section.Id}' bar range [{section.StartBarIndex},{section.EndBarIndexExclusive}) does not resolve against the bar grid.");
 
-            CompileOneWindow(section, lookId, window);
+            CompileOneWindow(section, lookId, window, allowSectionTimelineOverride: true);
         }
 
         // The always-moving rule applies globally, per target, across the whole song -- a gap can
@@ -184,18 +239,42 @@ public static class ChoreographyEngine
         var songWindow = new TimeWindow(0, input.SongEndTicks);
         var effectsByTarget = mergedIR.Effects.GroupBy(e => e.Target).ToDictionary(g => g.Key, g => (IReadOnlyList<EffectInstance>)g.ToList());
 
+        // User feedback (2026-11-13): the real per-tick section ceiling, not a single flattened
+        // whole-song average -- a quiet section now reliably gets the full low-ceiling filler fraction
+        // ComputeFillerDurationTicks already allows it, rather than sometimes getting a tighter cap
+        // because some OTHER section elsewhere in the song happened to be louder.
+        double CeilingFor(ChoreographyLegalityValidator.SectionAssignment assignment) =>
+            Math.Min(assignment.Look.EnergyCeiling, input.EnergyCeilingByKind.GetValueOrDefault(SectionKindOf(input.Sections, assignment.SectionId), 1.0));
+
+        var fallbackCeiling = sectionAssignments.Count == 0 ? 0.5 : sectionAssignments.Average(CeilingFor);
+
+        double CeilingAtTick(long tick)
+        {
+            var containing = sectionAssignments.FirstOrDefault(s => s.Window is { } w && tick >= w.StartTicks && tick < w.EndTicks);
+            return containing is not null ? CeilingFor(containing) : fallbackCeiling;
+        }
+
         var gapFilledEffects = new List<EffectInstance>();
         foreach (var (target, existing) in effectsByTarget)
         {
-            // A whole-song-average energy ceiling for filler cadence -- a per-tick-aware cadence would
-            // need this pass to re-enter each section's own declared ceiling, a disclosed simplification
-            // since the always-moving rule's own hard requirement (max gap <= 1 bar) does not depend on it.
-            var averageCeiling = sectionAssignments.Count == 0
-                ? 0.5
-                : sectionAssignments.Average(s => Math.Min(s.Look.EnergyCeiling, input.EnergyCeilingByKind.GetValueOrDefault(SectionKindOf(input.Sections, s.SectionId), 1.0)));
+            // User feedback (2026-11-13), measured against a real reference show (generated: 0.0%
+            // average idle time per prop; reference: 82.1% idle): scoping the always-moving guarantee to
+            // only the exact windows a section's compiled Look happened to name `target` directly was
+            // tried and reverted (user feedback 2026-11-16, seeing most of the display go dark for most
+            // of the song once that shipped): "we still need other models or groups doing something
+            // unless music really has a large change." A `DeclaredDarkness` section IS that large
+            // change -- a Look's own deliberate negative-space moment -- so it alone opts a target out of
+            // this guarantee for its window; every other section `target` has at least one real effect in
+            // somewhere in the show keeps the always-moving guarantee for every one of its own sections,
+            // not only the ones that happened to name it directly.
+            var activeWindows = sectionAssignments
+                .Where(s => s.Window is not null && !s.Look.DeclaredDarkness)
+                .Select(s => s.Window!.Value)
+                .OrderBy(w => w.StartTicks)
+                .ToList();
 
             gapFilledEffects.AddRange(AlwaysMovingGapSplitter.FillGaps(
-                target, existing, songWindow, barGrid, tick => input.FillerSchedule.Resolve(tick, target), averageCeiling, input.CompilerSettings.RecipeRegistry));
+                target, existing, songWindow, barGrid, tick => input.FillerSchedule.Resolve(tick, target), activeWindows, CeilingAtTick, input.CompilerSettings.RecipeRegistry));
         }
 
         mergedIR = mergedIR with { Effects = gapFilledEffects };
@@ -222,9 +301,9 @@ public static class ChoreographyEngine
         }
 
         var coverageLadder = PixelCoverageLadder.Build(input.Layout, input.CoverageLadderRungCount);
-        violations.AddRange(ChoreographyLegalityValidator.ValidateShow(sectionAssignments, input.Layout, coverageLadder, input.AudioEnergy));
+        violations.AddRange(ChoreographyLegalityValidator.ValidateShow(sectionAssignments, input.Layout, coverageLadder, input.AudioEnergy, input.HeroLookIds));
 
-        return new Result(mergedIR, violations, coverageLadder, barGrid, emphasisContrastReport);
+        return new Result(mergedIR, violations, coverageLadder, barGrid, emphasisContrastReport, sectionAssignments);
     }
 
     private static SectionKind SectionKindOf(SectionLabelAnalysis sections, string sectionId) =>

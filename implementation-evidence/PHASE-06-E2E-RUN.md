@@ -8,10 +8,10 @@ Songs completed end-to-end: 3 / 5.
 
 | Song | Sections | Sections needing individual retry | Effect count | Effect type diversity | Palettes | Timing tracks | Choreographer cost |
 |---|---:|---:|---:|---:|---:|---:|---:|
-| Dubstep Christmas Light Show (30s clip) | 1 | 0 | 98 | 6 | 1 | 5 | $0.0000 |
-| All I Want For Christmas Is You shortened (30s clip) | 9 | 0 | 135 | 6 | 9 | 5 | $0.0000 |
-| Carrie Underwood - Away In A Manger Lite (30s clip) | generation failed: Timing track 'Beats' mark (301420862-301420863 ticks) rounds to a non-positive duration at the 25ms xLights frame grid; no file was written. | | | | | | |
-| Cher-DJ Play a Christmas Song (30s clip) | 13 | 0 | 204 | 6 | 13 | 5 | $0.0000 |
+| Dubstep Christmas Light Show (30s clip) | 1 | 0 | 126 | 6 | 3 | 5 | $0.0000 |
+| All I Want For Christmas Is You shortened (30s clip) | 12 | 5 | 170 | 6 | 8 | 5 | $0.0000 |
+| Carrie Underwood - Away In A Manger Lite (30s clip) | analysis failed: Could not find a part of the path 'C:\Users\kevmo\AppData\Local\Temp\xlai-phase6-e2e-77493770162d4195960e6515bb9b08c3\analysis-cache\Carrie Underwood - Away In A Manger Lite (30s clip)\wav-cache\98f334d05d70c54c81c2ac20595c8bc3c5c74bfa2924e241ee06a20b3a0874ec-pcm-s16le-44100hz-2ch-v1.wav'. | | | | | | |
+| Cher-DJ Play a Christmas Song (30s clip) | 18 | 0 | 432 | 6 | 18 | 5 | $0.0000 |
 | Christmas Tree Hot to Go - Chappell Roan (30s clip) | generation failed: Timing track 'Beats' mark (302564626-302564627 ticks) rounds to a non-positive duration at the 25ms xLights frame grid; no file was written. | | | | | | |
 
 Architecture §1 corpus range for comparison: effects 1,114-36,453 (full-length songs; these are ~30s clips, so an

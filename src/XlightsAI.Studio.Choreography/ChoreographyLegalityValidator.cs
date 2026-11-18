@@ -105,6 +105,109 @@ public static class ChoreographyLegalityValidator
     /// </summary>
     public const string RuleModelCoverage = "every-model-used-at-least-once";
 
+    /// <summary>
+    /// Public (same reason as <see cref="RuleModelCoverage"/>) so <see cref="XlightsAI.Studio.Director.RevisionDirectiveDeriver"/>
+    /// can derive a self-healing targeted regeneration directive for each affected model. User feedback
+    /// (2026-11-15), confirmed against a real generation ("Carol of the Bells"): a 3-member group
+    /// ("Matrixes", containing "Matrix"/"Matrix-2"/"Matrix3") received exactly one group-level effect from
+    /// one section, which <see cref="RuleModelCoverage"/>'s own group-expansion correctly (and
+    /// deliberately) counts as covering every member -- real pixels genuinely did light up for all three.
+    /// But two of those three members ("Matrix"/"Matrix3") never received a single effect that named them
+    /// directly, individually, anywhere else in the whole show -- the Show Bible itself had written
+    /// dedicated Looks naming them individually, but none were ever chosen for any section. A viewer
+    /// scrubbing that model's own row in xLights sees it completely empty for the entire song, even though
+    /// <see cref="RuleModelCoverage"/> reports no violation. Escalated to self-healing (same tier as
+    /// <see cref="RuleModelCoverage"/>) for the same reason that rule was escalated: a model with no moment
+    /// of its own is an unambiguous content gap, not a busyness judgment call, regardless of whether some
+    /// OTHER group it happens to belong to was used elsewhere. Only groups with more than one real member
+    /// are checked -- for a single-member group, "the group's own effect" and "this model's own effect" are
+    /// the same thing, so there is nothing distinct to flag.
+    /// </summary>
+    public const string RuleModelOnlyGroupCovered = "model-covered-only-via-group";
+
+    /// <summary>
+    /// Public (same reason as <see cref="RuleModelCoverage"/>) so <see cref="XlightsAI.Studio.Director.RevisionDirectiveDeriver"/>
+    /// can derive a self-healing targeted regeneration directive naming the specific unused Look. User
+    /// feedback (2026-11-15), confirmed against a real generation ("Carol of the Bells"): the Director's
+    /// own Show Bible deliberately authors a small set of "hero" Looks it considers unmissable -- each
+    /// <c>PeakMoment</c> ("the 2-4 bars that must be unmistakable") and each <c>Withholding.HeldBackLookIds</c>
+    /// entry (the Look reserved for the final-chorus "ace") -- but nothing previously checked whether the
+    /// independent, parallel per-section selection (13 sections, no shared memory of what the other 12
+    /// picked) ever actually chose one. In a real run, the Director wrote dedicated Looks for both the
+    /// whole-house ("group:Everything") and whole-matrix ("group:Matrixes") payoff moments and marked them
+    /// as the song's peak/held-back ace -- and neither was ever selected by any of the 13 sections, so the
+    /// show's own declared climax never happened. Checked only when the caller actually supplies
+    /// <see cref="ValidateShow"/>'s own <c>heroLookIds</c> parameter (a caller that predates this knows
+    /// nothing about Show Bible hero Looks, so is simply skipped, same discipline as <c>audioEnergy</c>).
+    /// Escalated to self-healing (same tier as <see cref="RuleModelCoverage"/>) because a show's own
+    /// declared, author-identified climax silently never firing is exactly the kind of unambiguous content
+    /// gap that tier already exists for.
+    /// </summary>
+    public const string RuleHeroLookNeverUsed = "hero-look-never-used";
+
+    /// <summary>
+    /// User feedback (2026-11-14), confirmed against a real generation that "stayed on a single model":
+    /// soft/advisory only (same framing as <see cref="RuleModelCoverage"/>/the effect-concentration and
+    /// change-density checks below -- never blocks a compile), never a hard floor since no real
+    /// calibrated "good" number exists yet for how often a group's own individual members should be
+    /// named directly. See the real computation below for exactly what it measures.
+    /// </summary>
+    public const string RuleIndividualModelDiversity = "individual-model-diversity";
+
+    /// <summary>A real group needs at least this many positioned members before "only one of them is ever named directly" is even a meaningful observation -- same threshold <c>XlightsAI.Studio.Director.LayoutSummary</c>'s own <c>HasMultiModelGroupWithKnownPositions</c> uses for the same real precondition a <see cref="Look.Travel"/> sweep needs.</summary>
+    private const int MinPositionedMembersForDiversityCheck = 3;
+
+    /// <summary>
+    /// Build-plan Phase 27 (2026-11-14), confirmed against a real generation: a real named group
+    /// (e.g. "Everything," "Roof," "Horizontals") can go completely untargeted as its OWN group-level
+    /// effect for an entire show while <see cref="RuleModelCoverage"/> stays silent (its members
+    /// happen to be covered by some other effect entirely) and <see cref="RuleIndividualModelDiversity"/>
+    /// also stays silent (it only looks at per-MEMBER targeting, never at the group's own identity as
+    /// a target). Soft/advisory only, same tier as the other two -- no calibrated "how often should a
+    /// real group fire" number exists yet, and unlike <see cref="RuleIndividualModelDiversity"/> this
+    /// applies to every real group regardless of member count or position data (a 1-member or
+    /// unpositioned group can still genuinely never be used as its own group-level effect).
+    /// </summary>
+    public const string RuleGroupNeverTargetedDirectly = "group-never-targeted-directly";
+
+    /// <summary>
+    /// User feedback (2026-11-16), confirmed against a real generation ("much of the sequence... only a
+    /// single model with an effect"): the 2026-11-13 fix that scoped <see cref="AlwaysMovingGapSplitter"/>'s
+    /// own always-moving rule to a target's real "in play" windows removed the blanket-filler mask that
+    /// used to hide this -- a section whose own Look only ever lights one real model for its entire
+    /// window now reads exactly as sparse as it always compiled, with nothing left papering over it.
+    /// User feedback (2026-11-16), after seeing this still happen across most of a real generated show:
+    /// escalated from a purely soft/advisory finding to a real, self-healing targeted regeneration --
+    /// same tier as <see cref="RuleModelCoverage"/> -- via <see cref="XlightsAI.Studio.Director.RevisionDirectiveDeriver.FromSectionModelBreadthViolations"/>.
+    /// Still never blocks a compile outright; it drives one targeted re-prompt of the exact affected
+    /// section (see <see cref="LegalityViolation.AffectedSectionId"/>), same single-repair-pass
+    /// philosophy as every other self-healing rule.
+    /// <para>
+    /// No real calibrated number exists for "how many distinct models should a section light at
+    /// minimum" -- the one real measurement this codebase has for section richness,
+    /// <c>director-lessons/layer-count-minimum.md</c>'s own corpus comparison, is about concurrent
+    /// LAYERS stacked on one subject prop, a different axis from distinct MODELS lit across the whole
+    /// display. <see cref="MinDistinctModelsPerSection"/>/<see cref="MinDistinctModelsPerDenseSection"/>
+    /// are therefore a disclosed, deliberately-raised floor (user feedback 2026-11-16: "multiple at a
+    /// time on multiple models... more and more"), not a corpus-derived one.
+    /// </para>
+    /// </summary>
+    public const string RuleSectionModelBreadth = "section-model-breadth";
+
+    /// <summary>Minimum distinct real (group-expanded) models a non-dense, non-DeclaredDarkness section's own compiled IR should light across its whole window before <see cref="RuleSectionModelBreadth"/> flags it.</summary>
+    private const int MinDistinctModelsPerSection = 3;
+
+    /// <summary>User feedback (2026-11-16): two higher, not one, for <see cref="DenseSectionKinds"/> -- a show's own loudest, most climactic moments should light noticeably more of the display, several models carrying something at once, not just barely clear the ordinary floor.</summary>
+    private const int MinDistinctModelsPerDenseSection = MinDistinctModelsPerSection + 2;
+
+    /// <summary>
+    /// Build-plan Phase 28a: public (same reason as <see cref="RuleModelCoverage"/>'s own publicness) so
+    /// <see cref="SectionTimelineValidator"/>'s pre-compile concurrency rule can reuse this rule's own
+    /// real, named floor instead of redefining a second, drift-prone copy of the same numbers.
+    /// </summary>
+    public static int MinDistinctModelsForSectionKind(SectionKind? kind) =>
+        kind is { } k && DenseSectionKinds.Contains(k) ? MinDistinctModelsPerDenseSection : MinDistinctModelsPerSection;
+
     /// <summary>100ns ticks/second -- same unit as every other tick field in this codebase; used only by <see cref="RuleSectionDensityContrast"/> to turn a section's own compiled effect count into a real starts-per-second rate.</summary>
     private const long TicksPerSecond = 10_000_000L;
 
@@ -257,15 +360,39 @@ public static class ChoreographyLegalityValidator
     /// caller's behavior) when none is available. Only consulted by <see cref="RuleSilenceCrossValidation"/>
     /// -- every other rule here is unaffected by its presence or absence.
     /// </param>
+    /// <param name="heroLookIds">
+    /// User feedback (2026-11-15): the Show Bible's own declared "unmissable" Look ids -- every
+    /// <c>PeakMoment.LookId</c> plus every <c>WithholdingPlan.HeldBackLookIds</c> entry, or
+    /// <see langword="null"/> (the default, and every pre-existing caller's behavior) when the caller has
+    /// no Show Bible to draw them from. Only consulted by <see cref="RuleHeroLookNeverUsed"/>.
+    /// </param>
     public static IReadOnlyList<LegalityViolation> ValidateShow(
         IReadOnlyList<SectionAssignment> sections, DisplayGraph layout, IReadOnlyList<PixelCoverageLadder.Rung> coverageLadder,
-        EnergyEnvelope? audioEnergy = null)
+        EnergyEnvelope? audioEnergy = null, IReadOnlyList<string>? heroLookIds = null)
     {
         ArgumentNullException.ThrowIfNull(sections);
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(coverageLadder);
 
         var violations = new List<LegalityViolation>();
+
+        // Hero Look (the Show Bible's own declared "unmissable" moments) never used by any section --
+        // see RuleHeroLookNeverUsed's own doc comment. Skipped entirely (not even attempted) when the
+        // caller supplies no heroLookIds at all, same discipline RuleSilenceCrossValidation already
+        // applies to a missing audioEnergy.
+        if (heroLookIds is { Count: > 0 })
+        {
+            var usedLookIds = sections.Select(s => s.Look.Id).ToHashSet();
+            foreach (var heroLookId in heroLookIds.Distinct())
+            {
+                if (!usedLookIds.Contains(heroLookId))
+                {
+                    violations.Add(new LegalityViolation(RuleHeroLookNeverUsed,
+                        $"Look '{heroLookId}' is one of the Show Bible's own declared peak/held-back moments, but no section ever selected it -- the show's own intended climax never happened.",
+                        AffectedModelId: heroLookId));
+                }
+            }
+        }
 
         // Peak Look uniqueness (F): "a Look reserved for a peak binds to exactly one section."
         var reservedGroups = sections
@@ -344,6 +471,41 @@ public static class ChoreographyLegalityValidator
             }
         }
 
+        // Section model breadth -- see RuleSectionModelBreadth's own doc comment (the lower-bound twin
+        // of RuleConcurrentFocalEffectCap, M, below). Grouped by the real SectionId (build-plan Phase 10
+        // §3e's own phrase-scoped sub-windows compile to several separate SectionAssignment entries
+        // sharing one SectionId -- a deliberate narrowing in a LATER phrase, e.g. "phrase 1 establishes
+        // the Look, phrase 2 recedes to just the subject," must not be flagged on its own slice alone;
+        // only the whole section's own union, across every phrase it was ever split into, is measured).
+        // A section exempt only when EVERY one of its own phrase slices declares darkness -- same
+        // exemption RuleDeclaredDarkness (H) above already honors; a section mixing a declared-dark
+        // phrase with a normal one is still measured on its normal phrase(s).
+        foreach (var sectionGroup in sections.GroupBy(s => s.SectionId))
+        {
+            if (sectionGroup.All(s => s.Look.DeclaredDarkness))
+            {
+                continue;
+            }
+
+            var distinctModelsInSection = sectionGroup
+                .SelectMany(s => s.CompiledIR.Effects)
+                .SelectMany(e => ResolveRealModelIds(e.Target.Value, layout))
+                .Distinct()
+                .Count();
+
+            var representativeSection = sectionGroup.First();
+            var modelBreadthFloor = representativeSection.Kind is { } sectionKind && DenseSectionKinds.Contains(sectionKind)
+                ? MinDistinctModelsPerDenseSection
+                : MinDistinctModelsPerSection;
+
+            if (distinctModelsInSection < modelBreadthFloor)
+            {
+                violations.Add(new LegalityViolation(RuleSectionModelBreadth,
+                    $"Section '{representativeSection.SectionId}' only lights {distinctModelsInSection} distinct real model(s) across its whole compiled window -- expected at least {modelBreadthFloor} for this section kind. A Look naming only one subject with no support/secondary layer leaves most of the display dark for this section's entire duration.",
+                    AffectedSectionId: representativeSection.SectionId));
+            }
+        }
+
         // Section-energy-driven change density (I), build-plan Phase 12 §3c: the quietest declared-ceiling
         // section should be measurably quieter, by its own compiled change-rate, than the loudest -- a
         // soft, inspectable finding, not a hard compile failure, same framing as RuleDeclaredDarkness (H)
@@ -412,6 +574,80 @@ public static class ChoreographyLegalityValidator
             violations.Add(new LegalityViolation(RuleModelCoverage,
                 $"Model '{model.Id.Value}' never received any effect anywhere in the whole show -- every real model should appear in at least one Look across the song.",
                 AffectedModelId: model.Id.Value));
+        }
+
+        // Model covered only incidentally through some OTHER group's own group-level effect (see
+        // RuleModelOnlyGroupCovered's own doc comment): a real model whose ModelId was never literally a
+        // compiled effect's own Target anywhere in the whole show, even though RuleModelCoverage's
+        // group-expansion above correctly counts it as "covered" because it belongs to a group that got
+        // used elsewhere. Only checked for groups with more than one real member -- a single-member
+        // group's own effect already IS that model's own direct moment.
+        var directEffectTargets = sections.SelectMany(s => s.CompiledIR.Effects).Select(e => e.Target).ToHashSet();
+        var multiMemberGroupModelNames = layout.Groups
+            .Where(g => g.Members.Count(m => m.Kind == DisplayGroupMemberKind.Model) > 1)
+            .SelectMany(g => g.Members.Where(m => m.Kind == DisplayGroupMemberKind.Model).Select(m => m.RawName))
+            .ToHashSet(StringComparer.Ordinal);
+        foreach (var model in layout.Models.Where(m =>
+                     m.NodeCount > 0 &&
+                     coveredModelIds.Contains(m.Id) &&
+                     !directEffectTargets.Contains(m.Id) &&
+                     multiMemberGroupModelNames.Contains(m.XlightsName)))
+        {
+            violations.Add(new LegalityViolation(RuleModelOnlyGroupCovered,
+                $"Model '{model.Id.Value}' only ever received an effect as an incidental member of some other group-level effect -- it never received its own direct, individually-targeted effect anywhere in the whole show. Give it a real moment of its own, not just group membership.",
+                AffectedModelId: model.Id.Value));
+        }
+
+        // Individual-model diversity within a multi-model group (soft/advisory -- see RuleIndividualModelDiversity's
+        // own doc comment). Measured directly on the real compiled IR, not the raw Look JSON: a real
+        // per-member Target in the compiled effects means SOME mechanism (an individual Look naming that
+        // member directly, or a Travel/PropDelays expansion) genuinely gave that specific member its own
+        // moment -- whichever mechanism produced it, real per-member diversity is the real signal, not
+        // which declared field caused it. Flags only the specific pattern a real generation exhibited:
+        // exactly ONE of a qualifying group's own members ever receives a real per-member effect, and it
+        // does so more than once (a real, measured repetition of the same single model), while the
+        // group's other members never get their own per-member moment at all.
+        foreach (var group in layout.Groups)
+        {
+            var memberIds = group.Members
+                .Where(m => m.Kind == DisplayGroupMemberKind.Model)
+                .Select(m => layout.Models.FirstOrDefault(dm => dm.XlightsName == m.RawName))
+                .Where(m => m is { Bounds: not null })
+                .Select(m => m!.Id)
+                .ToHashSet();
+
+            if (memberIds.Count < MinPositionedMembersForDiversityCheck)
+            {
+                continue;
+            }
+
+            var perMemberUsage = sections.SelectMany(s => s.CompiledIR.Effects)
+                .Where(e => memberIds.Contains(e.Target))
+                .GroupBy(e => e.Target)
+                .ToList();
+
+            if (perMemberUsage.Count == 1 && perMemberUsage[0].Count() >= 2)
+            {
+                violations.Add(new LegalityViolation(RuleIndividualModelDiversity,
+                    $"Advisory: group '{group.Name}' has {memberIds.Count} real positioned members, but only '{perMemberUsage[0].Key.Value}' ever received its own per-member effect (used {perMemberUsage[0].Count()} time(s) across the show) -- none of the group's other members ever did. Consider spreading individual-model moments across the group's own members, or a Travel sweep, instead of repeating the same one.",
+                    AffectedModelId: perMemberUsage[0].Key.Value));
+            }
+        }
+
+        // Group never targeted directly (soft/advisory -- see RuleGroupNeverTargetedDirectly's own
+        // doc comment). Independent of member-level coverage: a real group whose own ModelId (the
+        // group-level target a Look's "group:Name" reference compiles to -- see PropGroupResolver's
+        // own doc comment on how a group-targeted effect round-trips) never appears as any compiled
+        // effect's Target at all, even once, across the whole show.
+        foreach (var group in layout.Groups)
+        {
+            var groupId = new ModelId(group.Name);
+            if (!directEffectTargets.Contains(groupId))
+            {
+                violations.Add(new LegalityViolation(RuleGroupNeverTargetedDirectly,
+                    $"Advisory: group '{group.Name}' was never targeted directly as its own group-level effect anywhere in the whole show (its real Layout listing offered it as a real group reference). Its members may still have received individual effects elsewhere, but the group itself -- a real, editable whole-group moment -- never fired.",
+                    AffectedModelId: group.Name));
+            }
         }
 
         // Concurrent focal-effect density cap (M), build-plan Phase 26: docs/MASTER-SYSTEM-ARCHITECTURE.md

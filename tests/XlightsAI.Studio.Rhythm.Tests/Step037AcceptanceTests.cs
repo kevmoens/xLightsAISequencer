@@ -35,8 +35,8 @@ public sealed class Step037AcceptanceTests
             CorrectionVersion: 0);
 
     private static BeatMarker MakeBeat(long timeTicks, int index, double confidence, bool userCorrected = false) =>
-        new(Id: Guid.NewGuid(), TimeTicks: timeTicks, BeatWithinBar: index % GridSettings.BeatsPerBar,
-            BarIndex: index / GridSettings.BeatsPerBar, Confidence: confidence, UserCorrected: userCorrected);
+        new(Id: Guid.NewGuid(), TimeTicks: timeTicks, BeatWithinBar: index % GridSettings.BeatsPerBar!.Value,
+            BarIndex: index / GridSettings.BeatsPerBar!.Value, Confidence: confidence, UserCorrected: userCorrected);
 
     [Fact]
     public void Step037_Acceptance_Passes_LowConfidenceFlaggedAndCorrectionIsPossible()

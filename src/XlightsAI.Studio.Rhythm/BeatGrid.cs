@@ -21,6 +21,18 @@ namespace XlightsAI.Studio.Rhythm;
 /// <param name="Beats">Generated beat markers, ordered by <see cref="BeatMarker.TimeTicks"/>. Empty, never an exception, when <see cref="SelectedTempo"/> is <see langword="null"/> or the source onset analysis carried no onsets to anchor a grid against — this step's own "silence... must be handled explicitly" edge case.</param>
 /// <param name="Candidates">The full ranked tempo candidate list carried through unchanged from the source <see cref="TempoAnalysis"/> (Section 3's proposed <c>BeatGrid.Candidates</c> shape, verbatim) — so a consumer can see every alternate hypothesis this grid's <see cref="SelectedTempo"/> was chosen among, not just the one that won.</param>
 /// <param name="CorrectionVersion">Reserved for Step 035's own manual-correction tracking (Section 4: "...and user correction version"). Always <c>0</c> for every grid this step (034) produces; this step never increments it. Declared now, not retrofitted later, because <see cref="BeatGrid"/> is the one contract Step 035 extends rather than redefines (Section 2: "Treat all preceding completed step contracts as immutable").</param>
+/// <param name="ResolvedBeatsPerBar">
+/// PHASE-28 §3.1 — the actual <c>BeatsPerBar</c> this grid's <see cref="BeatMarker.BarIndex"/>/<see cref="BeatMarker.BeatWithinBar"/>
+/// were generated with, after resolving <see cref="BeatGridSettings.BeatsPerBar"/> (explicit setting,
+/// when supplied, always wins) against <see cref="SelectedTempo"/>'s own detected meter, with <c>4</c> as
+/// the absolute last resort. Always populated — consumers (e.g. <see cref="BeatGridEditor"/>) read this,
+/// never <c>Settings.BeatsPerBar</c> directly, since that field can itself be <see langword="null"/>.
+/// </param>
+/// <param name="ResolvedBeatsPerBarSource">
+/// Which of the three resolution tiers actually produced <see cref="ResolvedBeatsPerBar"/> —
+/// <c>"ExplicitSetting"</c>, <c>"DetectedMeter"</c>, or <c>"DefaultFallback"</c>. Disclosed, not silent:
+/// this step's own "fallback recorded on the grid (not silent)" requirement.
+/// </param>
 public sealed record BeatGrid(
     Guid VersionId,
     SongId SongId,
@@ -32,4 +44,6 @@ public sealed record BeatGrid(
     TempoHypothesis? SelectedTempo,
     BeatMarker[] Beats,
     TempoHypothesis[] Candidates,
-    long CorrectionVersion);
+    long CorrectionVersion,
+    int ResolvedBeatsPerBar = 4,
+    string ResolvedBeatsPerBarSource = "DefaultFallback");

@@ -316,4 +316,106 @@ public sealed class LookCompilerTests
 
         Assert.Empty(ir.Effects);
     }
+
+    private static DisplayGraph BuildArchesLayout() => new(
+        "TEST-HASH-ARCHES",
+        Models:
+        [
+            new DisplayModel(new ModelId("Arch1"), "Arch1", "Arches", [], [], NodeCount: 50, Bounds: new DisplayBounds(300, 0, 0)),
+            new DisplayModel(new ModelId("Arch2"), "Arch2", "Arches", [], [], NodeCount: 50, Bounds: new DisplayBounds(100, 0, 0)),
+            new DisplayModel(new ModelId("Arch3"), "Arch3", "Arches", [], [], NodeCount: 50, Bounds: new DisplayBounds(200, 0, 0)),
+        ],
+        Groups: [new DisplayModelGroup("Arches",
+        [
+            new DisplayGroupMember("Arch1", DisplayGroupMemberKind.Model),
+            new DisplayGroupMember("Arch2", DisplayGroupMemberKind.Model),
+            new DisplayGroupMember("Arch3", DisplayGroupMemberKind.Model),
+        ])],
+        Warnings: []);
+
+    /// <summary>
+    /// User feedback (2026-11-13): a Look declaring <see cref="LookTravel"/> against a group compiles
+    /// into one effect per real individual member, each landing on a successive mark of the declared
+    /// track in true physical left-to-right order (by real <c>DisplayBounds.X</c>, Arch2=100 &lt;
+    /// Arch3=200 &lt; Arch1=300) -- never group declaration order, never a flat ms offset.
+    /// </summary>
+    [Fact]
+    public void Compile_TravelDeclared_AssignsOrderedMembersToSuccessiveMarksInPhysicalOrder()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = BuildArchesLayout();
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(3, barTicks);
+        var section = BuildSection(barGrid, barTicks, 3, 0.5);
+        var settings = BuildSettings();
+
+        var look = new Look(
+            "test-travel", "Test Travel", "test", 0.5, "chase", "warm-gold", "group:Arches",
+            [new LookLayer(1, "group:Arches", "Twinkle", LookLayer.RoleSubject, null, "Normal", null, 0.9)],
+            Travel: new LookTravel(LookTravel.OrderLeftToRight, "Beats"));
+
+        var ir = LookCompiler.Compile(look, section, layout, settings);
+
+        Assert.Equal(3, ir.Effects.Count);
+        var byModel = ir.Effects.ToDictionary(e => e.Target);
+        Assert.Equal(0, byModel[new ModelId("Arch2")].StartTicks); // leftmost (X=100) gets the first mark.
+        Assert.Equal(barTicks, byModel[new ModelId("Arch3")].StartTicks); // middle (X=200) gets the second mark.
+        Assert.Equal(2 * barTicks, byModel[new ModelId("Arch1")].StartTicks); // rightmost (X=300) gets the third mark.
+    }
+
+    [Fact]
+    public void Compile_TravelDeclared_RightToLeft_ReversesPhysicalOrder()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = BuildArchesLayout();
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(3, barTicks);
+        var section = BuildSection(barGrid, barTicks, 3, 0.5);
+        var settings = BuildSettings();
+
+        var look = new Look(
+            "test-travel-rtl", "Test Travel RTL", "test", 0.5, "chase", "warm-gold", "group:Arches",
+            [new LookLayer(1, "group:Arches", "Twinkle", LookLayer.RoleSubject, null, "Normal", null, 0.9)],
+            Travel: new LookTravel(LookTravel.OrderRightToLeft, "Beats"));
+
+        var ir = LookCompiler.Compile(look, section, layout, settings);
+
+        var byModel = ir.Effects.ToDictionary(e => e.Target);
+        Assert.Equal(0, byModel[new ModelId("Arch1")].StartTicks); // rightmost (X=300) now fires first.
+        Assert.Equal(barTicks, byModel[new ModelId("Arch3")].StartTicks);
+        Assert.Equal(2 * barTicks, byModel[new ModelId("Arch2")].StartTicks); // leftmost (X=100) fires last.
+    }
+
+    [Fact]
+    public void Compile_TravelDeclared_MoreMembersThanMarks_ExtraMembersGetNoEffect()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = BuildArchesLayout();
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(2, barTicks); // only 2 marks for 3 members.
+        var section = BuildSection(barGrid, barTicks, 2, 0.5);
+        var settings = BuildSettings();
+
+        var look = new Look(
+            "test-travel-overflow", "Test Travel Overflow", "test", 0.5, "chase", "warm-gold", "group:Arches",
+            [new LookLayer(1, "group:Arches", "Twinkle", LookLayer.RoleSubject, null, "Normal", null, 0.9)],
+            Travel: new LookTravel(LookTravel.OrderLeftToRight, "Beats"));
+
+        var ir = LookCompiler.Compile(look, section, layout, settings);
+
+        Assert.Equal(2, ir.Effects.Count); // Arch1 (rightmost, 3rd in order) never gets a real mark to land on.
+        Assert.DoesNotContain(ir.Effects, e => e.Target == new ModelId("Arch1"));
+    }
 }

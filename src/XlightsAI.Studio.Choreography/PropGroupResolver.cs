@@ -66,6 +66,39 @@ public static class PropGroupResolver
             nameof(reference));
     }
 
+    /// <summary>
+    /// User feedback (2026-11-13): orders <paramref name="models"/> by their own real physical
+    /// <c>DisplayModel.Bounds.X</c> (ascending for <paramref name="leftToRight"/>, descending
+    /// otherwise) for a <see cref="Look.Travel"/> sweep -- never a guessed/declared layout, only the
+    /// real <c>WorldPosX</c> xLights itself stored for this model. A model with no <see cref="DisplayBounds"/>
+    /// (position genuinely unknown) is never guessed into a position -- it keeps its original relative
+    /// order and is appended after every model with a real position.
+    /// </summary>
+    public static IReadOnlyList<ModelId> OrderByPhysicalPosition(IReadOnlyList<ModelId> models, DisplayGraph layout, bool leftToRight)
+    {
+        ArgumentNullException.ThrowIfNull(models);
+        ArgumentNullException.ThrowIfNull(layout);
+
+        var modelsById = layout.Models.ToDictionary(m => m.Id, m => m);
+        var withPosition = new List<(ModelId Id, double X)>();
+        var withoutPosition = new List<ModelId>();
+
+        foreach (var id in models)
+        {
+            if (modelsById.TryGetValue(id, out var model) && model.Bounds is { } bounds)
+            {
+                withPosition.Add((id, bounds.X));
+            }
+            else
+            {
+                withoutPosition.Add(id);
+            }
+        }
+
+        var ordered = leftToRight ? withPosition.OrderBy(p => p.X) : withPosition.OrderByDescending(p => p.X);
+        return ordered.Select(p => p.Id).Concat(withoutPosition).ToList();
+    }
+
     private static IReadOnlyList<ModelId> ExpandGroup(
         DisplayModelGroup group, DisplayGraph layout, IReadOnlyDictionary<string, DisplayModel> modelsByName, HashSet<string> visitedGroups)
     {

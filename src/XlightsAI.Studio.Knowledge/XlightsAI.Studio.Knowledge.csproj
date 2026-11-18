@@ -18,6 +18,11 @@
          baked into this assembly so a normal dotnet build/publish of any referencing project carries it
          with no separate manual-copy step; see EffectVisualCharacterCatalogLoader's own doc comment. -->
     <EmbeddedResource Include="SeedData\effect-visual-characters.json" />
+    <!-- User feedback (2026-11-14): the Director's own prompt guidance, externalized out of
+         DirectorPromptBuilder.cs's hardcoded C# string literals into plain Markdown lesson files,
+         same "baked into the assembly, no separate manual-copy step" rationale as the two entries
+         above; see DirectorLessonCatalogLoader's own doc comment. -->
+    <EmbeddedResource Include="SeedData\director-lessons\*.md" />
   </ItemGroup>
 
 </Project>

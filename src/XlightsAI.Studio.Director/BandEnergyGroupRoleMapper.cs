@@ -51,6 +51,18 @@ public enum BandRole
 /// <summary>One real layout group/model (<see cref="LayoutSummary.Groups"/> or <see cref="LayoutSummary.TopPixelHeavyModels"/>) classified into a <see cref="BandRole"/> by name, so the Director prompt can name actual props rather than a generic abstraction.</summary>
 public sealed record ClassifiedLayoutEntry(string Reference, BandRole Role);
 
+/// <summary>
+/// Build-plan Phase 28a §4c: one real, measured sub-window sample of a section's own band-energy curve
+/// -- unlike <see cref="SectionBandShare"/>'s own single whole-section share, <see cref="BandEnergyGroupRoleMapper.ComputeSectionCurve"/>
+/// returns a short ordered list of these so the prompt can show energy movement WITHIN a section (e.g.
+/// "mids dominate early, bass takes over by the back half"), anchored to real ticks a cue can reason
+/// against via <see cref="SectionTimingMarks"/>.
+/// </summary>
+/// <param name="StartTicks">Start of this sub-window (inclusive), real ticks within the section's own window.</param>
+/// <param name="EndTicks">End of this sub-window (exclusive).</param>
+/// <param name="DominantBand">"bass"/"mid"/"high" (<see cref="MusicalRole"/>'s own naming), or <see langword="null"/> when this sub-window carried no measurable energy.</param>
+public sealed record SectionBandCurveSample(long StartTicks, long EndTicks, string? DominantBand);
+
 /// <summary>One section's measured bass/mid/high share of its own bar-range window, from the real <see cref="BandEnergyEnvelope"/> -- the "real measured basis" §3d asks the static per-style <see cref="StylePreset.PropRoleBias"/> weights to be extended with.</summary>
 public sealed record SectionBandShare(SectionKind Kind, int StartBarIndex, int EndBarIndexExclusive, double BassShare, double MidShare, double HighShare)
 {
@@ -202,6 +214,60 @@ public static class BandEnergyGroupRoleMapper
                 ? new SectionBandShare(section.Kind, section.StartBarIndex, section.EndBarIndexExclusive, 0, 0, 0)
                 : new SectionBandShare(section.Kind, section.StartBarIndex, section.EndBarIndexExclusive, bass / total, mid / total, high / total);
         }).ToList();
+    }
+
+    /// <summary>
+    /// Build-plan Phase 28a §4c: additive alongside <see cref="ComputeSectionProfiles"/> (which stays
+    /// unchanged) -- splits one real section's own window into <paramref name="sampleCount"/> (2-4,
+    /// default 3) equal real-tick sub-windows and reuses the exact same per-frame
+    /// <see cref="BandEnergyEnvelope.AverageInWindow"/> data the single-label version already reads, so
+    /// the prompt can show energy MOVEMENT within a section instead of one static dominant-band label.
+    /// Returns an empty list (never invented samples) when <see cref="MusicModel.BandEnergy"/> is
+    /// <see langword="null"/>, <paramref name="sectionId"/> does not match any real section, or its bar
+    /// range falls outside the song's own beat grid.
+    /// </summary>
+    public static IReadOnlyList<SectionBandCurveSample> ComputeSectionCurve(MusicModel music, Guid sectionId, int sampleCount = 3)
+    {
+        ArgumentNullException.ThrowIfNull(music);
+        if (sampleCount <= 0)
+        {
+            throw new ArgumentOutOfRangeException(nameof(sampleCount), sampleCount, "Must be positive.");
+        }
+
+        var section = music.Sections.Labels.FirstOrDefault(s => s.Id == sectionId);
+        if (section is null || music.BandEnergy is null)
+        {
+            return [];
+        }
+
+        var barGrid = BarGrid.FromBeatGrid(music.BeatGrid, music.SongDurationTicks);
+        var window = barGrid.WindowForBarRange(new BarIndex(section.StartBarIndex), new BarIndex(section.EndBarIndexExclusive));
+        if (window is null)
+        {
+            return [];
+        }
+
+        var totalTicks = window.Value.EndTicks - window.Value.StartTicks;
+        if (totalTicks <= 0)
+        {
+            return [];
+        }
+
+        var bandEnergy = music.BandEnergy;
+        var samples = new List<SectionBandCurveSample>(sampleCount);
+        for (var i = 0; i < sampleCount; i++)
+        {
+            var subStart = window.Value.StartTicks + totalTicks * i / sampleCount;
+            var subEnd = window.Value.StartTicks + totalTicks * (i + 1) / sampleCount;
+            var (bass, mid, high) = bandEnergy.AverageInWindow(subStart, subEnd);
+            var total = bass + mid + high;
+            string? dominant = total <= 0
+                ? null
+                : bass >= mid && bass >= high ? MusicalRole.Bass : mid >= high ? MusicalRole.Melody : MusicalRole.Highs;
+            samples.Add(new SectionBandCurveSample(subStart, subEnd, dominant));
+        }
+
+        return samples;
     }
 
     /// <summary>Whole-song average band share across every section's own profile, weighted by bar count -- the single "real measured basis" figure the §3d mapping rule is grounded in.</summary>

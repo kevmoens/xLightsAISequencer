@@ -59,6 +59,14 @@ public static class LookCompiler
                 }
                 : rawLayer;
 
+            // User feedback (2026-11-13): a Travel-declared Look drives every one of its own layers'
+            // cadence from Travel's own single declared track -- the AI never has to (and cannot)
+            // desync a layer's own Timescale from the track Travel actually assigns members against.
+            if (look.Travel is { } travel)
+            {
+                layer = layer with { Timescale = travel.Timescale };
+            }
+
             // Normalize a free-form, AI-authored Timescale word ("beat"/"bar"/"phrase", ...) to the real
             // track name it was clearly meant to reference (see TimescaleResolver's own doc comment for
             // the real bug this fixes) -- every downstream exact-match lookup below (SelectMode, the
@@ -106,7 +114,7 @@ public static class LookCompiler
             // real "Matrixes" effect (editable as a unit) instead of 3 duplicated per-model copies, and
             // lets a spatially-aware effect (Shockwave, Bars, Pinwheel, ...) render across the group's own
             // combined canvas instead of 3 independent small ones.
-            if (models.Count > 1 && look.PropDelaysOrEmpty.Count == 0 &&
+            if (models.Count > 1 && look.PropDelaysOrEmpty.Count == 0 && look.Travel is null &&
                 PropGroupResolver.TryGetRealGroupName(layer.Props, layout, out var groupName))
             {
                 var start = section.Window.StartTicks;
@@ -117,6 +125,32 @@ public static class LookCompiler
                     effects.AddRange(mode == EmissionMode.Bound
                         ? CompileBoundLayer(layer, groupTarget, start, end, parameters, settings)
                         : CompileDiscreteLayer(layer, groupTarget, start, end, parameters, section, settings));
+                }
+
+                continue;
+            }
+
+            if (look.Travel is { } travelSpec)
+            {
+                // User feedback (2026-11-13): a real left-to-right/right-to-left sweep, each ordered
+                // member landing on its own successive mark of Travel's declared track -- a model
+                // beyond the real mark count simply gets no window (ResolveTravelWindows never
+                // fabricates one), same "skip, never invent" discipline as every other gap here.
+                var orderedModels = PropGroupResolver.OrderByPhysicalPosition(models, layout, travelSpec.Order != LookTravel.OrderRightToLeft);
+                var travelWindows = section.TimingTracksByName.TryGetValue(travelSpec.Timescale, out var travelTrack)
+                    ? PropDelayResolver.ResolveTravelWindows(orderedModels, travelTrack.Marks, section.Window.StartTicks, section.Window.EndTicks)
+                    : new Dictionary<ModelId, TimeWindow>();
+
+                foreach (var model in orderedModels)
+                {
+                    if (!travelWindows.TryGetValue(model, out var window) || window.EndTicks - window.StartTicks < FrameClock.FrameIntervalTicks)
+                    {
+                        continue;
+                    }
+
+                    effects.AddRange(mode == EmissionMode.Bound
+                        ? CompileBoundLayer(layer, model, window.StartTicks, window.EndTicks, parameters, settings)
+                        : CompileDiscreteLayer(layer, model, window.StartTicks, window.EndTicks, parameters, section, settings));
                 }
 
                 continue;
@@ -150,7 +184,13 @@ public static class LookCompiler
         return new ChoreographyIR([], effects, [palette]);
     }
 
-    private static IReadOnlyList<ModelId> TryResolveModels(string reference, DisplayGraph layout)
+    /// <summary>
+    /// Build-plan Phase 28a §5 item 3: public (not private) so <see cref="SectionTimelineCompiler"/> can
+    /// resolve a <see cref="SectionCue.Props"/> reference the exact same "resolve, or skip rather than
+    /// invent" way this compiler's own layers already do, instead of re-deriving the same
+    /// try/catch-over-<see cref="PropGroupResolver.Resolve"/> wrapper a second time.
+    /// </summary>
+    public static IReadOnlyList<ModelId> TryResolveModels(string reference, DisplayGraph layout)
     {
         try
         {

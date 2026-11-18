@@ -158,11 +158,29 @@ public static class SectionScriptPromptBuilder
     /// emphasis line already below. <see langword="null"/>/empty when this song has none, or none land in
     /// this section -- rendered as nothing, never an invented hit.
     /// </param>
+    /// <param name="enableSectionTimelines">
+    /// Build-plan Phase 28a §6: disclosed-default-off gate for every §4 input-side addition below
+    /// (real timing marks, the lead-instrument-window line, the section-local melodic/band curves, and
+    /// the "cues" field documented in the required-JSON-shape line) -- mirrors
+    /// <c>XlightsAI.Studio.Director.ChoreographyGenerationSettings.EnableSectionTimelines</c>. Defaults
+    /// to <see langword="false"/> so every pre-existing caller/test produces byte-identical prompt text;
+    /// a caller opts in explicitly once it is also prepared to branch its own response handling to
+    /// <see cref="Choreography.SectionTimelineValidator"/>/<see cref="Choreography.SectionTimelineCompiler"/>.
+    /// </param>
+    /// <param name="leadInstrumentWindows">
+    /// Build-plan Phase 28a §4d: this song's own real <see cref="XlightsAI.Studio.Rhythm.LeadInstrumentWindow"/>s
+    /// (<c>MusicModel.LeadInstrumentWindows</c>) -- only rendered (filtered to this section's own real
+    /// time window) when <paramref name="enableSectionTimelines"/> is <see langword="true"/>.
+    /// </param>
+    /// <param name="melodicCurve">Build-plan Phase 28a §4c: this section's own real, ordered melodic-movement samples (<see cref="MelodicContourBriefBuilder.ComputeSectionCurve"/>) -- only rendered when <paramref name="enableSectionTimelines"/> is <see langword="true"/>.</param>
+    /// <param name="bandCurve">Build-plan Phase 28a §4c: this section's own real, ordered band-energy samples (<see cref="BandEnergyGroupRoleMapper.ComputeSectionCurve"/>) -- only rendered when <paramref name="enableSectionTimelines"/> is <see langword="true"/>.</param>
     public static string BuildVolatileSuffix(
         SectionLabelCandidate section, SectionMusicContext context, LayoutSummary layout, int occurrenceIndex = 1, int totalOccurrences = 1,
         SectionMelodicBrief? melodicBrief = null, SectionMotifLink? motifLink = null, IReadOnlyList<PhraseCandidate>? phrases = null,
         string? customPrompt = null, IReadOnlyList<TimedCue>? timedCues = null, IReadOnlyList<XlightsAI.Studio.Melody.NoteEvent>? salientVocalNotes = null,
-        IReadOnlyList<XlightsAI.Studio.Rhythm.TransientHit>? transientHits = null)
+        IReadOnlyList<XlightsAI.Studio.Rhythm.TransientHit>? transientHits = null, bool enableSectionTimelines = false,
+        IReadOnlyList<XlightsAI.Studio.Rhythm.LeadInstrumentWindow>? leadInstrumentWindows = null,
+        IReadOnlyList<MelodicContourSample>? melodicCurve = null, IReadOnlyList<SectionBandCurveSample>? bandCurve = null)
     {
         ArgumentNullException.ThrowIfNull(section);
         ArgumentNullException.ThrowIfNull(context);
@@ -196,8 +214,18 @@ public static class SectionScriptPromptBuilder
         AppendMotifLinkedPredecessorLine(sb, context, motifLink);
         AppendPhraseListLines(sb, phrases);
         AppendTimedCueLines(sb, context, timedCues);
+
+        if (enableSectionTimelines)
+        {
+            AppendTimingMarks(sb, context, phrases, transientHits, salientVocalNotes, leadInstrumentWindows);
+            AppendLeadInstrumentWindowLine(sb, context, leadInstrumentWindows);
+            AppendMelodicCurveLines(sb, melodicCurve);
+            AppendBandCurveLines(sb, bandCurve);
+            AppendCueConcurrencyGuidance(sb, context);
+        }
+
         sb.AppendLine();
-        sb.AppendLine(layout.ToPromptText());
+        sb.AppendLine(layout.ToPromptText(includeRelativePosition: enableSectionTimelines));
 
         // Build-plan Phase 14 §2d.2: the required JSON response contract below is kept stated AFTER
         // this block, not before -- so the required output shape is never something a user's own
@@ -215,6 +243,11 @@ public static class SectionScriptPromptBuilder
 
         sb.AppendLine();
         sb.AppendLine("Respond with a single JSON object: {\"sectionId\":\"...\",\"lookId\":\"...\",\"variation\":null,\"propBindings\":[{\"layerZ\":1,\"props\":\"...\",\"annotation\":null}],\"phraseVariations\":null,\"fillerEffects\":[\"On\",\"Bars\",\"SingleStrand\",\"Color Wash\",\"Twinkle\",\"Shockwave\"],\"fillerEffectsByRole\":null}.");
+        if (enableSectionTimelines)
+        {
+            sb.AppendLine("Build-plan Phase 28a: this response MAY ALSO include an optional \"cues\" field alongside the shape above -- a JSON array of {\"anchorId\":\"transient-2\",\"props\":\"...\",\"effect\":\"...\",\"intensity\":\"Off|Dim|Bright|Full\",\"role\":\"subject|support|secondary|foundation\",\"holdUntilAnchorId\":null,\"handoffFromProps\":null,\"annotation\":null} entries, each anchorId one of the EXACT real timing-mark ids listed under \"Real timing marks\" above -- never an invented one. The shape above with no \"cues\" key at all remains fully valid; omit it entirely unless you have a real, timed, model-level decision to express that a single lookId/propBindings choice cannot.");
+            sb.AppendLine("Build-plan Phase 28b.1: if you DO declare cues, do not put every one of them on the same single Props value -- see \"Minimum real Props breadth for this section\" above for the exact real count your cues plus this Look's own base layers must together reach.");
+        }
         sb.AppendLine("Only choose a lookId whose declared section kinds include this section's Kind (or declares none, meaning unrestricted).");
         sb.AppendLine("Omit propBindings (or leave it an empty array) if the Look's own default props are fine for this section.");
         sb.AppendLine("If you do rebind a layer, \"props\" accepts a real group reference (e.g. \"group:Matrixes\") exactly like the Look's own default -- prefer it over an individual prop name whenever the whole group should carry the same effect, same as the Look library's own convention above.");
@@ -223,6 +256,99 @@ public static class SectionScriptPromptBuilder
         sb.AppendLine("fillerEffects is REQUIRED (not optional like propBindings/phraseVariations/fillerEffectsByRole) -- a response missing it, or declaring fewer than 6 distinct names, will be rejected and you will be asked to correct it.");
 
         return sb.ToString();
+    }
+
+    /// <summary>
+    /// Build-plan Phase 28a §4a: a direct, mechanical re-render of real timing marks this pipeline
+    /// already computes -- <see cref="Choreography.SectionTimingMarks.Resolve"/>'s own enumeration,
+    /// sorted by real tick -- as the lookup table a <c>SectionCue.AnchorId</c> cites. Appends nothing
+    /// when no real marks resolve beyond the always-available <see cref="Choreography.SectionTimingMarks.SectionStartAnchorId"/>
+    /// anchor alone (never an invented mark).
+    /// </summary>
+    private static void AppendTimingMarks(
+        StringBuilder sb, SectionMusicContext context, IReadOnlyList<PhraseCandidate>? phrases,
+        IReadOnlyList<XlightsAI.Studio.Rhythm.TransientHit>? transientHits, IReadOnlyList<XlightsAI.Studio.Melody.NoteEvent>? vocalNotes,
+        IReadOnlyList<XlightsAI.Studio.Rhythm.LeadInstrumentWindow>? leadInstrumentWindows)
+    {
+        var marks = Choreography.SectionTimingMarks.Resolve(context, phrases, transientHits, vocalNotes, leadInstrumentWindows);
+        if (marks.Count <= 1)
+        {
+            return; // Only the always-available SectionStart anchor -- nothing real to enumerate.
+        }
+
+        sb.AppendLine();
+        sb.AppendLine("## Real timing marks in this section (use these exact AnchorId values -- never invent a timestamp)");
+        foreach (var (id, ticks) in marks.OrderBy(kv => kv.Value, Comparer<long>.Default).ThenBy(kv => kv.Key, StringComparer.Ordinal))
+        {
+            sb.AppendLine($"- {id} @ {FormatTimestamp(ticks)}");
+        }
+    }
+
+    /// <summary>
+    /// Build-plan Phase 28a §4d: mirrors <see cref="AppendTransientHitLine"/>/<see cref="AppendVocalNoteEmphasisLine"/>
+    /// exactly -- renders only the real <see cref="XlightsAI.Studio.Rhythm.LeadInstrumentWindow"/>s whose
+    /// own real time overlaps this section, so a cue can target the new <see cref="Choreography.AnchorKind.LeadInstrumentWindowStart"/>
+    /// anchor directly instead of a lead-instrument moment only ever being checked post-compile.
+    /// </summary>
+    private static void AppendLeadInstrumentWindowLine(StringBuilder sb, SectionMusicContext context, IReadOnlyList<XlightsAI.Studio.Rhythm.LeadInstrumentWindow>? leadInstrumentWindows)
+    {
+        if (leadInstrumentWindows is not { Count: > 0 })
+        {
+            return;
+        }
+
+        var overlapping = leadInstrumentWindows
+            .Where(w => w.StartTicks < context.Window.EndTicks && w.EndTicks > context.Window.StartTicks)
+            .OrderBy(w => w.StartTicks)
+            .ToList();
+        if (overlapping.Count == 0)
+        {
+            return;
+        }
+
+        var times = overlapping.Select(w => FormatTimestamp(Math.Max(w.StartTicks, context.Window.StartTicks)));
+        sb.AppendLine($"Lead-instrument prominence window(s) (real, measured -- a real lead instrument/section genuinely stands out here): {string.Join(", ", times)}.");
+        sb.AppendLine("Consider landing a distinct hit/accent at one of these real moments via the \"LeadInstrumentWindowStart\" anchor kind above, same discipline as a transient hit or vocal-note onset.");
+    }
+
+    /// <summary>Build-plan Phase 28a §4c: renders <see cref="MelodicContourBriefBuilder.ComputeSectionCurve"/>'s own real, ordered within-section samples -- appends nothing when empty/null (never an invented curve).</summary>
+    private static void AppendMelodicCurveLines(StringBuilder sb, IReadOnlyList<MelodicContourSample>? melodicCurve)
+    {
+        if (melodicCurve is not { Count: > 0 } samples)
+        {
+            return;
+        }
+
+        sb.AppendLine($"Melodic movement within this section (real note-onset samples, beat offset/direction/semitone interval): {string.Join(", ", samples.Select(s => $"beat {s.BeatOffset}:{s.Direction}{(s.IntervalSemitones != 0 ? $"({s.IntervalSemitones:+#;-#;0})" : string.Empty)}"))}.");
+    }
+
+    /// <summary>
+    /// Build-plan Phase 28b.1: a real Carol of the Bells run found the model reliably gets cue
+    /// MECHANICS right (anchors, hold-chains, dim-before-bright ordering) but defaults to putting every
+    /// cue on a single Props value, never spreading breadth -- because the real distinct-Props floor
+    /// (<see cref="ChoreographyLegalityValidator.RuleSectionModelBreadth"/>) was previously only ever
+    /// surfaced as an opaque validator error AFTER the fact, never stated up front with anything like
+    /// the same worked-example weight <see cref="AppendContrastDrivenEmphasisGuidance"/> already gives
+    /// the contrast rule. This renders that same real number here, before generation, not only after a
+    /// rejection.
+    /// </summary>
+    private static void AppendCueConcurrencyGuidance(StringBuilder sb, SectionMusicContext context)
+    {
+        var floor = ChoreographyLegalityValidator.MinDistinctModelsForSectionKind(context.Kind);
+        sb.AppendLine();
+        sb.AppendLine("## Minimum real Props breadth for this section (build-plan Phase 28b.1)");
+        sb.AppendLine($"If you declare cues, your cues' own \"props\" values, counted together with whichever Look's own base layers you pick, must together name at least {floor} DISTINCT real Props/groups for this section's own kind -- the same real floor the compiled result is checked against. Putting every cue on one single Props value (e.g. four cues that all target the same one Matrix) is a real, common mistake this guidance exists to prevent: it produces a correct dim-before-bright pattern on that one prop, but still fails this section for having too few distinct Props overall. Spread your cues across more than one real Props value (or rely on the base Look's own other layers to cover the rest) whenever a single-prop cue sequence would leave this section under that floor.");
+    }
+
+    /// <summary>Build-plan Phase 28a §4c: renders <see cref="BandEnergyGroupRoleMapper.ComputeSectionCurve"/>'s own real, ordered sub-window samples -- appends nothing when empty/null (never an invented curve).</summary>
+    private static void AppendBandCurveLines(StringBuilder sb, IReadOnlyList<SectionBandCurveSample>? bandCurve)
+    {
+        if (bandCurve is not { Count: > 0 } samples)
+        {
+            return;
+        }
+
+        sb.AppendLine($"Band-energy movement within this section (real sub-window samples, dominant band): {string.Join(" -> ", samples.Select(s => s.DominantBand ?? "none"))}.");
     }
 
     /// <summary>

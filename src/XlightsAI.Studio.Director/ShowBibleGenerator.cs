@@ -33,14 +33,23 @@ public sealed class ShowBibleGenerator
     private readonly string? _modelName;
 
     /// <param name="client">The configured Director-role transport.</param>
-    /// <param name="maxAttempts">Validation-retry budget.</param>
+    /// <param name="maxAttempts">
+    /// Validation-retry budget. User feedback (2026-11-14), confirmed against a real failed run (full
+    /// `llm/` call-log inspection): each corrective retry is a full-document regeneration, not a
+    /// localized patch -- a real run fixed `look-peak-layer-floor` on attempt 2 only for a DIFFERENT
+    /// hard rule (`look-template-ref-required`) to surface on attempt 3, exhausting the old default of 3
+    /// one step short of resolving it ("whack-a-mole," not a bug in either individual rule). Raised to 6
+    /// -- each individual hard rule's own correction message is accurate and specific every time
+    /// (confirmed from the same log), the budget was simply too small for a song whose Show Bible trips
+    /// more than one independent hard constraint across its own correction sequence.
+    /// </param>
     /// <param name="callLog">
     /// Architecture §13's own <c>llm/</c> call log -- optional and nullable (defaults to no logging) so
     /// every existing call site/test keeps compiling unchanged; when supplied, every attempt (successful
     /// or not) is appended via <see cref="JsonAiCallLogStore.AppendAsync"/>.
     /// </param>
     /// <param name="modelName">The Director role's own configured model id, used only for the call-log entry and <see cref="AiCostEstimator"/> -- never sent to the provider by this type.</param>
-    public ShowBibleGenerator(IChatCompletionClient client, int maxAttempts = 3, JsonAiCallLogStore? callLog = null, string? modelName = null)
+    public ShowBibleGenerator(IChatCompletionClient client, int maxAttempts = 6, JsonAiCallLogStore? callLog = null, string? modelName = null)
     {
         ArgumentNullException.ThrowIfNull(client);
         if (maxAttempts <= 0)

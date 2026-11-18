@@ -101,6 +101,10 @@ public static class RevisionDirectiveDeriver
     /// section (which would regenerate far more than the "only affected SectionScripts re-run" principle
     /// calls for) or guessing a section from the violation text. A show with no sections at all (so no
     /// window to target) produces no directive here -- nothing this deriver can act on.
+    /// User feedback (2026-11-15): also accepts <see cref="ChoreographyLegalityValidator.RuleModelOnlyGroupCovered"/>
+    /// findings the same way -- a model only ever reached incidentally through some other group's effect,
+    /// never directly, is the same "no real moment of its own" content gap RuleModelCoverage was escalated
+    /// for, just one RuleModelCoverage's own group-expansion is deliberately blind to.
     /// </summary>
     public static IReadOnlyList<RevisionDirective> FromModelCoverageViolations(
         IReadOnlyList<LegalityViolation> violations, IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById)
@@ -108,12 +112,13 @@ public static class RevisionDirectiveDeriver
         ArgumentNullException.ThrowIfNull(violations);
         ArgumentNullException.ThrowIfNull(sectionWindowsById);
 
-        var uncoveredModelIds = violations
-            .Where(v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage && v.AffectedModelId is not null)
-            .Select(v => v.AffectedModelId!)
+        var uncoveredModels = violations
+            .Where(v => v.Rule is ChoreographyLegalityValidator.RuleModelCoverage or ChoreographyLegalityValidator.RuleModelOnlyGroupCovered
+                        && v.AffectedModelId is not null)
+            .Select(v => (ModelId: v.AffectedModelId!, v.Rule))
             .ToList();
 
-        if (uncoveredModelIds.Count == 0 || sectionWindowsById.Count == 0)
+        if (uncoveredModels.Count == 0 || sectionWindowsById.Count == 0)
         {
             return [];
         }
@@ -122,13 +127,58 @@ public static class RevisionDirectiveDeriver
             .OrderByDescending(kv => kv.Value.End - kv.Value.Start)
             .First().Key;
 
-        return uncoveredModelIds
-            .Select(modelId => new RevisionDirective(
+        return uncoveredModels
+            .Select(m => new RevisionDirective(
                 longestSectionId, "model-coverage",
-                $"Model '{modelId}' has received zero effects anywhere in this show so far. Give it a real, " +
-                "deliberate moment somewhere in THIS section specifically -- bind at least one Look layer to it " +
-                "(directly, or via a group that includes it).",
-                [$"model-coverage:{modelId}"]))
+                m.Rule == ChoreographyLegalityValidator.RuleModelOnlyGroupCovered
+                    ? $"Model '{m.ModelId}' has only ever received an effect as an incidental member of some other group's own effect -- it has never had a moment of its own. Give it a real, deliberate moment somewhere in THIS section specifically -- bind at least one Look layer directly to '{m.ModelId}' by its own name, not only via a group that happens to include it."
+                    : $"Model '{m.ModelId}' has received zero effects anywhere in this show so far. Give it a real, " +
+                      "deliberate moment somewhere in THIS section specifically -- bind at least one Look layer to it " +
+                      "(directly, or via a group that includes it).",
+                [$"model-coverage:{m.ModelId}"]))
+            .ToList();
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-15), confirmed against a real generation ("Carol of the Bells"): turns each
+    /// <see cref="ChoreographyLegalityValidator.RuleHeroLookNeverUsed"/> finding into a real, self-healing
+    /// targeted regeneration directive, same single-repair-pass philosophy as
+    /// <see cref="FromModelCoverageViolations"/> -- including the same "single longest section" target
+    /// choice (the most real screen-time to plausibly carry the show's own declared peak/held-back moment).
+    /// Unlike every other directive here, this one names the exact required Look id rather than describing
+    /// a prop/model to reach somehow -- a generic "bind a Look layer to it" instruction would not recover a
+    /// specific pre-authored hero Look the Director already wrote and marked unmissable; only naming it
+    /// directly gives the Choreographer's next attempt a real chance of reproducing it. A show with no
+    /// sections at all (so no window to target) produces no directive here -- nothing this deriver can act on.
+    /// </summary>
+    public static IReadOnlyList<RevisionDirective> FromHeroLookViolations(
+        IReadOnlyList<LegalityViolation> violations, IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById)
+    {
+        ArgumentNullException.ThrowIfNull(violations);
+        ArgumentNullException.ThrowIfNull(sectionWindowsById);
+
+        var unusedHeroLookIds = violations
+            .Where(v => v.Rule == ChoreographyLegalityValidator.RuleHeroLookNeverUsed && v.AffectedModelId is not null)
+            .Select(v => v.AffectedModelId!)
+            .ToList();
+
+        if (unusedHeroLookIds.Count == 0 || sectionWindowsById.Count == 0)
+        {
+            return [];
+        }
+
+        var longestSectionId = sectionWindowsById
+            .OrderByDescending(kv => kv.Value.End - kv.Value.Start)
+            .First().Key;
+
+        return unusedHeroLookIds
+            .Select(lookId => new RevisionDirective(
+                longestSectionId, "hero-look-unused",
+                $"The Show Bible's own Look '{lookId}' is one of this song's declared peak/held-back moments, but no " +
+                $"section selected it in the previous attempt -- the show's own intended climax never happened. Set " +
+                $"THIS section's LookId to exactly '{lookId}' (not a different Look, and not a new one of your own) " +
+                "so that moment finally occurs.",
+                [$"hero-look:{lookId}"]))
             .ToList();
     }
 
@@ -179,6 +229,51 @@ public static class RevisionDirectiveDeriver
                 $"\"{cue.Instruction}\". Add a short, discrete (brief, instantaneous-feeling) effect as " +
                 "close as you reasonably can to that real-time moment, somewhere in THIS section specifically.",
                 [$"timed-cue:{cue.Start}"]));
+        }
+
+        return directives;
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-15), confirmed against a real generation ("Carol of the Bells"): turns each
+    /// <see cref="LeadInstrumentProminenceComplianceChecker.FindMissedWindows"/> result into a real,
+    /// targeted repair directive -- a real, audio-detected lead-instrument/section prominence window (not
+    /// a user-authored cue, but the same "the prompt asked for it, nothing checked compliance" gap) that
+    /// the previous attempt left with no distinct hit anywhere near it. Same closest-overlapping-section
+    /// targeting as <see cref="FromMissedTimedCues"/>, for the same reason.
+    /// </summary>
+    public static IReadOnlyList<RevisionDirective> FromMissedLeadInstrumentWindows(
+        IReadOnlyList<XlightsAI.Studio.Rhythm.LeadInstrumentWindow> missedWindows, IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById)
+    {
+        ArgumentNullException.ThrowIfNull(missedWindows);
+        ArgumentNullException.ThrowIfNull(sectionWindowsById);
+
+        var directives = new List<RevisionDirective>();
+        foreach (var window in missedWindows)
+        {
+            var overlapping = sectionWindowsById
+                .Where(kv => kv.Value.Start < window.EndTicks && kv.Value.End > window.StartTicks)
+                .ToList();
+
+            if (overlapping.Count == 0)
+            {
+                continue;
+            }
+
+            var windowMidpointTicks = (window.StartTicks + window.EndTicks) / 2;
+            var targetSectionId = overlapping
+                .OrderBy(kv => Math.Abs((kv.Value.Start + kv.Value.End) / 2 - windowMidpointTicks))
+                .First().Key;
+
+            var rangeText = $"{FormatTimestamp(TimeSpan.FromTicks(window.StartTicks))}-{FormatTimestamp(TimeSpan.FromTicks(window.EndTicks))}";
+
+            directives.Add(new RevisionDirective(
+                targetSectionId, "lead-instrument-prominence",
+                $"A real, audio-detected lead-instrument/section prominence window at {rangeText} " +
+                $"({window.RelativeProminence:0.0}x its own recent baseline) was NOT given a distinct hit anywhere " +
+                "near it in the previous attempt. Add a short, repeating beat-locked stab (or similar discrete " +
+                "accent) as close as you reasonably can to that real-time window, somewhere in THIS section specifically.",
+                [$"lead-instrument:{window.StartTicks}"]));
         }
 
         return directives;
@@ -259,6 +354,44 @@ public static class RevisionDirectiveDeriver
                     "everything else about this section's existing treatment as close to its current form as reasonable.",
                     [$"post-processing:{cue.Start}"]));
             }
+        }
+
+        return directives;
+    }
+
+    /// <summary>
+    /// User feedback (2026-11-16): "we keep having less and less effects... multiple at a time on
+    /// multiple models" -- turns each <see cref="ChoreographyLegalityValidator.RuleSectionModelBreadth"/>
+    /// finding into a real, self-healing targeted regeneration directive, same tier as
+    /// <see cref="FromModelCoverageViolations"/>. Unlike every other self-healing method here, this one
+    /// does not need <c>sectionWindowsById</c> to guess a target section -- the rule itself already knows
+    /// exactly which section fell short (<see cref="LegalityViolation.AffectedSectionId"/>), so the
+    /// regeneration lands on the real affected section, not the single-longest-section fallback the
+    /// rules with no section of their own have to settle for.
+    /// </summary>
+    public static IReadOnlyList<RevisionDirective> FromSectionModelBreadthViolations(IReadOnlyList<LegalityViolation> violations)
+    {
+        ArgumentNullException.ThrowIfNull(violations);
+
+        var directives = new List<RevisionDirective>();
+        foreach (var violation in violations)
+        {
+            if (violation.Rule != ChoreographyLegalityValidator.RuleSectionModelBreadth ||
+                violation.AffectedSectionId is not { Length: > 0 } sectionIdText ||
+                !Guid.TryParse(sectionIdText, out var sectionId))
+            {
+                continue;
+            }
+
+            directives.Add(new RevisionDirective(
+                sectionId, "section-model-breadth",
+                "The previous attempt for THIS section only ever lit one (or too few) real model(s) at " +
+                "once across its whole duration. Add at least one more layer -- a support or secondary " +
+                "layer bound to a DIFFERENT real prop or group than the subject -- so multiple distinct " +
+                "models genuinely carry something simultaneously here, not just the one subject. Keep " +
+                "every model dark only where the music itself makes a real, large change (a true quiet " +
+                "or negative-space moment); otherwise other props should be doing something too.",
+                [$"section-model-breadth:{sectionId}"]));
         }
 
         return directives;

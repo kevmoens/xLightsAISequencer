@@ -28,6 +28,17 @@ namespace XlightsAI.Studio.Director;
 /// <see cref="CustomGenerationPrompt.EnableQualityPass"/> is requested; <see langword="null"/> (the
 /// default) for every run that never asks for one.
 /// </param>
+/// <param name="EnableSectionTimelines">
+/// Build-plan Phase 28c: default flipped to <see langword="true"/> once 28b's real-run comparison (and
+/// the 28b.1 concurrency-breadth prompt fix) measured zero genuine `section-timeline-concurrency`
+/// validation failures across every real non-rate-limited Choreographer attempt in its own verification
+/// run -- the gate <see cref="SectionTimeline"/>/<see cref="SectionTimelineValidator"/>/
+/// <see cref="SectionTimelineCompiler"/> ship behind (build-plan Phase 28, "Section Script Timeline
+/// Redesign"). A section whose Cues still fail validation after every retry degrades to the old
+/// flat-`LookId`-only behavior (<see cref="SectionScriptGenerator.GenerateAsync"/>'s own last-resort
+/// fallback) rather than failing the whole section -- this flag is never a hard dependency on the model
+/// reliably producing valid cues. Pass <see langword="false"/> explicitly to opt back out.
+/// </param>
 public sealed record ChoreographyGenerationSettings(
     DisplayGraph Layout,
     EffectVocabularyCatalog Vocabulary,
@@ -36,16 +47,26 @@ public sealed record ChoreographyGenerationSettings(
     IReadOnlyDictionary<SectionKind, double> EnergyCeilingByKind,
     string ProjectDirectory,
     string? ShowDirectory = null,
-    string? XlightsExecutablePath = null);
+    string? XlightsExecutablePath = null,
+    bool EnableSectionTimelines = true);
 
 /// <summary>One full pipeline run's outcome.</summary>
+/// <param name="Timelines">
+/// Build-plan Phase 28b: the full <see cref="SectionTimeline"/> (including any real
+/// <see cref="SectionTimeline.Cues"/>) each section's own Choreographer call produced when
+/// <see cref="ChoreographyGenerationSettings.EnableSectionTimelines"/> was requested, keyed by section
+/// id -- additive/diagnostic only (every entry's own flattened projection already lives in
+/// <see cref="Scripts"/>); empty for every run that never opted in. Lets a caller inspect a cue's own
+/// stated <see cref="SectionCue.Annotation"/> against what actually compiled, without re-deriving it.
+/// </param>
 public sealed record ChoreographyGenerationReport(
     ShowBible Bible,
     IReadOnlyDictionary<Guid, SectionScript> Scripts,
     ChoreographyEngine.Result CompiledResult,
     ExportResult Export,
     int SectionCount,
-    int SectionsNeedingRetry);
+    int SectionsNeedingRetry,
+    IReadOnlyDictionary<Guid, SectionTimeline>? Timelines = null);
 
 /// <summary>
 /// Build-plan Phase 6 task 4: "End-to-end first full generation: song + layout -&gt; Show Bible -&gt;
@@ -163,7 +184,7 @@ public sealed class ChoreographyGenerationPipeline
 
         // 2. Per-section SectionScripts.
         var scriptsStepWatch = System.Diagnostics.Stopwatch.StartNew();
-        var scriptGeneration = await GenerateSectionScriptsAsync(bible, music, layoutSummary, settings.Layout, settings.Vocabulary, settings.EnergyCeilingByKind, songId, callLog, ct).ConfigureAwait(false);
+        var scriptGeneration = await GenerateSectionScriptsAsync(bible, music, layoutSummary, settings.Layout, settings.Vocabulary, settings.EnergyCeilingByKind, songId, callLog, ct, settings.EnableSectionTimelines).ConfigureAwait(false);
         var scripts = scriptGeneration.Scripts;
         await PersistScriptsAsync(scriptsDir, songId, scripts, ct).ConfigureAwait(false);
         _logger.LogInformation("Section scripts generated for song {SongId} in {ElapsedMs}ms ({ScriptCount}/{SectionCount} sections).",
@@ -174,7 +195,7 @@ public sealed class ChoreographyGenerationPipeline
         // 4/5. Compile via Phase 4's own unmodified engine -- a local function so the model-coverage
         // repair pass below can recompile against a patched set of scripts without duplicating this logic.
         ChoreographyEngine.Result CompileFromScripts(IReadOnlyDictionary<Guid, SectionScript> currentScripts) =>
-            CompileSectionScripts(bible, music, layoutSummary, settings, currentScripts, scriptGeneration.TimedCues);
+            CompileSectionScripts(bible, music, layoutSummary, settings, currentScripts, scriptGeneration.TimedCues, scriptGeneration.Timelines);
 
         var compiled = CompileFromScripts(scripts);
 
@@ -188,6 +209,13 @@ public sealed class ChoreographyGenerationPipeline
         // job, not used by this straight-through pipeline); if the one regeneration still leaves a model
         // uncovered, ValidateShow's own violation still surfaces in the final compiled result rather than
         // retrying indefinitely.
+        // User feedback (2026-11-15), confirmed against a real generation ("Carol of the Bells"):
+        // RuleModelCoverage alone let a model go its whole show with no individual moment of its own as
+        // long as it belonged to some OTHER group that got used elsewhere (a single group-level hit on a
+        // 3-member group "covered" all 3 members, even though 2 of them never individually appeared).
+        // ChoreographyLegalityValidator.RuleModelOnlyGroupCovered now detects that specific gap, and is
+        // folded into the same single repair pass as RuleModelCoverage above, rather than a second,
+        // separate regeneration round.
         // Build-plan "richer analysis tools" Phase 1 (2026-11-01): the same single-repair-pass
         // philosophy as the model-coverage self-heal above, extended to cover a second violation
         // source -- a user-requested timed cue (e.g. "hit BANG near 0:24") that the first attempt did
@@ -195,7 +223,9 @@ public sealed class ChoreographyGenerationPipeline
         // needing both fixes is only ever regenerated once, not twice.
         if (_choreographerClient is not null && _choreographerModelName is not null)
         {
-            var coverageViolations = compiled.Violations.Where(v => v.Rule == ChoreographyLegalityValidator.RuleModelCoverage).ToList();
+            var coverageViolations = compiled.Violations
+                .Where(v => v.Rule is ChoreographyLegalityValidator.RuleModelCoverage or ChoreographyLegalityValidator.RuleModelOnlyGroupCovered)
+                .ToList();
             var coverageDirectives = RevisionDirectiveDeriver.FromModelCoverageViolations(coverageViolations, scriptGeneration.SectionWindowsById);
 
             var missedCues = TimedCueComplianceChecker.FindMissedCues(compiled.IR, scriptGeneration.TimedCues);
@@ -214,11 +244,42 @@ public sealed class ChoreographyGenerationPipeline
             var groupedViolations = SingleModelComplianceChecker.FindGroupedViolations(compiled.IR, requiredIndividualModels, settings.Layout);
             var singleModelDirectives = RevisionDirectiveDeriver.FromSingleModelViolations(groupedViolations, scriptGeneration.SectionWindowsById);
 
-            var repairDirectives = coverageDirectives.Concat(timedCueDirectives).Concat(singleModelDirectives).ToList();
+            // User feedback (2026-11-15), confirmed against a real generation ("Carol of the Bells"): a
+            // fourth violation source -- the Show Bible's own declared peak/held-back "hero" Looks that no
+            // section ever selected, even though nothing else in the show was technically wrong. Same
+            // single-repair-pass philosophy, naming the exact Look the regeneration must use.
+            var heroLookViolations = compiled.Violations.Where(v => v.Rule == ChoreographyLegalityValidator.RuleHeroLookNeverUsed).ToList();
+            var heroLookDirectives = RevisionDirectiveDeriver.FromHeroLookViolations(heroLookViolations, scriptGeneration.SectionWindowsById);
+
+            // User feedback (2026-11-15), confirmed against a real generation: a fifth violation source --
+            // a real, audio-detected lead-instrument/section prominence window ("horns, strings, a riff")
+            // the Director prompt already asks for a distinct hit near, but that nothing previously
+            // checked compliance on.
+            var missedLeadInstrumentWindows = music.LeadInstrumentWindows is { Count: > 0 } leadWindows
+                ? LeadInstrumentProminenceComplianceChecker.FindMissedWindows(compiled.IR, leadWindows)
+                : [];
+            var leadInstrumentDirectives = RevisionDirectiveDeriver.FromMissedLeadInstrumentWindows(missedLeadInstrumentWindows, scriptGeneration.SectionWindowsById);
+            if (music.LeadInstrumentWindows is { Count: > 0 } allLeadWindows)
+            {
+                _logger.LogInformation("Lead-instrument prominence compliance for song {SongId}: {SatisfiedCount}/{TotalCount} window(s) satisfied on the first pass.",
+                    songId, allLeadWindows.Count - missedLeadInstrumentWindows.Count, allLeadWindows.Count);
+            }
+
+            // User feedback (2026-11-16): a sixth violation source -- "we keep having less and less
+            // effects... multiple at a time on multiple models." Same single-repair-pass philosophy;
+            // unlike the five sources above, this one already knows exactly which section fell short
+            // (ChoreographyLegalityValidator.RuleSectionModelBreadth carries its own AffectedSectionId),
+            // so it needs no sectionWindowsById fallback-target lookup at all.
+            var modelBreadthViolations = compiled.Violations.Where(v => v.Rule == ChoreographyLegalityValidator.RuleSectionModelBreadth).ToList();
+            var modelBreadthDirectives = RevisionDirectiveDeriver.FromSectionModelBreadthViolations(modelBreadthViolations);
+
+            var repairDirectives = coverageDirectives.Concat(timedCueDirectives).Concat(singleModelDirectives)
+                .Concat(heroLookDirectives).Concat(leadInstrumentDirectives).Concat(modelBreadthDirectives).ToList();
             if (repairDirectives.Count > 0)
             {
-                _logger.LogInformation("Repairing {DirectiveCount} section(s) for song {SongId} ({CoverageCount} coverage, {TimedCueCount} timed-cue, {SingleModelCount} single-model).",
-                    repairDirectives.Count, songId, coverageDirectives.Count, timedCueDirectives.Count, singleModelDirectives.Count);
+                _logger.LogInformation(
+                    "Repairing {DirectiveCount} section(s) for song {SongId} ({CoverageCount} coverage, {TimedCueCount} timed-cue, {SingleModelCount} single-model, {HeroLookCount} hero-look, {LeadInstrumentCount} lead-instrument, {ModelBreadthCount} model-breadth).",
+                    repairDirectives.Count, songId, coverageDirectives.Count, timedCueDirectives.Count, singleModelDirectives.Count, heroLookDirectives.Count, leadInstrumentDirectives.Count, modelBreadthDirectives.Count);
                 var repairBatchGenerator = new SectionScriptBatchGenerator(_choreographerClient, callLog: callLog, modelName: _choreographerModelName);
                 scripts = await TargetedSectionRegenerator.RegenerateAsync(
                     repairBatchGenerator, scriptGeneration.StablePrefix, scripts, repairDirectives, scriptGeneration.VolatileSuffixBySectionId,
@@ -333,7 +394,7 @@ public sealed class ChoreographyGenerationPipeline
 
         _logger.LogInformation("Choreography generation completed for song {SongId} in {ElapsedMs}ms ({SectionsNeedingRetry} section(s) needing retry).",
             songId, overall.ElapsedMilliseconds, sectionsNeedingRetry);
-        return new ChoreographyGenerationReport(bible, scripts, compiled, exportResult, music.Sections.Labels.Count, sectionsNeedingRetry);
+        return new ChoreographyGenerationReport(bible, scripts, compiled, exportResult, music.Sections.Labels.Count, sectionsNeedingRetry, scriptGeneration.Timelines);
     }
 
     private async Task<ShowBible> GenerateShowBibleAsync(MusicModel music, LayoutSummary layoutSummary, ChoreographyGenerationSettings settings, Guid songId, JsonAiCallLogStore callLog, CancellationToken ct)
@@ -380,7 +441,8 @@ public sealed class ChoreographyGenerationPipeline
         IReadOnlyDictionary<Guid, string> VolatileSuffixBySectionId,
         IReadOnlyDictionary<Guid, (long Start, long End)> SectionWindowsById,
         IReadOnlyList<TimedCue> TimedCues,
-        IReadOnlyDictionary<Guid, int> PhraseCountBySectionId);
+        IReadOnlyDictionary<Guid, int> PhraseCountBySectionId,
+        IReadOnlyDictionary<Guid, SectionTimeline> Timelines);
 
     /// <summary>
     /// Build-plan "richer analysis tools" post-processing phase (2026-11-02): everything
@@ -399,10 +461,21 @@ public sealed class ChoreographyGenerationPipeline
         IReadOnlyDictionary<Guid, (long Start, long End)> SectionWindowsById,
         IReadOnlyList<TimedCue> TimedCues,
         IReadOnlyList<SectionScriptBatchItem> Items,
-        IReadOnlyDictionary<Guid, int> PhraseCountBySectionId);
+        IReadOnlyDictionary<Guid, int> PhraseCountBySectionId,
+        IReadOnlyDictionary<Guid, SectionTimelineAnchorContext> AnchorContextsBySectionId);
 
+    /// <param name="enableSectionTimelines">
+    /// Build-plan Phase 28a: when <see langword="true"/>, every section's own volatile suffix also
+    /// renders §4's new real-timing-marks/lead-instrument-window/melodic-and-band-curve blocks (via
+    /// <see cref="SectionScriptPromptBuilder.BuildVolatileSuffix"/>'s own matching flag), and this
+    /// method also returns a real <see cref="SectionTimelineAnchorContext"/> per section so a later
+    /// response's <see cref="SectionTimeline.Cues"/> can be validated/compiled against the same real
+    /// anchors. <see langword="false"/> (the default, and every pre-existing caller's behavior) produces
+    /// byte-identical prompt text to before this phase.
+    /// </param>
     private SectionPromptMaterial BuildSectionPromptMaterial(
-        ShowBible bible, MusicModel music, LayoutSummary layoutSummary, IReadOnlyDictionary<SectionKind, double> energyCeilingByKind)
+        ShowBible bible, MusicModel music, LayoutSummary layoutSummary, IReadOnlyDictionary<SectionKind, double> energyCeilingByKind,
+        bool enableSectionTimelines = false)
     {
         var stablePrefix = SectionScriptPromptBuilder.BuildStablePrefix(bible.Content, _knowledge, _style);
         var barGrid = BarGrid.FromBeatGrid(music.BeatGrid, music.SongDurationTicks);
@@ -486,6 +559,7 @@ public sealed class ChoreographyGenerationPipeline
 
         var volatileSuffixBySectionId = new Dictionary<Guid, string>();
         var sectionWindowsById = new Dictionary<Guid, (long Start, long End)>();
+        var anchorContextsBySectionId = new Dictionary<Guid, SectionTimelineAnchorContext>();
         var items = orderedSections.Select(section =>
         {
             var window = barGrid.WindowForBarRange(new BarIndex(section.StartBarIndex), new BarIndex(section.EndBarIndexExclusive))
@@ -515,37 +589,56 @@ public sealed class ChoreographyGenerationPipeline
             var matchingCues = allTimedCues.Where(c => c.OverlapsSeconds(sectionStartSeconds, sectionEndSeconds)).ToList();
             var matchingHits = music.TransientHits?.Where(h => h.TimeTicks >= window.StartTicks && h.TimeTicks < window.EndTicks).ToList();
 
-            var volatileSuffix = SectionScriptPromptBuilder.BuildVolatileSuffix(section, context, layoutSummary, occurrenceIndex, totalOccurrences, melodicBrief, motifLink, phrases, _customPrompt?.Text, matchingCues, vocalNoteEmphasis?.SalientNotes, matchingHits);
+            // Build-plan Phase 28a §4c: additive section-local curves, computed only when this run has
+            // opted into the new path -- every pre-existing (flag-off) run never calls these.
+            var melodicCurve = enableSectionTimelines ? MelodicContourBriefBuilder.ComputeSectionCurve(music, section.Id) : null;
+            var bandCurve = enableSectionTimelines ? BandEnergyGroupRoleMapper.ComputeSectionCurve(music, section.Id) : null;
+
+            var volatileSuffix = SectionScriptPromptBuilder.BuildVolatileSuffix(
+                section, context, layoutSummary, occurrenceIndex, totalOccurrences, melodicBrief, motifLink, phrases, _customPrompt?.Text,
+                matchingCues, vocalNoteEmphasis?.SalientNotes, matchingHits, enableSectionTimelines,
+                enableSectionTimelines ? music.LeadInstrumentWindows : null, melodicCurve, bandCurve);
             volatileSuffixBySectionId[section.Id] = volatileSuffix;
+
+            if (enableSectionTimelines)
+            {
+                anchorContextsBySectionId[section.Id] = new SectionTimelineAnchorContext(
+                    context, phrases, matchingHits, vocalNoteEmphasis?.SalientNotes, music.LeadInstrumentWindows);
+            }
 
             return new SectionScriptBatchItem(section.Id, volatileSuffix);
         }).ToList();
 
         var phraseCountBySectionId = phrasesBySectionId.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
-        return new SectionPromptMaterial(stablePrefix, volatileSuffixBySectionId, sectionWindowsById, allTimedCues, items, phraseCountBySectionId);
+        return new SectionPromptMaterial(stablePrefix, volatileSuffixBySectionId, sectionWindowsById, allTimedCues, items, phraseCountBySectionId, anchorContextsBySectionId);
     }
 
     private async Task<SectionScriptGenerationResult> GenerateSectionScriptsAsync(
         ShowBible bible, MusicModel music, LayoutSummary layoutSummary, DisplayGraph layout, EffectVocabularyCatalog vocabulary,
-        IReadOnlyDictionary<SectionKind, double> energyCeilingByKind, Guid songId, JsonAiCallLogStore callLog, CancellationToken ct)
+        IReadOnlyDictionary<SectionKind, double> energyCeilingByKind, Guid songId, JsonAiCallLogStore callLog, CancellationToken ct,
+        bool enableSectionTimelines = false)
     {
         if (_choreographerClient is null || _choreographerModelName is null)
         {
             throw new InvalidOperationException("No SectionScripts were supplied and no Choreographer client is configured.");
         }
 
-        var material = BuildSectionPromptMaterial(bible, music, layoutSummary, energyCeilingByKind);
+        var material = BuildSectionPromptMaterial(bible, music, layoutSummary, energyCeilingByKind, enableSectionTimelines);
 
         var batchGenerator = new SectionScriptBatchGenerator(_choreographerClient, callLog: callLog, modelName: _choreographerModelName);
         var reports = await batchGenerator.GenerateAllAsync(
             material.StablePrefix, material.Items, songId, bible.Content.Looks, layout, vocabulary, _maxOutputTokens, ct,
-            material.PhraseCountBySectionId).ConfigureAwait(false);
+            material.PhraseCountBySectionId, enableSectionTimelines ? material.AnchorContextsBySectionId : null).ConfigureAwait(false);
 
         var scripts = reports
             .Where(kvp => kvp.Value.Script is not null)
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Script!);
 
-        return new SectionScriptGenerationResult(scripts, material.StablePrefix, material.VolatileSuffixBySectionId, material.SectionWindowsById, material.TimedCues, material.PhraseCountBySectionId);
+        var timelines = reports
+            .Where(kvp => kvp.Value.Timeline is not null)
+            .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Timeline!);
+
+        return new SectionScriptGenerationResult(scripts, material.StablePrefix, material.VolatileSuffixBySectionId, material.SectionWindowsById, material.TimedCues, material.PhraseCountBySectionId, timelines);
     }
 
     private static Dictionary<string, TimingTrack> BuildTimingTracksForPrompt(MusicModel music, BarGrid barGrid)
@@ -623,9 +716,21 @@ public sealed class ChoreographyGenerationPipeline
     /// sub-section variations, each section's resolved filler schedule, then Phase 4's own unmodified
     /// engine.
     /// </summary>
+    /// <param name="timelinesBySectionId">
+    /// Build-plan Phase 28a: the full <see cref="SectionTimeline"/> (including any real
+    /// <see cref="SectionTimeline.Cues"/>) each section's own Choreographer call produced, or
+    /// <see langword="null"/> (the default, and every pre-existing caller's behavior). Only consulted
+    /// when <see cref="ChoreographyGenerationSettings.EnableSectionTimelines"/> is <see langword="true"/>,
+    /// and even then only for a section whose current <paramref name="scripts"/> entry still matches the
+    /// one this timeline was validated alongside -- a section that went through a repair/regeneration
+    /// pass since (which replaces <paramref name="scripts"/> but not this dictionary) safely falls back
+    /// to today's unchanged <see cref="LookCompiler"/> path for that one section, rather than compiling
+    /// stale cues against a script that has since changed.
+    /// </param>
     private ChoreographyEngine.Result CompileSectionScripts(
         ShowBible bible, MusicModel music, LayoutSummary layoutSummary, ChoreographyGenerationSettings settings,
-        IReadOnlyDictionary<Guid, SectionScript> scripts, IReadOnlyList<TimedCue>? timedCues = null)
+        IReadOnlyDictionary<Guid, SectionScript> scripts, IReadOnlyList<TimedCue>? timedCues = null,
+        IReadOnlyDictionary<Guid, SectionTimeline>? timelinesBySectionId = null)
     {
         var phrasesBySectionId = music.Phrases.Phrases
             .GroupBy(p => p.SectionLabelId)
@@ -656,11 +761,30 @@ public sealed class ChoreographyGenerationPipeline
         // target role.
         var fillerSchedule = BuildFillerSchedule(scripts, music, layoutSummary, settings.RecipeCatalog);
 
+        var heroLookIds = bible.Content.PeakMoments.Select(p => p.LookId)
+            .Concat(bible.Content.Withholding.HeldBackLookIds)
+            .Distinct()
+            .ToList();
+
+        // Build-plan Phase 28a: only a section whose current (possibly repaired/regenerated) script
+        // still matches the exact SectionScript this timeline was validated alongside is handed to the
+        // engine as a real SectionTimeline override -- a stale timeline (from a section regenerated by a
+        // repair pass since) is dropped here rather than compiled against a script it no longer describes.
+        IReadOnlyDictionary<Guid, SectionTimeline>? sectionTimelinesForEngine = null;
+        if (settings.EnableSectionTimelines && timelinesBySectionId is { Count: > 0 })
+        {
+            sectionTimelinesForEngine = timelinesBySectionId
+                .Where(kvp => kvp.Value.CuesOrEmpty.Count > 0 && scripts.TryGetValue(kvp.Key, out var currentScript) && currentScript == kvp.Value.ToSectionScript())
+                .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
+        }
+
         var engineInput = new ChoreographyEngine.Input(
             settings.Layout, music.BeatGrid, music.Sections, music.Phrases, music.BandEnergy, music.VocalActivity,
             effectiveLibrary, lookIdBySectionId, settings.EnergyCeilingByKind, music.SongDurationTicks, compilerSettings, fillerSchedule,
             VisemeMarks: music.VisemeMarks, PhraseLookAssignmentsBySectionId: phraseLookAssignmentsBySectionId, AudioEnergy: music.Energy,
-            EmphasisInstants: BuildEmphasisInstants(music, timedCues), BrightnessCatalog: _knowledge.EffectVisualCharacters);
+            EmphasisInstants: BuildEmphasisInstants(music, timedCues), BrightnessCatalog: _knowledge.EffectVisualCharacters,
+            HeroLookIds: heroLookIds, SectionTimelinesBySectionId: sectionTimelinesForEngine,
+            TransientHits: music.TransientHits, VocalNotes: music.Melody?.Notes, LeadInstrumentWindows: music.LeadInstrumentWindows);
         var result = ChoreographyEngine.Compile(engineInput);
 
         // Build-plan Phase 22 §4: the user asked to be told the real measured numbers, not just that the

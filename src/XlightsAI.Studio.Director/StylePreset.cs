@@ -54,10 +54,19 @@ public static class StylePresetCatalog
     public const string SingingFaceStorytellingId = "Singing-Face Storytelling";
     public const string SteadyWashAccentId = "Steady Wash / Accent";
 
+    // User feedback (2026-11-18): every named style's own EffectPool was capping the Director prompt to
+    // a tiny handful of names (4-10), so the model kept reaching for the same few effects every
+    // generation regardless of song -- confirmed by real measured data already in this repo
+    // (implementation-evidence/PHASE-24-LOOK-DIVERSITY.md: distinct compiled effect names stuck at 6
+    // even once distinct Looks used went 2->5). Widened below -- every added name is a real, registered
+    // xLights effect confirmed present in EffectVocabularyCatalog.Effects (the same full catalog
+    // DirectorPromptBuilder already falls back to when a pool is empty), chosen editorially to fit each
+    // style's own already-declared StyleDensity/PaletteDiscipline/description rather than derived from
+    // a full statistical pass over the exemplar library (a quick, reasonable fit, not a precise count).
     public static readonly StylePreset TraditionalClassic = new(
         TraditionalClassicId, TraditionalClassicId,
         new PaletteDiscipline(2, 3, "Warm white + red + green; never more than 3 active slots."),
-        ["Garlands", "Marquee", "SingleStrand", "Twinkle", "Color Wash"],
+        ["Garlands", "Marquee", "SingleStrand", "Twinkle", "Color Wash", "On", "Fill", "Bars", "Snowflakes", "Snowstorm", "Candle", "Shimmer", "Tree"],
         new StyleDensity(0.1, 0.5, 0.45, 0.90, "Low density, long effects, Normal blend."),
         new Dictionary<string, double>(StringComparer.Ordinal) { [MusicalRole.Bass] = 0.5, [MusicalRole.Melody] = 0.5, [MusicalRole.Highs] = 0.3 },
         "A restrained, classic holiday look: few colours, long-held effects, nothing flashy.");
@@ -71,7 +80,10 @@ public static class StylePresetCatalog
         // capable effect (Twinkle, Color Wash), a bar-synced chase option (Bars), and a second real
         // timing-track-bound effect (Ripple) so dense, beat-locked Looks have more than Shockwave/Strobe
         // to alternate between.
-        ["Shockwave", "Strobe", "Morph", "Pinwheel", "Fireworks", "SingleStrand", "Twinkle", "Color Wash", "Bars", "Ripple"],
+        // User feedback (2026-11-18): widened further (same "stop repeating the same handful" fix as
+        // every other preset this pass) with fast/high-contrast real effects -- Lightning, Meteors,
+        // Fire, Spirals, Kaleidoscope, Plasma, Warp, Fan -- each confirmed real in EffectVocabularyCatalog.
+        ["Shockwave", "Strobe", "Morph", "Pinwheel", "Fireworks", "SingleStrand", "Twinkle", "Color Wash", "Bars", "Ripple", "Lightning", "Meteors", "Fire", "Spirals", "Kaleidoscope", "Plasma", "Warp", "Fan"],
         // Change-rate floor/ceiling raised (was 1.5-4.0) for the same reason -- a direct, mechanical push
         // toward more effect instances per second throughout the show, not just more variety to pick from.
         new StyleDensity(2.5, 6.0, 0.60, 1.0, "High density, Additive/Max accents, fades under 0.2s."),
@@ -81,7 +93,9 @@ public static class StylePresetCatalog
     public static readonly StylePreset ElegantWarmWhite = new(
         ElegantWarmWhiteId, ElegantWarmWhiteId,
         new PaletteDiscipline(2, 2, "Exactly #FFFFFF + #FFC880 -- two slots, no more."),
-        ["Color Wash", "On", "Fill", "Bars"],
+        // User feedback (2026-11-18): widened with gentle, low-contrast real effects that still fit
+        // "quiet, upscale, two-colour" -- Candle, Shimmer, Twinkle, SingleStrand, Snowflakes.
+        ["Color Wash", "On", "Fill", "Bars", "Candle", "Shimmer", "Twinkle", "SingleStrand", "Snowflakes"],
         new StyleDensity(0.02, 0.2, 0.25, 0.55, "Very low density; 1-2 second fades."),
         new Dictionary<string, double>(StringComparer.Ordinal) { [MusicalRole.Bass] = 0.3, [MusicalRole.Melody] = 0.6, [MusicalRole.Highs] = 0.2 },
         "Quiet, upscale, two-colour warm-white elegance.");
@@ -89,7 +103,9 @@ public static class StylePresetCatalog
     public static readonly StylePreset SingingFaceStorytelling = new(
         SingingFaceStorytellingId, SingingFaceStorytellingId,
         new PaletteDiscipline(2, 4, "White face + a coloured background palette."),
-        ["Faces", "Text", "Pictures", "Color Wash"],
+        // User feedback (2026-11-18): widened with real, restrained background-layer effects -- the
+        // face itself stays the one fixed element; these only ever carry the background behind it.
+        ["Faces", "Text", "Pictures", "Color Wash", "On", "Fill", "Bars", "Twinkle", "Shimmer", "Video"],
         new StyleDensity(0.2, 1.0, 0.4, 0.8, "Face always on; restrained background behind it."),
         new Dictionary<string, double>(StringComparer.Ordinal) { [MusicalRole.Bass] = 0.3, [MusicalRole.Melody] = 0.9, [MusicalRole.Highs] = 0.3 },
         "Lyric-driven storytelling carried by a singing face bound to the vocal track.");
@@ -108,7 +124,9 @@ public static class StylePresetCatalog
     public static readonly StylePreset SteadyWashAccent = new(
         SteadyWashAccentId, SteadyWashAccentId,
         new PaletteDiscipline(2, 4, "2-4 bold, saturated colors (not pastel/warm-white) -- a held color is the point, not a blend."),
-        ["On", "Color Wash", "Wave", "Pinwheel", "Shockwave", "Fire", "Spirals", "Curtain", "Garlands", "SingleStrand"],
+        // User feedback (2026-11-18): widened with real steady-hold-friendly fills plus a few more
+        // real accent-burst effects, same "bold hold, occasional punch" shape this preset already names.
+        ["On", "Color Wash", "Wave", "Pinwheel", "Shockwave", "Fire", "Spirals", "Curtain", "Garlands", "SingleStrand", "Bars", "Fill", "Twinkle", "Meteors", "Lightning", "Fireworks"],
         new StyleDensity(0.1, 0.6, 0.55, 0.95, "Low density: long steady full-brightness holds as the base layer, interrupted by brief bold accent bursts only at key moments."),
         new Dictionary<string, double>(StringComparer.Ordinal) { [MusicalRole.Bass] = 0.6, [MusicalRole.Melody] = 0.5, [MusicalRole.Highs] = 0.3 },
         "Bold, saturated color held steady as the base look -- calm most of the time, with a handful of deliberate accent bursts reserved for key moments, not constant motion.");

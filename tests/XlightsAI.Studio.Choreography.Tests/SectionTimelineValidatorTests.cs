@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Contracts;
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
@@ -43,6 +44,12 @@ public sealed class SectionTimelineValidatorTests
     }
 
     private static LookLibrary LibraryWith(Look look) => new([look]);
+
+    private static EffectVocabularyCatalog BuildVocabulary() => new(
+        new Dictionary<string, EffectVocabulary>(StringComparer.Ordinal) { ["On"] = new EffectVocabulary("On", "E_", []) },
+        buffer: new EffectVocabulary("Buffer", "B_", []),
+        blending: new EffectVocabulary("Blending", "T_", []),
+        color: new EffectVocabulary("Color", "C_", []));
 
     [Fact]
     public void Validate_DimThenBrightOnSameProps_Passes()
@@ -114,5 +121,39 @@ public sealed class SectionTimelineValidatorTests
         var errors = SectionTimelineValidator.Validate(timeline, library, layout, context, transientHits: TwoHits);
 
         Assert.Contains(errors, e => e.Message.Contains("transient-99", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_CueEffectNamesAnIntensityTierInsteadOfARealEffect_Fails()
+    {
+        var layout = BuildLayout();
+        var context = BuildContext();
+        var library = LibraryWith(BuildLook("Tree", "MiniStar1", "MiniStar2"));
+
+        var timeline = new SectionTimeline(Guid.NewGuid(), "test-look", Cues:
+        [
+            new SectionCue("transient-1", "Tree", IntensityTier.Bright, IntensityTier.Bright, LookLayer.RoleSubject),
+        ]);
+
+        var errors = SectionTimelineValidator.Validate(timeline, library, layout, context, transientHits: TwoHits, vocabulary: BuildVocabulary());
+
+        Assert.Contains(errors, e => e.Rule == "section-timeline-unknown-effect" && e.Message.Contains("'Bright'", StringComparison.Ordinal));
+    }
+
+    [Fact]
+    public void Validate_NoVocabularySupplied_SkipsUnknownEffectCheck()
+    {
+        var layout = BuildLayout();
+        var context = BuildContext();
+        var library = LibraryWith(BuildLook("Tree", "MiniStar1", "MiniStar2"));
+
+        var timeline = new SectionTimeline(Guid.NewGuid(), "test-look", Cues:
+        [
+            new SectionCue("transient-1", "Tree", "Bright", IntensityTier.Bright, LookLayer.RoleSubject),
+        ]);
+
+        var errors = SectionTimelineValidator.Validate(timeline, library, layout, context, transientHits: TwoHits);
+
+        Assert.DoesNotContain(errors, e => e.Rule == "section-timeline-unknown-effect");
     }
 }

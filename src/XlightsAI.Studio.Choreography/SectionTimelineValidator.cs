@@ -1,3 +1,4 @@
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Melody;
 using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Structure;
@@ -24,6 +25,7 @@ public static class SectionTimelineValidator
     private const string RuleContrast = "section-timeline-contrast";
     private const string RuleConcurrency = "section-timeline-concurrency";
     private const string RuleUnknownAnchor = "section-timeline-unknown-anchor";
+    private const string RuleUnknownEffect = "section-timeline-unknown-effect";
 
     /// <param name="timeline">The Choreographer's own response, whose <see cref="SectionTimeline.CuesOrEmpty"/> may be empty -- an empty-Cues timeline is validated as a plain flat selection (nothing here to check) and the caller falls back to <see cref="SectionScriptValidator"/> for the rest, per the migration plan's own backward-compatibility seam.</param>
     /// <param name="context">This section's own real music context -- the same one <see cref="SectionTimelineCompiler"/> compiles against, so <see cref="SectionTimingMarks.Resolve"/> sees identical real marks here and at compile time.</param>
@@ -31,10 +33,22 @@ public static class SectionTimelineValidator
     /// <param name="transientHits">This section's own real transient hits, or <see langword="null"/>/empty.</param>
     /// <param name="vocalNotes">This section's own real salient vocal-note onsets, or <see langword="null"/>/empty.</param>
     /// <param name="leadInstrumentWindows">This section's own real lead-instrument windows, or <see langword="null"/>/empty.</param>
+    /// <param name="vocabulary">
+    /// User-reported real bug (2026-11-18): a cue whose <see cref="SectionCue.Effect"/> names something
+    /// that isn't a real registered effect (e.g. the model echoing one of its own <see cref="IntensityTier"/>
+    /// values, such as "Bright", into the Effect field instead of Intensity) previously sailed through this
+    /// validator unnoticed and surfaced only as a hard <see cref="ChoreographyCompilationException"/> deep in
+    /// <see cref="SectionTimelineCompiler"/> -- after the Choreographer call had already been accepted, with
+    /// no way to ask the model to fix just that one cue. Passing the real generated vocabulary here (same
+    /// one <see cref="SectionScriptValidator"/> already checks <c>FillerEffects</c> against) lets this join
+    /// the same reject-and-retry discipline. <see langword="null"/> (the default) skips this check entirely --
+    /// every existing caller/test that predates this parameter keeps compiling and behaving identically.
+    /// </param>
     public static IReadOnlyList<SectionScriptValidationError> Validate(
         SectionTimeline timeline, LookLibrary lookLibrary, DisplayGraph layout, SectionMusicContext context,
         IReadOnlyList<PhraseCandidate>? phrases = null, IReadOnlyList<TransientHit>? transientHits = null,
-        IReadOnlyList<NoteEvent>? vocalNotes = null, IReadOnlyList<LeadInstrumentWindow>? leadInstrumentWindows = null)
+        IReadOnlyList<NoteEvent>? vocalNotes = null, IReadOnlyList<LeadInstrumentWindow>? leadInstrumentWindows = null,
+        EffectVocabularyCatalog? vocabulary = null)
     {
         ArgumentNullException.ThrowIfNull(timeline);
         ArgumentNullException.ThrowIfNull(lookLibrary);
@@ -69,6 +83,12 @@ public static class SectionTimelineValidator
             {
                 errors.Add(new SectionScriptValidationError(RuleUnknownAnchor,
                     $"SectionTimeline for section '{timeline.SectionId}' cue on Props '{cue.Props}' names HoldUntilAnchorId '{holdId}', which is not one of the real timing marks offered for this section."));
+            }
+
+            if (vocabulary is not null && !vocabulary.Effects.ContainsKey(cue.Effect))
+            {
+                errors.Add(new SectionScriptValidationError(RuleUnknownEffect,
+                    $"SectionTimeline for section '{timeline.SectionId}' cue on Props '{cue.Props}' declares Effect '{cue.Effect}', which is not a real effect in the supplied vocabulary -- Effect must name an actual xLights effect, never an Intensity tier (Off/Dim/Bright/Full) or other value."));
             }
         }
 

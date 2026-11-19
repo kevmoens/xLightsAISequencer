@@ -153,7 +153,7 @@ public sealed class SectionScriptGenerator
         {
             return SectionTimelineValidator.Validate(
                 timeline, lookLibrary, layout, anchorContext.Context, anchorContext.Phrases, anchorContext.TransientHits,
-                anchorContext.VocalNotes, anchorContext.LeadInstrumentWindows);
+                anchorContext.VocalNotes, anchorContext.LeadInstrumentWindows, vocabulary);
         }
 
         return SectionScriptValidator.Validate(timeline.ToSectionScript(), lookLibrary, layout, vocabulary, phraseCountBySectionId);

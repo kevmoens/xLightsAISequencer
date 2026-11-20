@@ -6,6 +6,7 @@ using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Rendering;
 using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
+using XlightsAI.Studio.Pipeline;
 
 namespace XlightsAI.Studio.Director;
 
@@ -66,7 +67,12 @@ public sealed record ChoreographyGenerationReport(
     ExportResult Export,
     int SectionCount,
     int SectionsNeedingRetry,
-    IReadOnlyDictionary<Guid, SectionTimeline>? Timelines = null);
+    IReadOnlyDictionary<Guid, SectionTimeline>? Timelines = null,
+    IReadOnlyList<SectionCueAudit>? CueDecisions = null,
+    IReadOnlyList<SectionExemplarAudit>? ExemplarDecisions = null);
+
+public sealed record SectionCueAudit(Guid SectionId, SectionCue Cue, IReadOnlyList<EffectInstance> Placements);
+public sealed record SectionExemplarAudit(Guid SectionId, string? ExemplarId, string Status);
 
 /// <summary>
 /// Build-plan Phase 6 task 4: "End-to-end first full generation: song + layout -&gt; Show Bible -&gt;
@@ -184,7 +190,7 @@ public sealed class ChoreographyGenerationPipeline
 
         // 2. Per-section SectionScripts.
         var scriptsStepWatch = System.Diagnostics.Stopwatch.StartNew();
-        var scriptGeneration = await GenerateSectionScriptsAsync(bible, music, layoutSummary, settings.Layout, settings.Vocabulary, settings.EnergyCeilingByKind, songId, callLog, ct, settings.EnableSectionTimelines).ConfigureAwait(false);
+        var scriptGeneration = await GenerateSectionScriptsAsync(bible, music, layoutSummary, settings, songId, callLog, ct).ConfigureAwait(false);
         var scripts = scriptGeneration.Scripts;
         await PersistScriptsAsync(scriptsDir, songId, scripts, ct).ConfigureAwait(false);
         _logger.LogInformation("Section scripts generated for song {SongId} in {ElapsedMs}ms ({ScriptCount}/{SectionCount} sections).",
@@ -194,8 +200,13 @@ public sealed class ChoreographyGenerationPipeline
 
         // 4/5. Compile via Phase 4's own unmodified engine -- a local function so the model-coverage
         // repair pass below can recompile against a patched set of scripts without duplicating this logic.
-        ChoreographyEngine.Result CompileFromScripts(IReadOnlyDictionary<Guid, SectionScript> currentScripts) =>
-            CompileSectionScripts(bible, music, layoutSummary, settings, currentScripts, scriptGeneration.TimedCues, scriptGeneration.Timelines);
+        FinalTimelineCompilation? final = null;
+        ChoreographyEngine.Result CompileFromScripts(IReadOnlyDictionary<Guid, SectionScript> currentScripts)
+        {
+            final = CompileTimelineIntent(bible, music, layoutSummary, settings, currentScripts, scriptGeneration.TimedCues,
+                scriptGeneration.Timelines, scriptGeneration.Material);
+            return final.Compiled;
+        }
 
         var compiled = CompileFromScripts(scripts);
 
@@ -284,7 +295,8 @@ public sealed class ChoreographyGenerationPipeline
                 scripts = await TargetedSectionRegenerator.RegenerateAsync(
                     repairBatchGenerator, scriptGeneration.StablePrefix, scripts, repairDirectives, scriptGeneration.VolatileSuffixBySectionId,
                     songId, bible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct,
-                    scriptGeneration.PhraseCountBySectionId).ConfigureAwait(false);
+                    scriptGeneration.PhraseCountBySectionId, settings.EnableSectionTimelines ? scriptGeneration.Material.AnchorContextsBySectionId : null,
+                    scriptGeneration.Timelines).ConfigureAwait(false);
                 await PersistScriptsAsync(scriptsDir, songId, scripts, ct).ConfigureAwait(false);
                 compiled = CompileFromScripts(scripts);
             }
@@ -369,7 +381,8 @@ public sealed class ChoreographyGenerationPipeline
             var loop = new IterationLoop(
                 qualityBatchGenerator, scriptGeneration.StablePrefix, scriptGeneration.VolatileSuffixBySectionId, sectionIntentById,
                 bible.Content.Looks, settings.Layout, settings.Vocabulary, CompileAndExportIterationAsync, RenderIterationAsync,
-                scriptGeneration.SectionWindowsById, (int)Math.Max(1, layoutSummary.TotalPixels), visualCritic, _maxOutputTokens);
+                scriptGeneration.SectionWindowsById, (int)Math.Max(1, layoutSummary.TotalPixels), visualCritic, _maxOutputTokens,
+                settings.EnableSectionTimelines ? scriptGeneration.Material.AnchorContextsBySectionId : null, scriptGeneration.Timelines);
 
             _logger.LogInformation("Quality pass starting for song {SongId} (up to {MaxIterations} iteration(s)).", songId, QualityPassMaxIterations);
             var current = await loop.RunFirstAsync(songId, scripts, ct).ConfigureAwait(false);
@@ -394,7 +407,9 @@ public sealed class ChoreographyGenerationPipeline
 
         _logger.LogInformation("Choreography generation completed for song {SongId} in {ElapsedMs}ms ({SectionsNeedingRetry} section(s) needing retry).",
             songId, overall.ElapsedMilliseconds, sectionsNeedingRetry);
-        return new ChoreographyGenerationReport(bible, scripts, compiled, exportResult, music.Sections.Labels.Count, sectionsNeedingRetry, scriptGeneration.Timelines);
+        await PersistTimelineIntentAsync(scriptsDir, songId, scriptGeneration.Material, final!, ct).ConfigureAwait(false);
+        return new ChoreographyGenerationReport(bible, scripts, compiled, exportResult, music.Sections.Labels.Count, sectionsNeedingRetry,
+            final!.Timelines, final.Cues, final.Exemplars);
     }
 
     private async Task<ShowBible> GenerateShowBibleAsync(MusicModel music, LayoutSummary layoutSummary, ChoreographyGenerationSettings settings, Guid songId, JsonAiCallLogStore callLog, CancellationToken ct)
@@ -442,7 +457,8 @@ public sealed class ChoreographyGenerationPipeline
         IReadOnlyDictionary<Guid, (long Start, long End)> SectionWindowsById,
         IReadOnlyList<TimedCue> TimedCues,
         IReadOnlyDictionary<Guid, int> PhraseCountBySectionId,
-        IReadOnlyDictionary<Guid, SectionTimeline> Timelines);
+        Dictionary<Guid, SectionTimeline> Timelines,
+        SectionPromptMaterial Material);
 
     /// <summary>
     /// Build-plan "richer analysis tools" post-processing phase (2026-11-02): everything
@@ -462,7 +478,9 @@ public sealed class ChoreographyGenerationPipeline
         IReadOnlyList<TimedCue> TimedCues,
         IReadOnlyList<SectionScriptBatchItem> Items,
         IReadOnlyDictionary<Guid, int> PhraseCountBySectionId,
-        IReadOnlyDictionary<Guid, SectionTimelineAnchorContext> AnchorContextsBySectionId);
+        IReadOnlyDictionary<Guid, SectionTimelineAnchorContext> AnchorContextsBySectionId,
+        IReadOnlyDictionary<Guid, ChorusSignature> ChorusSignatures,
+        IReadOnlyDictionary<Guid, ExemplarAdaptation> Adaptations);
 
     /// <param name="enableSectionTimelines">
     /// Build-plan Phase 28a: when <see langword="true"/>, every section's own volatile suffix also
@@ -475,9 +493,10 @@ public sealed class ChoreographyGenerationPipeline
     /// </param>
     private SectionPromptMaterial BuildSectionPromptMaterial(
         ShowBible bible, MusicModel music, LayoutSummary layoutSummary, IReadOnlyDictionary<SectionKind, double> energyCeilingByKind,
-        bool enableSectionTimelines = false)
+        bool enableSectionTimelines = false, DisplayGraph? layout = null, EffectRecipeCatalog? recipes = null,
+        PersistedTimelineIntent? previousIntent = null)
     {
-        var stablePrefix = SectionScriptPromptBuilder.BuildStablePrefix(bible.Content, _knowledge, _style);
+        var stablePrefix = SectionScriptPromptBuilder.BuildStablePrefix(bible.Content, _knowledge, _style, enableSectionTimelines);
         var barGrid = BarGrid.FromBeatGrid(music.BeatGrid, music.SongDurationTicks);
         var tracks = BuildTimingTracksForPrompt(music, barGrid);
 
@@ -494,6 +513,21 @@ public sealed class ChoreographyGenerationPipeline
         var occurrenceByKind = new Dictionary<SectionKind, int>();
         var melodicBriefsBySectionId = MelodicContourBriefBuilder.ComputeSectionBriefs(music).ToDictionary(b => b.SectionId);
         var motifLinksBySectionId = MotifLinkedPredecessorBuilder.ComputeSectionLinks(music).ToDictionary(l => l.SectionId);
+        var signatures = enableSectionTimelines ? previousIntent?.ChorusSignatures ??
+            ChorusSignaturePlanner.Build(music, bible.Content.Looks, motifLinksBySectionId.Values.ToArray())
+            : new Dictionary<Guid, ChorusSignature>();
+        if (enableSectionTimelines && _knowledge.Exemplars.Entries.Count > 0 &&
+            _knowledge.Exemplars.SchemaVersion != ExemplarIndex.GestureSchemaVersion)
+        {
+            _logger.LogInformation("The exemplar index is inspiration-only; re-run corpus mining to enable beat-relative adaptations.");
+        }
+        var enabledExemplarIds = _knowledge.Exemplars.SchemaVersion == ExemplarIndex.GestureSchemaVersion
+            ? _knowledge.Exemplars.Entries.Select(e => e.Id).OfType<string>().ToHashSet(StringComparer.Ordinal)
+            : new HashSet<string>(StringComparer.Ordinal);
+        var adaptations = enableSectionTimelines && layout is not null && recipes is not null
+            ? previousIntent?.Adaptations?.Where(a => enabledExemplarIds.Contains(a.Value.Id)).ToDictionary() ??
+                ExemplarAdaptationPlanner.Build(music, barGrid, _knowledge.Exemplars, layout, recipes, bible.Content.Looks, signatures)
+            : new Dictionary<Guid, ExemplarAdaptation>();
         var vocalNoteEmphasisBySectionId = VocalNoteEmphasisBriefBuilder.ComputeSectionBriefs(music).ToDictionary(b => b.SectionId);
         var phrasesBySectionId = music.Phrases.Phrases
             .GroupBy(p => p.SectionLabelId)
@@ -593,42 +627,85 @@ public sealed class ChoreographyGenerationPipeline
             // opted into the new path -- every pre-existing (flag-off) run never calls these.
             var melodicCurve = enableSectionTimelines ? MelodicContourBriefBuilder.ComputeSectionCurve(music, section.Id) : null;
             var bandCurve = enableSectionTimelines ? BandEnergyGroupRoleMapper.ComputeSectionCurve(music, section.Id) : null;
+            var timingCatalog = enableSectionTimelines ? SectionTimingCatalog.Build(
+                context, phrases, matchingHits, vocalNoteEmphasis?.SalientNotes, music.LeadInstrumentWindows,
+                music.Melody?.Notes, music.Transcript, music.EnergyTransitions) : null;
 
             var volatileSuffix = SectionScriptPromptBuilder.BuildVolatileSuffix(
                 section, context, layoutSummary, occurrenceIndex, totalOccurrences, melodicBrief, motifLink, phrases, _customPrompt?.Text,
                 matchingCues, vocalNoteEmphasis?.SalientNotes, matchingHits, enableSectionTimelines,
-                enableSectionTimelines ? music.LeadInstrumentWindows : null, melodicCurve, bandCurve);
+                enableSectionTimelines ? music.LeadInstrumentWindows : null, melodicCurve, bandCurve, timingCatalog);
+            if (adaptations.TryGetValue(section.Id, out var adaptation))
+            {
+                volatileSuffix += "\n\n## Retimed exemplar gestures\n" + adaptation.Brief;
+                if (signatures.TryGetValue(section.Id, out var exemplarSignature))
+                {
+                    volatileSuffix += $"\nThis is the shared signature of chorus family {exemplarSignature.FamilyId:N}. " +
+                        $"Keep this occurrence's {exemplarSignature.Intensity} intensity and vary the supporting layers.";
+                }
+            }
+            else if (signatures.TryGetValue(section.Id, out var signature))
+            {
+                volatileSuffix += "\n\n## Shared chorus signature\n" + signature.Brief;
+            }
             volatileSuffixBySectionId[section.Id] = volatileSuffix;
 
             if (enableSectionTimelines)
             {
                 anchorContextsBySectionId[section.Id] = new SectionTimelineAnchorContext(
-                    context, phrases, matchingHits, vocalNoteEmphasis?.SalientNotes, music.LeadInstrumentWindows);
+                    context, phrases, matchingHits, vocalNoteEmphasis?.SalientNotes, music.LeadInstrumentWindows,
+                    _knowledge.EffectVisualCharacters, timingCatalog);
             }
 
             return new SectionScriptBatchItem(section.Id, volatileSuffix);
         }).ToList();
 
         var phraseCountBySectionId = phrasesBySectionId.ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Count);
-        return new SectionPromptMaterial(stablePrefix, volatileSuffixBySectionId, sectionWindowsById, allTimedCues, items, phraseCountBySectionId, anchorContextsBySectionId);
+        return new SectionPromptMaterial(stablePrefix, volatileSuffixBySectionId, sectionWindowsById, allTimedCues, items,
+            phraseCountBySectionId, anchorContextsBySectionId, signatures, adaptations);
     }
 
     private async Task<SectionScriptGenerationResult> GenerateSectionScriptsAsync(
-        ShowBible bible, MusicModel music, LayoutSummary layoutSummary, DisplayGraph layout, EffectVocabularyCatalog vocabulary,
-        IReadOnlyDictionary<SectionKind, double> energyCeilingByKind, Guid songId, JsonAiCallLogStore callLog, CancellationToken ct,
-        bool enableSectionTimelines = false)
+        ShowBible bible, MusicModel music, LayoutSummary layoutSummary, ChoreographyGenerationSettings settings,
+        Guid songId, JsonAiCallLogStore callLog, CancellationToken ct)
     {
         if (_choreographerClient is null || _choreographerModelName is null)
         {
             throw new InvalidOperationException("No SectionScripts were supplied and no Choreographer client is configured.");
         }
 
-        var material = BuildSectionPromptMaterial(bible, music, layoutSummary, energyCeilingByKind, enableSectionTimelines);
+        var material = BuildSectionPromptMaterial(bible, music, layoutSummary, settings.EnergyCeilingByKind,
+            settings.EnableSectionTimelines, settings.Layout, settings.RecipeCatalog);
 
         var batchGenerator = new SectionScriptBatchGenerator(_choreographerClient, callLog: callLog, modelName: _choreographerModelName);
-        var reports = await batchGenerator.GenerateAllAsync(
-            material.StablePrefix, material.Items, songId, bible.Content.Looks, layout, vocabulary, _maxOutputTokens, ct,
-            material.PhraseCountBySectionId, enableSectionTimelines ? material.AnchorContextsBySectionId : null).ConfigureAwait(false);
+        var reports = new Dictionary<Guid, SectionScriptGenerationReport>();
+        var prompts = new Dictionary<Guid, string>(material.VolatileSuffixBySectionId);
+        var pending = new List<SectionScriptBatchItem>();
+        foreach (var item in material.Items)
+        {
+            if (material.AnchorContextsBySectionId.TryGetValue(item.SectionId, out var current) &&
+                current.Catalog is { } catalog && catalog.Sustains.Any(s => s.Note.StartTicks < current.Context.Window.StartTicks))
+            {
+                await FlushAsync().ConfigureAwait(false);
+                var previous = material.AnchorContextsBySectionId
+                    .Where(x => x.Value.Context.Window.EndTicks <= current.Context.Window.StartTicks)
+                    .OrderByDescending(x => x.Value.Context.Window.EndTicks).Select(x => x.Key).FirstOrDefault();
+                var incoming = (reports.GetValueOrDefault(previous)?.Timeline?.CuesOrEmpty ?? [])
+                    .Select((cue, i) => (Cue: cue, Order: i + 1))
+                    .Where(x => x.Cue.Kind is CueKind.Hold or CueKind.Takeover &&
+                        x.Cue.Intensity != IntensityTier.Off && x.Cue.HoldUntilAnchorId is { } id &&
+                        catalog.Marks.TryGetValue(id, out var end) && end > current.Context.Window.StartTicks)
+                    .Select(x => $"- {string.Join(", ", x.Cue.TargetReferences)} ({x.Cue.Role}, overlay cue layer {x.Order}) " +
+                        $"remains held until {x.Cue.HoldUntilAnchorId}. Accent elsewhere or declare a takeover.")
+                    .ToArray();
+                if (incoming.Length > 0)
+                {
+                    prompts[item.SectionId] += "\n## Incoming holds owned by an earlier section\n" + string.Join('\n', incoming);
+                }
+            }
+            pending.Add(item with { VolatileSuffix = prompts[item.SectionId] });
+        }
+        await FlushAsync().ConfigureAwait(false);
 
         var scripts = reports
             .Where(kvp => kvp.Value.Script is not null)
@@ -638,7 +715,24 @@ public sealed class ChoreographyGenerationPipeline
             .Where(kvp => kvp.Value.Timeline is not null)
             .ToDictionary(kvp => kvp.Key, kvp => kvp.Value.Timeline!);
 
-        return new SectionScriptGenerationResult(scripts, material.StablePrefix, material.VolatileSuffixBySectionId, material.SectionWindowsById, material.TimedCues, material.PhraseCountBySectionId, timelines);
+        return new SectionScriptGenerationResult(scripts, material.StablePrefix, prompts,
+            material.SectionWindowsById, material.TimedCues, material.PhraseCountBySectionId, timelines, material);
+
+        async Task FlushAsync()
+        {
+            if (pending.Count == 0)
+            {
+                return;
+            }
+            var completed = await batchGenerator.GenerateAllAsync(
+                material.StablePrefix, pending, songId, bible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct,
+                material.PhraseCountBySectionId, settings.EnableSectionTimelines ? material.AnchorContextsBySectionId : null).ConfigureAwait(false);
+            foreach (var (id, report) in completed)
+            {
+                reports[id] = report;
+            }
+            pending.Clear();
+        }
     }
 
     private static Dictionary<string, TimingTrack> BuildTimingTracksForPrompt(MusicModel music, BarGrid barGrid)
@@ -656,6 +750,158 @@ public sealed class ChoreographyGenerationPipeline
         }
 
         return tracks;
+    }
+
+    private sealed record FinalTimelineCompilation(ChoreographyEngine.Result Compiled,
+        IReadOnlyDictionary<Guid, SectionTimeline> Timelines, IReadOnlyList<SectionCueAudit> Cues,
+        IReadOnlyList<SectionExemplarAudit> Exemplars, IReadOnlyDictionary<Guid, SectionTimeline> Authored);
+
+    private FinalTimelineCompilation CompileTimelineIntent(ShowBible bible, MusicModel music, LayoutSummary layoutSummary,
+        ChoreographyGenerationSettings settings, IReadOnlyDictionary<Guid, SectionScript> scripts, IReadOnlyList<TimedCue> timedCues,
+        IReadOnlyDictionary<Guid, SectionTimeline> authored, SectionPromptMaterial material)
+    {
+        var fallback = new Dictionary<Guid, string>();
+        var verified = new Dictionary<Guid, SectionTimeline>();
+        foreach (var (id, context) in material.AnchorContextsBySectionId)
+        {
+            if (!scripts.TryGetValue(id, out var script))
+            {
+                continue;
+            }
+            if (authored.TryGetValue(id, out var stored))
+            {
+                var timeline = SectionTimeline.FromSectionScript(script) with { Cues = stored.Cues };
+                var errors = SectionTimelineValidator.Validate(timeline, bible.Content.Looks, settings.Layout, context.Context,
+                    context.Phrases, context.TransientHits, context.VocalNotes, context.LeadInstrumentWindows,
+                    settings.Vocabulary, context.BrightnessCatalog, context.Catalog);
+                if (errors.Count == 0)
+                {
+                    verified[id] = timeline;
+                    continue;
+                }
+                _logger.LogWarning("Section {SectionId} timeline rejected during revalidation: {Errors}", id, errors);
+            }
+            fallback[id] = "No validated authored timeline; using the flat base script";
+        }
+
+        var rejected = material.Adaptations.Where(a => !material.AnchorContextsBySectionId.TryGetValue(a.Key, out var context) ||
+            a.Value.Gestures.Any(g => g.Start < context.Context.Window.StartTicks || g.End > context.Context.Window.EndTicks ||
+                LookCompiler.TryResolveModels(g.Target, settings.Layout).Count == 0 ||
+                !settings.RecipeCatalog.TryGet(LookCompiler.RecipeIdFor(g.Source.Effect, settings.RecipeCatalog), out _)))
+            .Select(a => a.Key).ToHashSet();
+        foreach (var id in rejected.ToArray())
+        {
+            RejectFamily(id);
+        }
+        while (true)
+        {
+            var catalogs = material.AnchorContextsBySectionId.Where(x => x.Value.Catalog is not null)
+                .ToDictionary(x => x.Key, x => x.Value.Catalog!);
+            var timelines = new Dictionary<Guid, SectionTimeline>();
+            foreach (var (id, catalog) in catalogs.ToArray())
+            {
+                if (!scripts.TryGetValue(id, out var script))
+                {
+                    continue;
+                }
+                var timeline = verified.GetValueOrDefault(id) ?? SectionTimeline.FromSectionScript(script);
+                var signature = material.ChorusSignatures.GetValueOrDefault(id);
+                if (!rejected.Contains(id) && material.Adaptations.TryGetValue(id, out var adaptation))
+                {
+                    (timeline, catalogs[id]) = adaptation.Apply(timeline, catalog, signature?.Intensity ?? IntensityTier.Bright);
+                }
+                else if (signature is not null && LookCompiler.TryResolveModels(signature.Target, settings.Layout).Count > 0 &&
+                    settings.RecipeCatalog.TryGet(LookCompiler.RecipeIdFor(signature.Effect, settings.RecipeCatalog), out _))
+                {
+                    timeline = signature.Apply(timeline, catalog);
+                }
+                timelines[id] = timeline with { Cues = timeline.CuesOrEmpty.Select((c, i) =>
+                    c with { TraceId = c.TraceId ?? $"cue:{id:N}:{i}" }).ToArray() };
+            }
+
+            var compiled = CompileSectionScripts(bible, music, layoutSummary, settings, scripts, timedCues, timelines, catalogs);
+            var missed = material.Adaptations.Where(a => !rejected.Contains(a.Key) &&
+                !a.Value.IsRealized(compiled.IR, settings.Layout, settings.RecipeCatalog)).Select(a => a.Key).ToArray();
+            if (missed.Length > 0)
+            {
+                foreach (var id in missed)
+                {
+                    RejectFamily(id);
+                }
+                continue;
+            }
+            var byTrace = compiled.IR.Effects.Where(e => e.CueTraceId is not null).ToLookup(e => e.CueTraceId);
+            var decisions = timelines.SelectMany(t => t.Value.CuesOrEmpty.Select(c =>
+                new SectionCueAudit(t.Key, c, byTrace[c.TraceId].ToArray()))).ToArray();
+            var exemplars = material.AnchorContextsBySectionId.Keys.Select(id => new SectionExemplarAudit(id,
+                material.Adaptations.GetValueOrDefault(id)?.Id,
+                rejected.Contains(id) ? "Original: retimed gesture roles did not survive final ownership" :
+                material.Adaptations.ContainsKey(id) ? "Applied" :
+                _knowledge.Exemplars.Entries.Count == 0 ? "Original: no enabled exemplars" :
+                _knowledge.Exemplars.SchemaVersion != ExemplarIndex.GestureSchemaVersion ? "Original: re-mine legacy exemplar index" :
+                "Original: no eligible, mappable exemplar")).ToArray();
+            foreach (var (id, reason) in fallback)
+            {
+                _logger.LogInformation("Section {SectionId}: {TimelineFallback}", id, reason);
+            }
+            return new FinalTimelineCompilation(compiled, timelines, decisions, exemplars, verified);
+        }
+
+        void RejectFamily(Guid id)
+        {
+            rejected.Add(id);
+            if (material.ChorusSignatures.TryGetValue(id, out var signature))
+            {
+                rejected.UnionWith(material.ChorusSignatures.Where(x => x.Value.FamilyId == signature.FamilyId).Select(x => x.Key));
+            }
+        }
+    }
+
+    private sealed record PersistedTimelineIntent(IReadOnlyDictionary<Guid, SectionTimeline> Authored,
+        IReadOnlyList<SectionCueAudit> CueDecisions, IReadOnlyList<SectionExemplarAudit> ExemplarDecisions,
+        IReadOnlyDictionary<Guid, ChorusSignature>? ChorusSignatures = null,
+        IReadOnlyDictionary<Guid, ExemplarAdaptation>? Adaptations = null);
+
+    private static string TimelineIntentPath(string directory, Guid songId) =>
+        Path.Combine(directory, $"section-timelines-{songId:N}.json");
+
+    public static async Task<Dictionary<Guid, SectionTimeline>> LoadPersistedTimelinesAsync(
+        string directory, Guid songId, CancellationToken ct) =>
+        new((await LoadTimelineIntentAsync(directory, songId, ct).ConfigureAwait(false))?.Authored ??
+            new Dictionary<Guid, SectionTimeline>());
+
+    private static async Task<PersistedTimelineIntent?> LoadTimelineIntentAsync(string directory, Guid songId, CancellationToken ct)
+    {
+        var path = TimelineIntentPath(directory, songId);
+        if (!File.Exists(path))
+        {
+            return null;
+        }
+        await using var stream = File.OpenRead(path);
+        return await System.Text.Json.JsonSerializer.DeserializeAsync<PersistedTimelineIntent>(stream, cancellationToken: ct).ConfigureAwait(false);
+    }
+
+    private static async Task PersistTimelineIntentAsync(string directory, Guid songId,
+        SectionPromptMaterial material, FinalTimelineCompilation final, CancellationToken ct)
+    {
+        var path = TimelineIntentPath(directory, songId);
+        if (final.Timelines.Count == 0)
+        {
+            File.Delete(path);
+            return;
+        }
+        var temp = $"{path}.{Guid.NewGuid():N}.tmp";
+        try
+        {
+            await File.WriteAllTextAsync(temp, System.Text.Json.JsonSerializer.Serialize(
+                new PersistedTimelineIntent(final.Authored, final.Cues, final.Exemplars, material.ChorusSignatures,
+                    material.Adaptations)), ct).ConfigureAwait(false);
+            File.Move(temp, path, overwrite: true);
+        }
+        finally
+        {
+            File.Delete(temp);
+        }
     }
 
     private static async Task PersistScriptsAsync(string directory, Guid songId, IReadOnlyDictionary<Guid, SectionScript> scripts, CancellationToken ct)
@@ -730,7 +976,8 @@ public sealed class ChoreographyGenerationPipeline
     private ChoreographyEngine.Result CompileSectionScripts(
         ShowBible bible, MusicModel music, LayoutSummary layoutSummary, ChoreographyGenerationSettings settings,
         IReadOnlyDictionary<Guid, SectionScript> scripts, IReadOnlyList<TimedCue>? timedCues = null,
-        IReadOnlyDictionary<Guid, SectionTimeline>? timelinesBySectionId = null)
+        IReadOnlyDictionary<Guid, SectionTimeline>? timelinesBySectionId = null,
+        IReadOnlyDictionary<Guid, SectionTimingCatalog>? timingCatalogs = null)
     {
         var phrasesBySectionId = music.Phrases.Phrases
             .GroupBy(p => p.SectionLabelId)
@@ -766,15 +1013,11 @@ public sealed class ChoreographyGenerationPipeline
             .Distinct()
             .ToList();
 
-        // Build-plan Phase 28a: only a section whose current (possibly repaired/regenerated) script
-        // still matches the exact SectionScript this timeline was validated alongside is handed to the
-        // engine as a real SectionTimeline override -- a stale timeline (from a section regenerated by a
-        // repair pass since) is dropped here rather than compiled against a script it no longer describes.
         IReadOnlyDictionary<Guid, SectionTimeline>? sectionTimelinesForEngine = null;
         if (settings.EnableSectionTimelines && timelinesBySectionId is { Count: > 0 })
         {
             sectionTimelinesForEngine = timelinesBySectionId
-                .Where(kvp => kvp.Value.CuesOrEmpty.Count > 0 && scripts.TryGetValue(kvp.Key, out var currentScript) && currentScript == kvp.Value.ToSectionScript())
+                .Where(kvp => kvp.Value.CuesOrEmpty.Count > 0 && scripts.ContainsKey(kvp.Key))
                 .ToDictionary(kvp => kvp.Key, kvp => kvp.Value);
         }
 
@@ -784,7 +1027,8 @@ public sealed class ChoreographyGenerationPipeline
             VisemeMarks: music.VisemeMarks, PhraseLookAssignmentsBySectionId: phraseLookAssignmentsBySectionId, AudioEnergy: music.Energy,
             EmphasisInstants: BuildEmphasisInstants(music, timedCues), BrightnessCatalog: _knowledge.EffectVisualCharacters,
             HeroLookIds: heroLookIds, SectionTimelinesBySectionId: sectionTimelinesForEngine,
-            TransientHits: music.TransientHits, VocalNotes: music.Melody?.Notes, LeadInstrumentWindows: music.LeadInstrumentWindows);
+            TransientHits: music.TransientHits, VocalNotes: music.Melody?.Notes, LeadInstrumentWindows: music.LeadInstrumentWindows,
+            TimingCatalogs: timingCatalogs);
         var result = ChoreographyEngine.Compile(engineInput);
 
         // Build-plan Phase 22 §4: the user asked to be told the real measured numbers, not just that the
@@ -928,7 +1172,12 @@ public sealed class ChoreographyGenerationPipeline
         _logger.LogInformation("Post-processing prompt for song {SongId} parsed into {CueCount} timed cue(s): {Cues}.",
             songId, cues.Count, string.Join(", ", cues.OrderBy(c => c.Start).Select(c => $"{FormatTimestamp(c.Start)}:{c.Instruction}")));
 
-        var material = BuildSectionPromptMaterial(existingBible, music, layoutSummary, settings.EnergyCeilingByKind);
+        var scriptsDir = Path.Combine(settings.ProjectDirectory, "scripts");
+        var storedIntent = settings.EnableSectionTimelines ? await LoadTimelineIntentAsync(scriptsDir, songId, ct).ConfigureAwait(false) : null;
+        var useTimelines = storedIntent is not null;
+        var authored = storedIntent is null ? [] : new Dictionary<Guid, SectionTimeline>(storedIntent.Authored);
+        var material = BuildSectionPromptMaterial(existingBible, music, layoutSummary, settings.EnergyCeilingByKind,
+            useTimelines, settings.Layout, settings.RecipeCatalog, storedIntent);
 
         var directives = RevisionDirectiveDeriver.FromPostProcessingCues(cues, material.SectionWindowsById);
         if (directives.Count == 0)
@@ -936,7 +1185,6 @@ public sealed class ChoreographyGenerationPipeline
             throw new PostProcessingPromptMatchesNoSectionException();
         }
 
-        var scriptsDir = Path.Combine(settings.ProjectDirectory, "scripts");
         var llmDir = Path.Combine(settings.ProjectDirectory, "llm");
         var exportsDir = Path.Combine(settings.ProjectDirectory, "exports");
         var callLog = new JsonAiCallLogStore(llmDir);
@@ -945,10 +1193,11 @@ public sealed class ChoreographyGenerationPipeline
         var updatedScripts = await TargetedSectionRegenerator.RegenerateAsync(
             batchGenerator, material.StablePrefix, existingScripts, directives, material.VolatileSuffixBySectionId,
             songId, existingBible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct,
-            material.PhraseCountBySectionId).ConfigureAwait(false);
+            material.PhraseCountBySectionId, useTimelines ? material.AnchorContextsBySectionId : null, authored).ConfigureAwait(false);
         await PersistScriptsAsync(scriptsDir, songId, updatedScripts, ct).ConfigureAwait(false);
 
-        var compiled = CompileSectionScripts(existingBible, music, layoutSummary, settings, updatedScripts, cues);
+        var final = CompileTimelineIntent(existingBible, music, layoutSummary, settings, updatedScripts, cues, authored, material);
+        var compiled = final.Compiled;
 
         // User feedback (2026-11-03): "didn't do a good job of fixing it" -- the touch-up path regenerated
         // each targeted section exactly once and trusted whatever the Choreographer produced, with nothing
@@ -965,9 +1214,10 @@ public sealed class ChoreographyGenerationPipeline
             updatedScripts = await TargetedSectionRegenerator.RegenerateAsync(
                 batchGenerator, material.StablePrefix, updatedScripts, repairDirectives, material.VolatileSuffixBySectionId,
                 songId, existingBible.Content.Looks, settings.Layout, settings.Vocabulary, _maxOutputTokens, ct,
-                material.PhraseCountBySectionId).ConfigureAwait(false);
+                material.PhraseCountBySectionId, useTimelines ? material.AnchorContextsBySectionId : null, authored).ConfigureAwait(false);
             await PersistScriptsAsync(scriptsDir, songId, updatedScripts, ct).ConfigureAwait(false);
-            compiled = CompileSectionScripts(existingBible, music, layoutSummary, settings, updatedScripts, cues);
+            final = CompileTimelineIntent(existingBible, music, layoutSummary, settings, updatedScripts, cues, authored, material);
+            compiled = final.Compiled;
         }
 
         LogLayerDensitySummary(existingBible, music, updatedScripts, songId);
@@ -979,7 +1229,12 @@ public sealed class ChoreographyGenerationPipeline
         var exportResult = await exporter.ExportAsync(
             settings.Layout, compiled.IR.ToSequenceDocument(metadata), outputPath, "2026.03", XsqExportPolicy.AppendCollisionSuffix, ct).ConfigureAwait(false);
 
-        return new ChoreographyGenerationReport(existingBible, updatedScripts, compiled, exportResult, music.Sections.Labels.Count, SectionsNeedingRetry: 0);
+        if (useTimelines)
+        {
+            await PersistTimelineIntentAsync(scriptsDir, songId, material, final, ct).ConfigureAwait(false);
+        }
+        return new ChoreographyGenerationReport(existingBible, updatedScripts, compiled, exportResult, music.Sections.Labels.Count,
+            0, final.Timelines, final.Cues, final.Exemplars);
     }
 
     /// <summary>

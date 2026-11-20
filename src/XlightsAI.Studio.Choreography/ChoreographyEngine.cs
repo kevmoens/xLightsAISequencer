@@ -69,21 +69,12 @@ public static class ChoreographyEngine
         EffectVisualCharacterCatalog? BrightnessCatalog = null,
         Random? EmphasisTravelRandom = null,
         IReadOnlyList<string>? HeroLookIds = null,
-        /* Build-plan Phase 28a: an optional, additive override of LookIdBySectionId's own per-section
-         * compile -- a section present here whose own SectionTimeline.CuesOrEmpty is non-empty compiles
-         * via SectionTimelineCompiler.Compile instead of LookCompiler.Compile, merging into the exact
-         * same ChoreographyIR and flowing through the exact same downstream AlwaysMovingGapSplitter/
-         * EmphasisContrastPlanner/ChoreographyLegalityValidator.ValidateShow passes every other section's
-         * compiled output already does -- never a parallel/bypassed pipeline. A section with no entry
-         * (the default, and every pre-existing caller's own behavior), an entry with empty Cues, or a
-         * section already compiled via PhraseLookAssignmentsBySectionId (that branch takes precedence,
-         * same as it already does over LookIdBySectionId) compiles exactly as before.
-         * TransientHits/VocalNotes/LeadInstrumentWindows below are consulted only when resolving a
-         * SectionCue.AnchorId for a section named here. */
+        // Section-wide cue overlays run once over the base look(s), including phrase-specific bases.
         IReadOnlyDictionary<Guid, SectionTimeline>? SectionTimelinesBySectionId = null,
         IReadOnlyList<TransientHit>? TransientHits = null,
         IReadOnlyList<NoteEvent>? VocalNotes = null,
-        IReadOnlyList<LeadInstrumentWindow>? LeadInstrumentWindows = null);
+        IReadOnlyList<LeadInstrumentWindow>? LeadInstrumentWindows = null,
+        IReadOnlyDictionary<Guid, SectionTimingCatalog>? TimingCatalogs = null);
 
     /// <param name="EmphasisContrast">
     /// Build-plan Phase 22 §2a/§2d: non-null exactly when both <see cref="Input.EmphasisInstants"/> and
@@ -151,58 +142,107 @@ public static class ChoreographyEngine
         var mergedIR = new ChoreographyIR(tracks.Values.ToList(), [], []);
         var sectionAssignments = new List<ChoreographyLegalityValidator.SectionAssignment>();
         var violations = new List<LegalityViolation>();
+        var timelineWindows = new HashSet<TimeWindow>();
+        var cueProgram = new List<SectionCueWindow>();
+        var cuesBySection = new Dictionary<Guid, IReadOnlyList<SectionCueWindow>>();
+        var catalogsBySection = new Dictionary<Guid, SectionTimingCatalog>();
+        var orderedSections = input.Sections.Labels.OrderBy(l => l.StartBarIndex).ToArray();
 
-        // Build-plan Phase 28b bugfix: a SectionTimeline's own Cues are generated/validated against the
-        // REAL anchors of the section's own WHOLE window (see BuildSectionPromptMaterial/
-        // SectionTimelineValidator, both section-scoped, never phrase-scoped). A phrase-scoped section
-        // (PhraseLookAssignmentsBySectionId below) instead compiles as several NARROWER sub-window calls
-        // to this same local function, each for one real phrase -- applying the whole-section timeline's
-        // cues uniformly against every one of those narrower windows resolves a real anchor (valid for
-        // the WHOLE section) against a phrase window that may not contain it at all, throwing a hard
-        // ChoreographyCompilationException at compile time for an anchor the model never did anything
-        // wrong to name (confirmed against a real Carol of the Bells run: AnchorId 'beat-25' valid for a
-        // section's own full real mark set, invalid for one of its own real phrase sub-windows). A
-        // phrase-scoped section's own cues are therefore never applied here -- same precedence
-        // PhraseLookAssignmentsBySectionId already has over LookIdBySectionId itself (that branch fully
-        // replaces this function's plain, whole-section call) now also applies to SectionTimelinesBySectionId.
-        void CompileOneWindow(SectionLabelCandidate section, string lookId, TimeWindow window, bool allowSectionTimelineOverride)
+        SectionMusicContext MakeContext(SectionLabelCandidate section, TimeWindow window)
+        {
+            var ceiling = input.EnergyCeilingByKind.GetValueOrDefault(section.Kind, 1.0);
+            return new SectionMusicContext(window, section.Kind, ceiling, barGrid, tracks,
+                SectionMusicContext.IsVocalActiveMajority(input.VocalActivity, window),
+                SectionDensityMapper.TargetChangeRatePerSecond(ceiling));
+        }
+
+        for (var i = 0; i < orderedSections.Length; i++)
+        {
+            var section = orderedSections[i];
+            if (input.SectionTimelinesBySectionId?.GetValueOrDefault(section.Id) is not { } timeline ||
+                timeline.CuesOrEmpty.Count == 0 ||
+                !input.LookIdBySectionId.ContainsKey(section.Id) ||
+                barGrid.WindowForBarRange(new BarIndex(section.StartBarIndex), new BarIndex(section.EndBarIndexExclusive)) is not { } window)
+            {
+                continue;
+            }
+
+            var context = MakeContext(section, window);
+            var catalog = input.TimingCatalogs?.GetValueOrDefault(section.Id) ?? SectionTimingCatalog.Build(context,
+                input.Phrases.Phrases.Where(p => p.SectionLabelId == section.Id).ToArray(),
+                input.TransientHits, input.VocalNotes, input.LeadInstrumentWindows);
+            var nextEnd = i + 1 < orderedSections.Length
+                ? barGrid.WindowForBarRange(new BarIndex(section.EndBarIndexExclusive),
+                    new BarIndex(orderedSections[i + 1].EndBarIndexExclusive))?.EndTicks
+                : null;
+            var admitted = new List<SectionCueWindow>();
+            foreach (var cue in SectionCueWindow.Resolve(timeline, catalog.Marks, window, input.Layout, nextEnd))
+            {
+                var existing = cueProgram.Where(c => c.IsHeld).ToArray();
+                if ((cue.Cue.Kind == CueKind.Takeover && !cue.ReplacesRunningHold(cueProgram)) ||
+                    (cue.Cue.Kind != CueKind.Takeover && existing.Any(hold => cue.OverlapsHeld(hold, cueProgram))))
+                {
+                    violations.Add(new LegalityViolation("section-timeline-ownership",
+                        $"Cue '{cue.Cue.AnchorId}' could not claim '{string.Join(", ", cue.Cue.TargetReferences)}'; an owning hold takes precedence unless explicitly taken over.",
+                        AffectedSectionId: section.Id.ToString()));
+                    continue;
+                }
+                admitted.Add(cue);
+                cueProgram.Add(cue);
+            }
+            cuesBySection[section.Id] = admitted;
+            catalogsBySection[section.Id] = catalog;
+        }
+        var protectedWindows = SectionTimelineCompiler.ProtectedWindows(cueProgram).ToArray();
+
+        void CompileOneWindow(SectionLabelCandidate section, string lookId, TimeWindow window,
+            IReadOnlyList<SectionPhraseLookAssignment>? phraseAssignments = null)
         {
             var look = input.LookLibrary.Find(lookId)
                 ?? throw new ChoreographyCompilationException($"Look '{lookId}' assigned to section '{section.Id}' is not in the supplied library.");
 
-            var ceiling = input.EnergyCeilingByKind.TryGetValue(section.Kind, out var c) ? c : 1.0;
-            var vocalActive = SectionMusicContext.IsVocalActiveMajority(input.VocalActivity, window);
-            var targetChangeRate = SectionDensityMapper.TargetChangeRatePerSecond(ceiling);
-
-            var context = new SectionMusicContext(window, section.Kind, ceiling, barGrid, tracks, vocalActive, targetChangeRate);
-
-            ChoreographyIR compiled;
-            if (allowSectionTimelineOverride &&
-                input.SectionTimelinesBySectionId is { } timelinesBySectionId &&
-                timelinesBySectionId.TryGetValue(section.Id, out var timeline) &&
-                timeline.CuesOrEmpty.Count > 0)
+            var context = MakeContext(section, window);
+            var baseIr = new ChoreographyIR([], [], []);
+            if (phraseAssignments is not { Count: > 0 })
             {
-                var sectionPhrases = input.Phrases.Phrases
-                    .Where(p => p.SectionLabelId == section.Id)
-                    .OrderBy(p => p.StartBarIndex)
-                    .ToList();
-                compiled = SectionTimelineCompiler.Compile(
-                    look, timeline, context, input.Layout, input.CompilerSettings,
-                    sectionPhrases, input.TransientHits, input.VocalNotes, input.LeadInstrumentWindows);
+                baseIr = LookCompiler.Compile(look, context, input.Layout, input.CompilerSettings);
             }
             else
             {
-                compiled = LookCompiler.Compile(look, context, input.Layout, input.CompilerSettings);
+                foreach (var assignment in phraseAssignments)
+                {
+                    var phraseWindow = barGrid.WindowForBarRange(assignment.StartBar, assignment.EndBarExclusive)
+                        ?? throw new ChoreographyCompilationException($"Phrase assignment for section '{section.Id}' does not resolve against the bar grid.");
+                    var phraseLook = input.LookLibrary.Find(assignment.LookId)
+                        ?? throw new ChoreographyCompilationException($"Phrase Look '{assignment.LookId}' is not in the supplied library.");
+                    baseIr = baseIr.Merge(LookCompiler.Compile(phraseLook, MakeContext(section, phraseWindow), input.Layout, input.CompilerSettings));
+                }
+            }
+
+            ChoreographyIR compiled;
+            if (cuesBySection.TryGetValue(section.Id, out var cues) && cues.Count > 0)
+            {
+                baseIr = baseIr with { Effects = SustainedBaseLook.KeepSteady(baseIr.Effects, window, catalogsBySection[section.Id].Sustains) };
+                compiled = SectionTimelineCompiler.CompileResolved(baseIr, context, input.Layout, input.CompilerSettings,
+                    cues, cueProgram, input.BrightnessCatalog);
+                timelineWindows.Add(window);
+            }
+            else
+            {
+                compiled = protectedWindows.Length == 0 ? baseIr : baseIr with
+                {
+                    Effects = SectionTimelineCompiler.MaskProtectedBase(baseIr.Effects, input.Layout, window, cueProgram),
+                };
             }
 
             mergedIR = mergedIR.Merge(compiled);
 
             var targetedModels = compiled.Effects.Select(e => e.Target).Distinct().ToList();
-            sectionAssignments.Add(new ChoreographyLegalityValidator.SectionAssignment(section.Id.ToString(), look, compiled, targetedModels, window, ceiling));
+            sectionAssignments.Add(new ChoreographyLegalityValidator.SectionAssignment(section.Id.ToString(), look, compiled, targetedModels, window, context.EnergyCeiling));
             violations.AddRange(ChoreographyLegalityValidator.ValidateSection(look, compiled, input.Layout, input.CompilerSettings.Vocabulary));
         }
 
-        foreach (var section in input.Sections.Labels.OrderBy(l => l.StartBarIndex))
+        foreach (var section in orderedSections)
         {
             // Build-plan Phase 10 §3e: a section with one or more declared phrase-scoped assignments
             // compiles entirely from them (its own sub-windows, each its own Look) instead of one Look
@@ -210,14 +250,14 @@ public static class ChoreographyEngine
             // as before.
             if (input.PhraseLookAssignmentsBySectionId is { } phraseAssignmentsBySectionId &&
                 phraseAssignmentsBySectionId.TryGetValue(section.Id, out var phraseAssignments) &&
-                phraseAssignments.Count > 0)
+                phraseAssignments.Count > 0 && !cuesBySection.ContainsKey(section.Id))
             {
                 foreach (var assignment in phraseAssignments)
                 {
                     var phraseWindow = barGrid.WindowForBarRange(assignment.StartBar, assignment.EndBarExclusive)
                         ?? throw new ChoreographyCompilationException($"Phrase-scoped assignment for section '{section.Id}' bar range [{assignment.StartBar},{assignment.EndBarExclusive}) does not resolve against the bar grid.");
 
-                    CompileOneWindow(section, assignment.LookId, phraseWindow, allowSectionTimelineOverride: false);
+                    CompileOneWindow(section, assignment.LookId, phraseWindow);
                 }
 
                 continue;
@@ -231,7 +271,7 @@ public static class ChoreographyEngine
             var window = barGrid.WindowForBarRange(new BarIndex(section.StartBarIndex), new BarIndex(section.EndBarIndexExclusive))
                 ?? throw new ChoreographyCompilationException($"Section '{section.Id}' bar range [{section.StartBarIndex},{section.EndBarIndexExclusive}) does not resolve against the bar grid.");
 
-            CompileOneWindow(section, lookId, window, allowSectionTimelineOverride: true);
+            CompileOneWindow(section, lookId, window, input.PhraseLookAssignmentsBySectionId?.GetValueOrDefault(section.Id));
         }
 
         // The always-moving rule applies globally, per target, across the whole song -- a gap can
@@ -272,6 +312,14 @@ public static class ChoreographyEngine
                 .Select(s => s.Window!.Value)
                 .OrderBy(w => w.StartTicks)
                 .ToList();
+            if (protectedWindows.Length > 0)
+            {
+                var members = LookCompiler.TryResolveModels(target.Value, input.Layout);
+                foreach (var (span, heldModels) in protectedWindows.Where(p => members.Any(p.Models.Contains)))
+                {
+                    activeWindows = activeWindows.SelectMany(w => Subtract(w, span)).ToList();
+                }
+            }
 
             gapFilledEffects.AddRange(AlwaysMovingGapSplitter.FillGaps(
                 target, existing, songWindow, barGrid, tick => input.FillerSchedule.Resolve(tick, target), activeWindows, CeilingAtTick, input.CompilerSettings.RecipeRegistry));
@@ -288,16 +336,18 @@ public static class ChoreographyEngine
         EmphasisContrastReport? emphasisContrastReport = null;
         if (input.EmphasisInstants is { Count: > 0 } instants && input.BrightnessCatalog is { } brightnessCatalog)
         {
-            var sectionWindows = sectionAssignments.Where(s => s.Window is not null).Select(s => s.Window!.Value).ToList();
+            var sectionWindows = sectionAssignments.Where(s => s.Window is { } w && !timelineWindows.Contains(w)).Select(s => s.Window!.Value).ToList();
+            var legacyInstants = instants.Where(i => !timelineWindows.Any(w => i.TimeTicks >= w.StartTicks && i.TimeTicks < w.EndTicks) &&
+                !protectedWindows.Any(p => i.TimeTicks >= p.Window.StartTicks && i.TimeTicks < p.Window.EndTicks)).ToArray();
             var (patchedIr, report) = EmphasisContrastPlanner.ApplyContrastFallback(
-                mergedIR, instants, sectionWindows, input.BeatGrid, input.Layout, input.CompilerSettings.RecipeCatalog,
+                mergedIR, legacyInstants, sectionWindows, input.BeatGrid, input.Layout, input.CompilerSettings.RecipeCatalog,
                 brightnessCatalog, input.CompilerSettings.RecipeRegistry, input.EmphasisTravelRandom ?? new Random());
 
             mergedIR = patchedIr;
             emphasisContrastReport = report;
 
             violations.AddRange(ChoreographyLegalityValidator.ValidateEmphasisContrast(
-                mergedIR, instants, input.BeatGrid, input.CompilerSettings.RecipeCatalog, brightnessCatalog));
+                mergedIR, legacyInstants, input.BeatGrid, input.CompilerSettings.RecipeCatalog, brightnessCatalog));
         }
 
         var coverageLadder = PixelCoverageLadder.Build(input.Layout, input.CoverageLadderRungCount);
@@ -308,4 +358,21 @@ public static class ChoreographyEngine
 
     private static SectionKind SectionKindOf(SectionLabelAnalysis sections, string sectionId) =>
         sections.Labels.FirstOrDefault(l => l.Id.ToString() == sectionId)?.Kind ?? SectionKind.Unknown;
+
+    private static IEnumerable<TimeWindow> Subtract(TimeWindow window, TimeWindow span)
+    {
+        if (window.EndTicks <= span.StartTicks || window.StartTicks >= span.EndTicks)
+        {
+            yield return window;
+            yield break;
+        }
+        if (window.StartTicks < span.StartTicks)
+        {
+            yield return new TimeWindow(window.StartTicks, span.StartTicks);
+        }
+        if (window.EndTicks > span.EndTicks)
+        {
+            yield return new TimeWindow(span.EndTicks, window.EndTicks);
+        }
+    }
 }

@@ -20,7 +20,7 @@ public static class SectionScriptPromptBuilder
     /// variations/allowed section kinds -- never the full per-layer JSON (architecture §2's reasoning-tax
     /// argument: the Choreographer is picking among already-designed Looks, not re-deriving their layers).
     /// </summary>
-    public static string BuildStablePrefix(ShowBibleContent bible, DirectorKnowledgeContext knowledge, string style)
+    public static string BuildStablePrefix(ShowBibleContent bible, DirectorKnowledgeContext knowledge, string style, bool enableSectionTimelines = false)
     {
         ArgumentNullException.ThrowIfNull(bible);
         ArgumentNullException.ThrowIfNull(knowledge);
@@ -38,7 +38,17 @@ public static class SectionScriptPromptBuilder
         sb.AppendLine($"Palette discipline: {preset.PaletteDiscipline.MinActiveSlots}-{preset.PaletteDiscipline.MaxActiveSlots} active slots. Density target: {preset.Density.MinChangeRatePerSecond:0.##}-{preset.Density.MaxChangeRatePerSecond:0.##} changes/second.");
         sb.AppendLine();
 
-        AppendContrastDrivenEmphasisGuidance(sb);
+        if (enableSectionTimelines)
+        {
+            sb.AppendLine("## Holds, accents and takeovers");
+            sb.AppendLine("At a beat or other emphasis, choose freely: continue a hold unchanged, add a short independent accent on unheld models, or explicitly take over a held target. A bright hold through several hits is valid; a hit need not change the display. Expand groups mentally: an independent accent may not touch even one held member.");
+            sb.AppendLine("For back-to-back bright accents, create strong dim-before-bright contrast. Before Full, dim the whole display except running holds; before Bright, dim only that accent's targets. Holds and takeovers last for their full declared span; choose a measured effect appropriate for the intensity. Off leaves the span dark.");
+            sb.AppendLine();
+        }
+        else
+        {
+            AppendContrastDrivenEmphasisGuidance(sb);
+        }
 
         sb.AppendLine("## Show Bible Look library");
         sb.AppendLine("Pick LookId from exactly these (id: intent, energyCeiling, motion, subject, paletteRef, allowed section kinds, variations):");
@@ -180,7 +190,8 @@ public static class SectionScriptPromptBuilder
         string? customPrompt = null, IReadOnlyList<TimedCue>? timedCues = null, IReadOnlyList<XlightsAI.Studio.Melody.NoteEvent>? salientVocalNotes = null,
         IReadOnlyList<XlightsAI.Studio.Rhythm.TransientHit>? transientHits = null, bool enableSectionTimelines = false,
         IReadOnlyList<XlightsAI.Studio.Rhythm.LeadInstrumentWindow>? leadInstrumentWindows = null,
-        IReadOnlyList<MelodicContourSample>? melodicCurve = null, IReadOnlyList<SectionBandCurveSample>? bandCurve = null)
+        IReadOnlyList<MelodicContourSample>? melodicCurve = null, IReadOnlyList<SectionBandCurveSample>? bandCurve = null,
+        SectionTimingCatalog? timingCatalog = null)
     {
         ArgumentNullException.ThrowIfNull(section);
         ArgumentNullException.ThrowIfNull(context);
@@ -217,7 +228,7 @@ public static class SectionScriptPromptBuilder
 
         if (enableSectionTimelines)
         {
-            AppendTimingMarks(sb, context, phrases, transientHits, salientVocalNotes, leadInstrumentWindows);
+            AppendTimingMarks(sb, timingCatalog ?? SectionTimingCatalog.Build(context, phrases, transientHits, salientVocalNotes, leadInstrumentWindows));
             AppendLeadInstrumentWindowLine(sb, context, leadInstrumentWindows);
             AppendMelodicCurveLines(sb, melodicCurve);
             AppendBandCurveLines(sb, bandCurve);
@@ -245,7 +256,7 @@ public static class SectionScriptPromptBuilder
         sb.AppendLine("Respond with a single JSON object: {\"sectionId\":\"...\",\"lookId\":\"...\",\"variation\":null,\"propBindings\":[{\"layerZ\":1,\"props\":\"...\",\"annotation\":null}],\"phraseVariations\":null,\"fillerEffects\":[\"On\",\"Bars\",\"SingleStrand\",\"Color Wash\",\"Twinkle\",\"Shockwave\"],\"fillerEffectsByRole\":null}.");
         if (enableSectionTimelines)
         {
-            sb.AppendLine("Build-plan Phase 28a: this response MAY ALSO include an optional \"cues\" field alongside the shape above -- a JSON array of {\"anchorId\":\"transient-2\",\"props\":\"...\",\"effect\":\"...\",\"intensity\":\"Off|Dim|Bright|Full\",\"role\":\"subject|support|secondary|foundation\",\"holdUntilAnchorId\":null,\"handoffFromProps\":null,\"annotation\":null} entries, each anchorId one of the EXACT real timing-mark ids listed under \"Real timing marks\" above -- never an invented one. The shape above with no \"cues\" key at all remains fully valid; omit it entirely unless you have a real, timed, model-level decision to express that a single lookId/propBindings choice cannot.");
+            sb.AppendLine("Optional \"cues\": [{\"kind\":\"hold|accent|takeover\",\"anchorId\":\"transient-2\",\"props\":\"...\",\"targets\":null,\"effect\":\"...\",\"intensity\":\"Off|Dim|Bright|Full\",\"role\":\"subject|support|secondary|foundation\",\"holdUntilAnchorId\":null,\"handoffFromProps\":null,\"annotation\":null}]. Use props for one model/group or targets for a list of real models/groups instead. Bound accents with the next intended end mark; use ordered members one at a time for a chase. Consider a matrix or canvas group for a continuous sweep, or several targets at a major shift without requiring a dominant hold. A takeover ends the running hold on its targets or HandoffFromProps. Omitted kind means accent.");
             sb.AppendLine("Build-plan Phase 28b.1: if you DO declare cues, do not put every one of them on the same single Props value -- see \"Minimum real Props breadth for this section\" above for the exact real count your cues plus this Look's own base layers must together reach.");
         }
         sb.AppendLine("Only choose a lookId whose declared section kinds include this section's Kind (or declares none, meaning unrestricted).");
@@ -265,22 +276,33 @@ public static class SectionScriptPromptBuilder
     /// when no real marks resolve beyond the always-available <see cref="Choreography.SectionTimingMarks.SectionStartAnchorId"/>
     /// anchor alone (never an invented mark).
     /// </summary>
-    private static void AppendTimingMarks(
-        StringBuilder sb, SectionMusicContext context, IReadOnlyList<PhraseCandidate>? phrases,
-        IReadOnlyList<XlightsAI.Studio.Rhythm.TransientHit>? transientHits, IReadOnlyList<XlightsAI.Studio.Melody.NoteEvent>? vocalNotes,
-        IReadOnlyList<XlightsAI.Studio.Rhythm.LeadInstrumentWindow>? leadInstrumentWindows)
+    private static void AppendTimingMarks(StringBuilder sb, SectionTimingCatalog catalog)
     {
-        var marks = Choreography.SectionTimingMarks.Resolve(context, phrases, transientHits, vocalNotes, leadInstrumentWindows);
-        if (marks.Count <= 1)
-        {
-            return; // Only the always-available SectionStart anchor -- nothing real to enumerate.
-        }
-
         sb.AppendLine();
         sb.AppendLine("## Real timing marks in this section (use these exact AnchorId values -- never invent a timestamp)");
-        foreach (var (id, ticks) in marks.OrderBy(kv => kv.Value, Comparer<long>.Default).ThenBy(kv => kv.Key, StringComparer.Ordinal))
+        var pairedIds = catalog.Sustains.SelectMany(s => new[] { s.StartId, s.EndId, s.ShortStartId, s.ShortEndId })
+            .OfType<string>().ToHashSet(StringComparer.Ordinal);
+        foreach (var (id, ticks) in catalog.Marks.Where(m => !pairedIds.Contains(m.Key)).OrderBy(kv => kv.Value).ThenBy(kv => kv.Key, StringComparer.Ordinal))
         {
             sb.AppendLine($"- {id} @ {FormatTimestamp(ticks)}");
+        }
+        if (catalog.Sustains.Count > 0)
+        {
+            sb.AppendLine("On these spans, keep the background steady instead of restarting it on every beat. A foreground hold is optional. If you choose one, set kind=hold and copy the paired IDs exactly into anchorId and holdUntilAnchorId.");
+        }
+        foreach (var span in catalog.Sustains)
+        {
+            var note = span.Note;
+            sb.Append($"- Sustain {span.ShortStartId ?? span.StartId} to {span.ShortEndId ?? span.EndId}: {note.StartTicks / (double)TicksPerSecond:0.000}s–{note.EndTicks / (double)TicksPerSecond:0.000}s, {(note.EndTicks - note.StartTicks) / (double)TicksPerSecond:0.000}s, strength {note.Velocity:0.00}");
+            if (span.EstimatedWord is { } word)
+            {
+                sb.Append($", estimated word: {word}");
+            }
+            if (span.ConcurrentHits.Count > 0)
+            {
+                sb.Append($", concurrent hits: {string.Join(", ", span.ConcurrentHits)}");
+            }
+            sb.AppendLine();
         }
     }
 

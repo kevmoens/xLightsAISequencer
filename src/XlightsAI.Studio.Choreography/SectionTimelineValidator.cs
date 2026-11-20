@@ -22,7 +22,6 @@ namespace XlightsAI.Studio.Choreography;
 /// </summary>
 public static class SectionTimelineValidator
 {
-    private const string RuleContrast = "section-timeline-contrast";
     private const string RuleConcurrency = "section-timeline-concurrency";
     private const string RuleUnknownAnchor = "section-timeline-unknown-anchor";
     private const string RuleUnknownEffect = "section-timeline-unknown-effect";
@@ -48,7 +47,8 @@ public static class SectionTimelineValidator
         SectionTimeline timeline, LookLibrary lookLibrary, DisplayGraph layout, SectionMusicContext context,
         IReadOnlyList<PhraseCandidate>? phrases = null, IReadOnlyList<TransientHit>? transientHits = null,
         IReadOnlyList<NoteEvent>? vocalNotes = null, IReadOnlyList<LeadInstrumentWindow>? leadInstrumentWindows = null,
-        EffectVocabularyCatalog? vocabulary = null)
+        EffectVocabularyCatalog? vocabulary = null, EffectVisualCharacterCatalog? brightnessCatalog = null,
+        SectionTimingCatalog? catalog = null)
     {
         ArgumentNullException.ThrowIfNull(timeline);
         ArgumentNullException.ThrowIfNull(lookLibrary);
@@ -69,14 +69,24 @@ public static class SectionTimelineValidator
             return errors;
         }
 
-        var marks = SectionTimingMarks.Resolve(context, phrases, transientHits, vocalNotes, leadInstrumentWindows);
+        var marks = (catalog ?? SectionTimingCatalog.Build(context, phrases, transientHits, vocalNotes, leadInstrumentWindows)).Marks;
 
         foreach (var cue in timeline.CuesOrEmpty)
         {
-            if (!marks.ContainsKey(cue.AnchorId))
+            if (string.IsNullOrWhiteSpace(cue.AnchorId) || !marks.ContainsKey(cue.AnchorId))
             {
                 errors.Add(new SectionScriptValidationError(RuleUnknownAnchor,
                     $"SectionTimeline for section '{timeline.SectionId}' cue on Props '{cue.Props}' names AnchorId '{cue.AnchorId}', which is not one of the real timing marks offered for this section."));
+            }
+            else if (marks[cue.AnchorId] < context.Window.StartTicks || marks[cue.AnchorId] >= context.Window.EndTicks)
+            {
+                errors.Add(new SectionScriptValidationError("section-timeline-cue", $"Cue '{cue.AnchorId}' must start inside its owning section."));
+            }
+
+            if (cue.Kind is not (CueKind.Hold or CueKind.Accent or CueKind.Takeover) ||
+                cue.Intensity is not (IntensityTier.Off or IntensityTier.Dim or IntensityTier.Bright or IntensityTier.Full))
+            {
+                errors.Add(new SectionScriptValidationError("section-timeline-cue", $"Cue '{cue.AnchorId}' must use a supported kind and intensity."));
             }
 
             if (cue.HoldUntilAnchorId is { Length: > 0 } holdId && !marks.ContainsKey(holdId))
@@ -84,40 +94,55 @@ public static class SectionTimelineValidator
                 errors.Add(new SectionScriptValidationError(RuleUnknownAnchor,
                     $"SectionTimeline for section '{timeline.SectionId}' cue on Props '{cue.Props}' names HoldUntilAnchorId '{holdId}', which is not one of the real timing marks offered for this section."));
             }
+            else if (cue.HoldUntilAnchorId is { Length: > 0 } endId && !string.IsNullOrWhiteSpace(cue.AnchorId) &&
+                marks.TryGetValue(cue.AnchorId, out var anchor) && marks[endId] <= anchor)
+            {
+                errors.Add(new SectionScriptValidationError("section-timeline-cue", $"Cue '{cue.AnchorId}' must end after it starts."));
+            }
+
+            if (cue.TargetReferences.Any(p => LookCompiler.TryResolveModels(p, layout).Count == 0) ||
+                (cue.HandoffFromProps is { Length: > 0 } from && LookCompiler.TryResolveModels(from, layout).Count == 0))
+            {
+                errors.Add(new SectionScriptValidationError("section-timeline-target", $"Cue '{cue.AnchorId}' must name real targets for Props and HandoffFromProps."));
+            }
 
             if (vocabulary is not null && !vocabulary.Effects.ContainsKey(cue.Effect))
             {
                 errors.Add(new SectionScriptValidationError(RuleUnknownEffect,
                     $"SectionTimeline for section '{timeline.SectionId}' cue on Props '{cue.Props}' declares Effect '{cue.Effect}', which is not a real effect in the supplied vocabulary -- Effect must name an actual xLights effect, never an Intensity tier (Off/Dim/Bright/Full) or other value."));
             }
-        }
-
-        var resolvableCues = timeline.CuesOrEmpty.Where(c => marks.ContainsKey(c.AnchorId)).ToList();
-        foreach (var group in resolvableCues.GroupBy(c => c.Props, StringComparer.Ordinal))
-        {
-            var ordered = group.OrderBy(c => marks[c.AnchorId]).ToList();
-            for (var i = 1; i < ordered.Count; i++)
+            if (brightnessCatalog?.Find(cue.Effect) is { } visual &&
+                ((cue.Intensity == IntensityTier.Dim && visual.BrightnessTier == BrightnessTier.Bright) ||
+                 (cue.Intensity is IntensityTier.Bright or IntensityTier.Full && visual.BrightnessTier != BrightnessTier.Bright)))
             {
-                var previous = ordered[i - 1];
-                var current = ordered[i];
-                if (!IntensityTierMapping.IsBrightTier(current.Intensity) || !IntensityTierMapping.IsBrightTier(previous.Intensity))
-                {
-                    continue;
-                }
-
-                var isDeliberateHandoff = current.HandoffFromProps is { Length: > 0 } handoffFrom &&
-                    !string.Equals(handoffFrom, current.Props, StringComparison.Ordinal) &&
-                    WasAlreadyBright(resolvableCues, handoffFrom, marks[current.AnchorId], marks);
-
-                if (!isDeliberateHandoff)
-                {
-                    errors.Add(new SectionScriptValidationError(RuleContrast,
-                        $"SectionTimeline for section '{timeline.SectionId}': cue on Props '{current.Props}' at anchor '{current.AnchorId}' (Intensity={current.Intensity}) immediately follows another cue on the SAME Props at anchor '{previous.AnchorId}' (Intensity={previous.Intensity}) with no real dim-before-bright contrast, and no HandoffFromProps naming an already-bright different prop -- a Bright/Full cue must be preceded by Off/Dim on its own Props, or declare a deliberate handoff."));
-                }
+                errors.Add(new SectionScriptValidationError("section-timeline-intensity",
+                    $"Cue '{cue.AnchorId}' declares {cue.Intensity}, but '{cue.Effect}' is catalogued as {visual.BrightnessTier}. Choose a matching effect."));
             }
         }
 
-        var distinctProps = timeline.CuesOrEmpty.Select(c => c.Props)
+        var windows = SectionCueWindow.Resolve(timeline, marks, context.Window, layout);
+        var holds = windows.Where(w => w.IsHeld).ToArray();
+        foreach (var window in windows)
+        {
+            if (window.Cue.Kind == CueKind.Accent && holds.Any(hold => window.OverlapsHeld(hold, windows)))
+            {
+                errors.Add(new SectionScriptValidationError("section-timeline-held-target",
+                    $"Accent '{window.Cue.AnchorId}' overlaps a running hold on '{window.Cue.Props}' (including group members). Choose independent targets or declare a takeover."));
+            }
+            if (window.Cue.Kind == CueKind.Takeover && !window.ReplacesRunningHold(windows.Where(w => !ReferenceEquals(w, window)).ToArray()) &&
+                catalog?.Sustains.Any(s => s.Note.StartTicks < context.Window.StartTicks && s.Note.EndTicks > window.Window.StartTicks) != true)
+            {
+                errors.Add(new SectionScriptValidationError("section-timeline-takeover",
+                    $"Takeover '{window.Cue.AnchorId}' does not replace a running hold."));
+            }
+            if (window.Cue.Kind == CueKind.Hold && window.IsHeld && holds.Any(hold => hold.Index < window.Index && window.OverlapsHeld(hold, windows)))
+            {
+                errors.Add(new SectionScriptValidationError("section-timeline-held-target",
+                    $"Hold '{window.Cue.AnchorId}' overlaps an already held model."));
+            }
+        }
+
+        var distinctProps = timeline.CuesOrEmpty.SelectMany(c => c.TargetReferences)
             .Concat(look.Layers.Select(l => l.Props))
             .Distinct(StringComparer.Ordinal)
             .Count();
@@ -131,8 +156,4 @@ public static class SectionTimelineValidator
         return errors;
     }
 
-    private static bool WasAlreadyBright(IReadOnlyList<SectionCue> cues, string props, long atOrBeforeTick, IReadOnlyDictionary<string, long> marks) =>
-        cues.Where(c => string.Equals(c.Props, props, StringComparison.Ordinal) && marks.TryGetValue(c.AnchorId, out var t) && t <= atOrBeforeTick)
-            .OrderByDescending(c => marks[c.AnchorId])
-            .FirstOrDefault() is { } latest && IntensityTierMapping.IsBrightTier(latest.Intensity);
 }

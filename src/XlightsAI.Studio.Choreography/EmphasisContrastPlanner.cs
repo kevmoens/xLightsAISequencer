@@ -100,6 +100,56 @@ public sealed record EmphasisContrastReport(
 /// </summary>
 public static class EmphasisContrastPlanner
 {
+    internal static ChoreographyIR ApplyTimelineContrast(
+        ChoreographyIR ir, IReadOnlyList<SectionCueWindow> cues, SectionMusicContext section,
+        DisplayGraph layout, LookCompilerSettings settings, EffectVisualCharacterCatalog catalog,
+        IReadOnlyList<SectionCueWindow> program)
+    {
+        var dim = SelectDimOrOffEffectName(BrightnessTier.Dim, catalog, settings.RecipeCatalog);
+        if (dim is null)
+        {
+            return ir;
+        }
+
+        var holds = program.Where(c => c.IsHeld).ToArray();
+        var effects = ir.Effects.ToList();
+        var accentGroups = cues.Where(c => c.Cue.Kind == CueKind.Accent &&
+                !holds.Any(h => c.OverlapsHeld(h, program)))
+            .GroupBy(c => c.Window.StartTicks);
+        var previousBright = false;
+        foreach (var group in accentGroups)
+        {
+            var bright = group.Where(c => IntensityTierMapping.IsBrightTier(c.Cue.Intensity)).ToArray();
+            if (previousBright && bright.Length > 0)
+            {
+                var end = group.Key;
+                var beatTimes = section.BarGrid.Beats.Select(b => b.TimeTicks).ToArray();
+                var index = Array.FindLastIndex(beatTimes, t => t < end);
+                var beat = index >= 0 && index + 1 < beatTimes.Length
+                    ? Math.Max(1L, beatTimes[index + 1] - beatTimes[index])
+                    : FallbackBeatTicks;
+                var start = Math.Max(section.Window.StartTicks, end - (long)(beat * MinPreBeatBeats));
+                if (end - start >= FrameClock.FrameIntervalTicks)
+                {
+                    var protectedModels = holds.Where(h => h.Window.StartTicks < end)
+                        .SelectMany(h => h.Models.Where(m => h.HeldEnd(program, m) > start)).ToHashSet();
+                    var targets = (bright.Any(c => c.Cue.Intensity == IntensityTier.Full)
+                            ? layout.Models.Select(m => m.Id)
+                            : bright.SelectMany(c => c.Models))
+                        .Where(m => !protectedModels.Contains(m)).ToHashSet();
+                    effects = TimelineEffectMask.Remove(effects, layout, new TimeWindow(start, end), targets);
+                    var recipe = LookCompiler.RecipeIdFor(dim, settings.RecipeCatalog);
+                    foreach (var target in targets)
+                    {
+                        effects.Add(settings.RecipeRegistry.CreateVerified(recipe, target, start, end));
+                    }
+                }
+            }
+            previousBright = bright.Length > 0;
+        }
+        return ir with { Effects = effects };
+    }
+
     /// <summary>Build-plan Phase 22 §2a: the pre-beat window's own real bounds, in beats -- confirmed by the user as "the ~0.5-1 beat immediately before."</summary>
     public const double MinPreBeatBeats = 0.5;
 

@@ -26,7 +26,8 @@ public sealed record LayoutSummary(
     IReadOnlyList<LayoutSummaryEntry> Groups,
     IReadOnlyList<LayoutSummaryEntry> TopPixelHeavyModels,
     bool HasTreeOrMatrixModel = false,
-    bool HasMultiModelGroupWithKnownPositions = false)
+    bool HasMultiModelGroupWithKnownPositions = false,
+    IReadOnlyDictionary<string, IReadOnlyList<string>>? OrderedGroupMembers = null)
 {
     private const int HighResolutionNodeCountThreshold = 300;
     private const int TopModelCount = 8;
@@ -85,7 +86,12 @@ public sealed record LayoutSummary(
             g.Members.Count(m => m.Kind == DisplayGroupMemberKind.Model &&
                 modelsById.Values.FirstOrDefault(dm => dm.XlightsName == m.RawName) is { Bounds: not null }) >= MinMembersForMultiModelGroup);
 
-        return new LayoutSummary(layout.Models.Count, totalPixels, groups, topModels, hasTreeOrMatrixModel, hasMultiModelGroupWithKnownPositions);
+        var orderedGroupMembers = groups.ToDictionary(g => g.Reference, g =>
+            (IReadOnlyList<string>)Choreography.PropGroupResolver.OrderByPhysicalPosition(
+                Choreography.LookCompiler.TryResolveModels(g.Reference, layout), layout, true)
+                .Where(modelsById.ContainsKey).Select(id => modelsById[id].XlightsName).Take(12).ToArray());
+        return new LayoutSummary(layout.Models.Count, totalPixels, groups, topModels, hasTreeOrMatrixModel,
+            hasMultiModelGroupWithKnownPositions, orderedGroupMembers);
     }
 
     private static string Tier(long nodeCount) => nodeCount >= HighResolutionNodeCountThreshold ? "high-resolution" : "low-resolution";
@@ -129,6 +135,12 @@ public sealed record LayoutSummary(
         lines.AddRange(Groups.Select(e => FormatEntry(e, includeRelativePosition)));
         lines.Add("Top individually-addressable pixel-heavy models:");
         lines.AddRange(TopPixelHeavyModels.Select(e => FormatEntry(e, includeRelativePosition)));
+        if (includeRelativePosition && OrderedGroupMembers is { Count: > 0 })
+        {
+            lines.Add("Ordered group members for travel (left to right when positions are known):");
+            lines.AddRange(OrderedGroupMembers.Where(g => g.Value.Count > 1).Take(10)
+                .Select(g => $"- {g.Key}: {string.Join(" -> ", g.Value)}"));
+        }
         return string.Join('\n', lines);
     }
 

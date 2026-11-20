@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Contracts;
+using XlightsAI.Studio.Melody;
 using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
@@ -6,19 +7,7 @@ using XlightsAI.Studio.Xlights;
 namespace XlightsAI.Studio.Choreography.Tests;
 
 /// <summary>
-/// Build-plan Phase 28b bugfix: reproduces a real crash found against a real Carol of the Bells run --
-/// `AnchorId 'beat-25' is not one of the real timing marks offered for section window [...]`. Root cause
-/// (confirmed against that run's own real persisted <see cref="SectionScript.PhraseVariations"/> data,
-/// not a synthetic-only repro): a <see cref="SectionTimeline"/>'s own <see cref="SectionCue.AnchorId"/>
-/// is validated/offered against the section's own WHOLE real window (<c>BuildSectionPromptMaterial</c>,
-/// <see cref="SectionTimelineValidator"/>), but <see cref="ChoreographyEngine"/>'s phrase-scoped branch
-/// (<c>PhraseLookAssignmentsBySectionId</c>) compiles that same section as several NARROWER per-phrase
-/// windows -- applying the whole-section timeline's cues uniformly against a phrase window that does not
-/// contain an anchor valid for the whole section throws a hard <see cref="ChoreographyCompilationException"/>
-/// for an anchor the Choreographer never did anything wrong to name. Fixed by never consulting
-/// <see cref="ChoreographyEngine.Input.SectionTimelinesBySectionId"/> for a phrase-scoped sub-window call
-/// -- the exact same precedence <c>PhraseLookAssignmentsBySectionId</c> already has over
-/// <c>LookIdBySectionId</c> itself now also applies to <c>SectionTimelinesBySectionId</c>.
+/// Regression for section-wide anchors in a section with multiple phrase-specific base looks.
 /// </summary>
 public sealed class SectionTimelinePhraseScopedBugfixTests
 {
@@ -57,18 +46,115 @@ public sealed class SectionTimelinePhraseScopedBugfixTests
         Guid.NewGuid(), songId, "hash", Guid.NewGuid(), Guid.NewGuid(), null, "t/1",
         new PhraseSegmentationSettings(4, 1, 0, "t/1"), []);
 
-    [Fact]
-    public void Compile_PhraseScopedSection_WithSectionTimelineCue_NeverThrows_CueIgnoredForEveryPhraseSubWindow()
+    [Theory]
+    [InlineData(39_925_696L, 4000, false)]
+    [InlineData(39_850_000L, 3975, true)]
+    public async Task Compile_VocalSustainDropsOnlyTailsWithNoExportFrame(long sustainEnd, int exportedEndMs, bool hasTail)
     {
-        if (!RealXLightsFixture.IsAvailable)
+        var layout = BuildLayout() with
         {
-            return;
-        }
+            Groups = [new DisplayModelGroup("Matrixes",
+                [new DisplayGroupMember("Tree", DisplayGroupMemberKind.Model), new DisplayGroupMember("Outline", DisplayGroupMemberKind.Model)])],
+        };
+        var grid = BuildBeatGrid();
+        var (sections, sectionId) = BuildSections(grid.SongId);
+        var settings = SectionTimelineCompilerTests.BuildPortableSettings();
+        var look = new Look("base", "Base", "Test", .5, "hold", "warm-gold", "group:Matrixes",
+            [new LookLayer(1, "group:Matrixes", "Twinkle", LookLayer.RoleSubject, null, "Normal", "Bars", 1)]);
+        var note = new NoteEvent(Guid.NewGuid(), TicksPerSecond, sustainEnd, 60, .8, .9, false);
+        var timeline = new SectionTimeline(sectionId, look.Id, Cues:
+        [
+            new("beat-3", "Outline", "On", IntensityTier.Full, LookLayer.RoleSupport),
+        ]);
+        var filler = new FillerPool(settings.RecipeCatalog.Recipes.Select(r => r.RecipeId).ToArray());
+        var result = ChoreographyEngine.Compile(new ChoreographyEngine.Input(
+            layout, grid, sections, BuildPhrases(grid.SongId), null, null, new LookLibrary([look]),
+            new Dictionary<Guid, string> { [sectionId] = look.Id },
+            new Dictionary<SectionKind, double>(), SongEndTicks, settings, SectionFillerSchedule.Flat(filler, SongEndTicks),
+            SectionTimelinesBySectionId: new Dictionary<Guid, SectionTimeline> { [sectionId] = timeline },
+            VocalNotes: [note]));
 
-        var (vocabulary, recipes) = RealXLightsFixture.BuildCatalogs();
-        var registry = new EffectRecipeRegistry(recipes);
-        var palettes = new Dictionary<string, ColorPaletteDefinition> { ["warm-gold"] = PaletteBuilder.Build(["#FFC880"]) };
-        var compilerSettings = new LookCompilerSettings(vocabulary, recipes, registry, palettes);
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xsq");
+        try
+        {
+            await new XsqExporter(settings.RecipeCatalog, settings.Vocabulary)
+                .ExportNewAsync(layout, result.IR.ToSequenceDocument(), path, "2026.03", CancellationToken.None);
+            var matrixEffects = Assert.Single(new XsqStructuralReader().Read(path).ElementEffects, e => e.Name == "Matrixes").Effects;
+            Assert.Contains(matrixEffects, e => e.StartTimeMs == 0 && e.EndTimeMs == exportedEndMs);
+            Assert.Equal(hasTail, matrixEffects.Any(e => e.StartTimeMs == exportedEndMs && e.EndTimeMs == 4000));
+            Assert.Contains(matrixEffects, e => e.StartTimeMs == 4000 && e.EndTimeMs == 6000);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public async Task Compile_SeamHoldProtectsMembersAndOffCueWithoutSuppressingOtherFillerInXsq()
+    {
+        var layout = BuildLayout() with
+        {
+            Groups = [new DisplayModelGroup("Front", [new DisplayGroupMember("Tree", DisplayGroupMemberKind.Model)])],
+        };
+        var grid = BuildBeatGrid();
+        var (sections, ownerId) = BuildSections(grid.SongId);
+        var neighbor = sections.Labels[0] with { Id = Guid.NewGuid(), StartBarIndex = 2 };
+        sections = sections with { Labels = [sections.Labels[0] with { EndBarIndexExclusive = 2 }, neighbor] };
+        var settings = SectionTimelineCompilerTests.BuildPortableSettings();
+        var look = new Look("base", "Base", "Test", .5, "hold", "warm-gold", "Tree",
+            [new LookLayer(1, "Tree", "On", LookLayer.RoleSubject, null, "Normal", "Bars", .9)]);
+        var neighborLook = look with
+        {
+            Id = "neighbor",
+            Subject = "Outline",
+            Layers = [look.Layers[0] with { Props = "Outline" }],
+        };
+        var note = new NoteEvent(Guid.NewGuid(), 2 * TicksPerSecond, 7 * TicksPerSecond, 60, .8, .9, false);
+        var owner = new SectionTimeline(ownerId, "base", Cues:
+        [
+            new($"sustain-{note.Id:N}-start", "group:Front", "On", IntensityTier.Full, LookLayer.RoleSubject,
+                $"sustain-{note.Id:N}-end", Kind: CueKind.Hold),
+            new("section-start", "Outline", "On", IntensityTier.Off, LookLayer.RoleSupport, $"sustain-{note.Id:N}-start"),
+        ]);
+        var conflict = new SectionTimeline(neighbor.Id, "neighbor", Cues:
+        [
+            new("section-start", "Tree", "Twinkle", IntensityTier.Dim, LookLayer.RoleSubject, Kind: CueKind.Hold),
+        ]);
+        var filler = new FillerPool(settings.RecipeCatalog.Recipes.Select(r => r.RecipeId).ToArray());
+        var result = ChoreographyEngine.Compile(new ChoreographyEngine.Input(
+            layout, grid, sections, BuildPhrases(grid.SongId), null, null, new LookLibrary([look, neighborLook]),
+            new Dictionary<Guid, string> { [ownerId] = "base", [neighbor.Id] = "neighbor" },
+            new Dictionary<SectionKind, double>(), SongEndTicks, settings, SectionFillerSchedule.Flat(filler, SongEndTicks),
+            SectionTimelinesBySectionId: new Dictionary<Guid, SectionTimeline> { [ownerId] = owner, [neighbor.Id] = conflict },
+            VocalNotes: [note]));
+        Assert.Contains(result.Violations, v => v.Rule == "section-timeline-ownership" && v.AffectedSectionId == neighbor.Id.ToString());
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xsq");
+        try
+        {
+            await new XsqExporter(settings.RecipeCatalog, settings.Vocabulary)
+                .ExportNewAsync(layout, result.IR.ToSequenceDocument(), path, "2026.03", CancellationToken.None);
+            var xsq = new XsqStructuralReader().Read(path);
+            var hold = Assert.Single(Assert.Single(xsq.ElementEffects, e => e.Name == "Front").Effects,
+                effect => effect.StartTimeMs < 7000 && effect.EndTimeMs > 2000);
+            Assert.Equal((2000, 7000), (hold.StartTimeMs, hold.EndTimeMs));
+            Assert.DoesNotContain(xsq.ElementEffects.Where(e => e.Name == "Tree").SelectMany(e => e.Effects),
+                effect => effect.StartTimeMs < 7000 && effect.EndTimeMs > 2000);
+            var outline = Assert.Single(xsq.ElementEffects, e => e.Name == "Outline").Effects;
+            Assert.DoesNotContain(outline, effect => effect.StartTimeMs < 2000);
+            Assert.Contains(outline, effect => effect.StartTimeMs == 2000);
+            Assert.Contains(outline, effect => effect.EndTimeMs == 4000);
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    [Fact]
+    public void Compile_PhraseScopedSection_EmitsTheSectionTimelineCueExactlyOnce()
+    {
+        var compilerSettings = SectionTimelineCompilerTests.BuildPortableSettings();
 
         var layout = BuildLayout();
         var beatGrid = BuildBeatGrid();
@@ -97,25 +183,23 @@ public sealed class SectionTimelinePhraseScopedBugfixTests
         // phrase's own narrower mark set -- the exact real crash shape.
         var timeline = new SectionTimeline(sectionId, "full", Cues:
         [
-            new SectionCue("beat-3", "Tree", "On", IntensityTier.Full, LookLayer.RoleSubject),
+            new SectionCue("beat-3", "Tree", "On", IntensityTier.Full, LookLayer.RoleSubject, Annotation: "section-wide"),
         ]);
 
-        var fillerSchedule = SectionFillerSchedule.Flat(RealXLightsFixture.BuildFillerPool(recipes), SongEndTicks);
+        var fillerSchedule = SectionFillerSchedule.Flat(new FillerPool(
+            compilerSettings.RecipeCatalog.Recipes.Select(r => r.RecipeId).ToArray()), SongEndTicks);
 
         var input = new ChoreographyEngine.Input(
             layout, beatGrid, sections, phrases, BandEnergy: null, VocalActivity: null,
-            new LookLibrary([look]), LookIdBySectionId: new Dictionary<Guid, string>(),
+            new LookLibrary([look]), LookIdBySectionId: new Dictionary<Guid, string> { [sectionId] = "full" },
             EnergyCeilingByKind: new Dictionary<SectionKind, double> { [SectionKind.Verse] = 1.0 },
             SongEndTicks, compilerSettings, fillerSchedule,
             PhraseLookAssignmentsBySectionId: new Dictionary<Guid, IReadOnlyList<SectionPhraseLookAssignment>> { [sectionId] = phraseAssignments },
             SectionTimelinesBySectionId: new Dictionary<Guid, SectionTimeline> { [sectionId] = timeline });
 
-        // Must not throw ChoreographyCompilationException -- this is the real bug's own reproduction.
         var result = ChoreographyEngine.Compile(input);
-
-        // The cue must be genuinely ignored for this phrase-scoped section (not silently half-applied):
-        // no compiled effect anywhere carries this cue's own SourceAnnotation/intensity-driven override,
-        // confirming every phrase sub-window compiled via the plain LookCompiler path instead.
-        Assert.DoesNotContain(result.IR.Effects, e => e.SourceAnnotation is not null);
+        Assert.Equal(4 * TicksPerSecond, Assert.Single(result.IR.Effects, e => e.SourceAnnotation == "section-wide").StartTicks);
+        Assert.Contains(result.IR.Effects, e => e.Target.Value == "Outline" && e.StartTicks < 4 * TicksPerSecond);
+        Assert.Contains(result.IR.Effects, e => e.Target.Value == "Outline" && e.StartTicks >= 4 * TicksPerSecond);
     }
 }

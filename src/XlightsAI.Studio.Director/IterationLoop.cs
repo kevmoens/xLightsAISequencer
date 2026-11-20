@@ -60,6 +60,8 @@ public sealed class IterationLoop
     private readonly IReadOnlyDictionary<Guid, (long Start, long End)> _sectionWindowsById;
     private readonly int _totalDisplayPointCount;
     private readonly int _maxOutputTokens;
+    private readonly IReadOnlyDictionary<Guid, SectionTimelineAnchorContext>? _anchorContexts;
+    private readonly IDictionary<Guid, SectionTimeline>? _timelines;
 
     public IterationLoop(
         SectionScriptBatchGenerator batchGenerator,
@@ -74,7 +76,9 @@ public sealed class IterationLoop
         IReadOnlyDictionary<Guid, (long Start, long End)> sectionWindowsById,
         int totalDisplayPointCount,
         VisualCritic? visualCritic = null,
-        int maxOutputTokens = 4000)
+        int maxOutputTokens = 4000,
+        IReadOnlyDictionary<Guid, SectionTimelineAnchorContext>? anchorContexts = null,
+        IDictionary<Guid, SectionTimeline>? timelines = null)
     {
         _batchGenerator = batchGenerator ?? throw new ArgumentNullException(nameof(batchGenerator));
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
@@ -90,6 +94,8 @@ public sealed class IterationLoop
         _totalDisplayPointCount = totalDisplayPointCount;
         _visualCritic = visualCritic;
         _maxOutputTokens = maxOutputTokens;
+        _anchorContexts = anchorContexts;
+        _timelines = timelines;
     }
 
     /// <summary>
@@ -153,7 +159,8 @@ public sealed class IterationLoop
 
         var scripts = await TargetedSectionRegenerator.RegenerateAsync(
             _batchGenerator, _stablePrefix, previous.Scripts, directives, _volatileSuffixBySectionId,
-            songId, _bibleLooks, _layout, _vocabulary, _maxOutputTokens, ct).ConfigureAwait(false);
+            songId, _bibleLooks, _layout, _vocabulary, _maxOutputTokens, ct,
+            anchorContexts: _anchorContexts, timelines: _timelines).ConfigureAwait(false);
 
         var (compiled, export) = await _compileAndExportAsync(scripts).ConfigureAwait(false);
         var (report, numericFindings, visualCritiques, frames) = await MeasureAndCritiqueAsync(export, previous.Frames, ct).ConfigureAwait(false);

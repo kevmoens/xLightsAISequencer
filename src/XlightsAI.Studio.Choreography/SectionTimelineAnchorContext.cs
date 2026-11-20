@@ -15,4 +15,6 @@ public sealed record SectionTimelineAnchorContext(
     IReadOnlyList<PhraseCandidate>? Phrases = null,
     IReadOnlyList<TransientHit>? TransientHits = null,
     IReadOnlyList<NoteEvent>? VocalNotes = null,
-    IReadOnlyList<LeadInstrumentWindow>? LeadInstrumentWindows = null);
+    IReadOnlyList<LeadInstrumentWindow>? LeadInstrumentWindows = null,
+    XlightsAI.Studio.Knowledge.EffectVisualCharacterCatalog? BrightnessCatalog = null,
+    SectionTimingCatalog? Catalog = null);

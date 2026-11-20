@@ -12,8 +12,9 @@ namespace XlightsAI.Studio.Pipeline;
 public sealed record ExemplarRetrievalResult(IReadOnlyList<ExemplarEntry> Entries, bool IsFallback);
 
 /// <summary>PHASE-2b (build plan §2b.9; architecture §8b): the full set of retrievable exemplars plus cosine-similarity retrieval by query fingerprint. See <see cref="ExemplarIndexBuilder"/> for how this is built.</summary>
-public sealed record ExemplarIndex(DateTimeOffset GeneratedAtUtc, IReadOnlyList<ExemplarEntry> Entries)
+public sealed record ExemplarIndex(DateTimeOffset GeneratedAtUtc, IReadOnlyList<ExemplarEntry> Entries, int SchemaVersion = 0)
 {
+    public const int GestureSchemaVersion = 2;
     /// <summary>
     /// Build-plan Phase 16 §2a: filters to entries whose <see cref="ExemplarFingerprint.SectionKind"/>
     /// exactly matches <paramref name="query"/>'s first — a prior version of this method ranked the

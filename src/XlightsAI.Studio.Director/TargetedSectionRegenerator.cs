@@ -38,7 +38,9 @@ public static class TargetedSectionRegenerator
         EffectVocabularyCatalog vocabulary,
         int maxOutputTokens,
         CancellationToken ct,
-        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null)
+        IReadOnlyDictionary<Guid, int>? phraseCountBySectionId = null,
+        IReadOnlyDictionary<Guid, SectionTimelineAnchorContext>? anchorContexts = null,
+        IDictionary<Guid, SectionTimeline>? timelines = null)
     {
         ArgumentNullException.ThrowIfNull(batchGenerator);
         ArgumentException.ThrowIfNullOrWhiteSpace(stablePrefix);
@@ -82,7 +84,8 @@ public static class TargetedSectionRegenerator
             if (existingScripts.TryGetValue(sectionId, out var currentScript))
             {
                 var currentScriptJson = System.Text.Json.JsonSerializer.Serialize(
-                    currentScript, new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
+                    timelines?.TryGetValue(sectionId, out var timeline) == true ? (object)timeline : currentScript,
+                    new System.Text.Json.JsonSerializerOptions { WriteIndented = true });
                 directedSuffix += Environment.NewLine + Environment.NewLine +
                     "## This section's CURRENT content -- keep it as-is except for what the directive below specifically asks you to change" +
                     Environment.NewLine + currentScriptJson;
@@ -93,7 +96,8 @@ public static class TargetedSectionRegenerator
             items.Add(new SectionScriptBatchItem(sectionId, directedSuffix));
         }
 
-        var regenerated = await batchGenerator.GenerateAllAsync(stablePrefix, items, songId, lookLibrary, layout, vocabulary, maxOutputTokens, ct, phraseCountBySectionId).ConfigureAwait(false);
+        var regenerated = await batchGenerator.GenerateAllAsync(stablePrefix, items, songId, lookLibrary, layout, vocabulary,
+            maxOutputTokens, ct, phraseCountBySectionId, anchorContexts).ConfigureAwait(false);
 
         // Start from the untouched existing dictionary (same instances, never re-created) and overwrite
         // only the sections that actually regenerated successfully -- a section whose regeneration never
@@ -104,6 +108,17 @@ public static class TargetedSectionRegenerator
             if (report.Script is not null)
             {
                 merged[sectionId] = report.Script;
+                if (timelines is not null)
+                {
+                    if (report.Timeline is { Cues: not null } replacement)
+                    {
+                        timelines[sectionId] = replacement;
+                    }
+                    else if (timelines.TryGetValue(sectionId, out var previous))
+                    {
+                        timelines[sectionId] = SectionTimeline.FromSectionScript(report.Script) with { Cues = previous.Cues };
+                    }
+                }
             }
         }
 

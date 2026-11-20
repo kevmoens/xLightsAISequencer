@@ -1,4 +1,5 @@
 using XlightsAI.Studio.Melody;
+using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Rhythm;
 using XlightsAI.Studio.Structure;
 using XlightsAI.Studio.Xlights;
@@ -45,7 +46,8 @@ public static class SectionTimelineCompiler
     public static ChoreographyIR Compile(
         Look look, SectionTimeline timeline, SectionMusicContext context, DisplayGraph layout, LookCompilerSettings settings,
         IReadOnlyList<PhraseCandidate>? phrases = null, IReadOnlyList<TransientHit>? transientHits = null,
-        IReadOnlyList<NoteEvent>? vocalNotes = null, IReadOnlyList<LeadInstrumentWindow>? leadInstrumentWindows = null)
+        IReadOnlyList<NoteEvent>? vocalNotes = null, IReadOnlyList<LeadInstrumentWindow>? leadInstrumentWindows = null,
+        EffectVisualCharacterCatalog? brightnessCatalog = null, SectionTimingCatalog? catalog = null)
     {
         ArgumentNullException.ThrowIfNull(look);
         ArgumentNullException.ThrowIfNull(timeline);
@@ -53,48 +55,57 @@ public static class SectionTimelineCompiler
         ArgumentNullException.ThrowIfNull(layout);
         ArgumentNullException.ThrowIfNull(settings);
 
-        // Base layer, unchanged -- the fallback for any Props/time window no cue touches.
-        var baseIr = LookCompiler.Compile(look, context, layout, settings);
-
         var cues = timeline.CuesOrEmpty;
         if (cues.Count == 0)
         {
-            return baseIr;
+            return LookCompiler.Compile(look, context, layout, settings);
         }
 
-        var marks = SectionTimingMarks.Resolve(context, phrases, transientHits, vocalNotes, leadInstrumentWindows);
-        long Resolve(string id) => ResolveAnchor(id, marks, context);
-
-        var sameProps = cues
-            .Select((cue, index) => (cue, index))
-            .GroupBy(x => x.cue.Props, StringComparer.Ordinal)
-            .ToDictionary(g => g.Key, g => g.OrderBy(x => Resolve(x.cue.AnchorId)).ToList(), StringComparer.Ordinal);
-
-        var overlayEffects = new List<EffectInstance>();
-        var baseLayerCount = look.Layers.Count;
-
-        for (var cueIndex = 0; cueIndex < cues.Count; cueIndex++)
+        var marks = (catalog ?? SectionTimingCatalog.Build(context, phrases, transientHits, vocalNotes, leadInstrumentWindows)).Marks;
+        foreach (var cue in cues)
         {
-            var cue = cues[cueIndex];
-            var start = Resolve(cue.AnchorId);
-
-            long end;
-            if (cue.HoldUntilAnchorId is { Length: > 0 } holdId)
+            _ = ResolveAnchor(cue.AnchorId, marks, context);
+            if (cue.HoldUntilAnchorId is { Length: > 0 } id)
             {
-                end = Resolve(holdId);
+                _ = ResolveAnchor(id, marks, context);
             }
-            else
-            {
-                var group = sameProps[cue.Props];
-                var position = group.FindIndex(x => x.index == cueIndex);
-                end = position >= 0 && position + 1 < group.Count
-                    ? Resolve(group[position + 1].cue.AnchorId)
-                    : context.Window.EndTicks;
-            }
+        }
+        var resolved = SectionCueWindow.Resolve(timeline, marks, context.Window, layout);
+        return CompileResolved(LookCompiler.Compile(look, context, layout, settings), context, layout,
+            settings, resolved, resolved, brightnessCatalog);
+    }
 
-            end = Math.Clamp(end, context.Window.StartTicks, context.Window.EndTicks);
-            start = Math.Clamp(start, context.Window.StartTicks, context.Window.EndTicks);
+    internal static ChoreographyIR CompileResolved(
+        ChoreographyIR baseIr, SectionMusicContext context, DisplayGraph layout, LookCompilerSettings settings,
+        IReadOnlyList<SectionCueWindow> resolved, IReadOnlyList<SectionCueWindow> program,
+        EffectVisualCharacterCatalog? brightnessCatalog)
+    {
+        var holds = program.Where(c => c.IsHeld).ToArray();
+        var cueLayerCount = program.Select(c => c.Index + 1).DefaultIfEmpty().Max();
+        // Smaller layer numbers render above the base. Reserve a separate band to prevent XSQ export from shifting a cue.
+        var firstBaseLayer = baseIr.Effects.Select(e => e.Layer).DefaultIfEmpty(1).Min();
+        var baseLayerOffset = cueLayerCount == 0 ? 0 : cueLayerCount + Math.Max(0, 1 - firstBaseLayer);
+        var baseEffects = MaskProtectedBase(baseIr.Effects, layout, context.Window, program)
+            .Select(effect => effect with { Layer = effect.Layer + baseLayerOffset }).ToArray();
+        var palettes = baseIr.Palettes.ToList();
+        var overlayEffects = new List<EffectInstance>();
+
+        foreach (var placement in resolved)
+        {
+            var cue = placement.Cue;
+            var firstPlacement = overlayEffects.Count;
+            var start = placement.Window.StartTicks;
+            var end = placement.Window.EndTicks;
             if (end <= start)
+            {
+                continue;
+            }
+
+            if (cue.Kind == CueKind.Accent && holds.Any(hold => placement.OverlapsHeld(hold, program)))
+            {
+                continue;
+            }
+            if (cue.Intensity == IntensityTier.Off)
             {
                 continue;
             }
@@ -102,24 +113,80 @@ public static class SectionTimelineCompiler
             if (!settings.RecipeCatalog.TryGet(LookCompiler.RecipeIdFor(cue.Effect, settings.RecipeCatalog), out var recipe))
             {
                 throw new ChoreographyCompilationException(
-                    $"SectionTimeline for section '{timeline.SectionId}' cue on Props '{cue.Props}' declares effect '{cue.Effect}', which no registered recipe produces.");
+                    $"Cue '{cue.AnchorId}' on Props '{cue.Props}' declares effect '{cue.Effect}', which no registered recipe produces.");
             }
 
             var parameters = new Dictionary<string, string>(recipe.CreateDefaultParameters(), StringComparer.Ordinal);
-            var duty = IntensityTierMapping.ResolveDuty(cue.Intensity);
+            // Mined gestures already describe the lit interval of a real placement.
+            var duty = cue.Kind == CueKind.Accent && !cue.IsMeasuredLitSpan
+                ? IntensityTierMapping.ResolveDuty(cue.Intensity) : 1;
 
-            if (cue.HandoffFromProps is { Length: > 0 } fromProps && !string.Equals(fromProps, cue.Props, StringComparison.Ordinal))
+            if (cue.Targets is not { Count: > 0 } && cue.Kind == CueKind.Accent && cue.HandoffFromProps is { Length: > 0 } fromProps &&
+                !string.Equals(fromProps, cue.Props, StringComparison.Ordinal))
             {
-                EmitHandoffPair(cue, fromProps, start, end, duty, parameters, layout, settings, baseLayerCount + cueIndex, overlayEffects);
+                EmitHandoffPair(cue, fromProps, start, end, duty, parameters, layout, settings, placement.Index + 1, overlayEffects);
             }
             else
             {
-                EmitSingle(cue, cue.Props, start, end, duty, parameters, layout, settings, baseLayerCount + cueIndex, overlayEffects);
+                var placedMembers = new HashSet<ModelId>();
+                foreach (var target in cue.TargetReferences)
+                {
+                    var members = LookCompiler.TryResolveModels(target, layout);
+                    var ends = members.Select(m => placement.IsHeld ? placement.HeldEnd(program, m) : end).Distinct().ToArray();
+                    if (ends.Length > 1 || members.Any(placedMembers.Contains))
+                    {
+                        foreach (var member in members.Where(placedMembers.Add))
+                        {
+                            var memberEnd = placement.IsHeld ? placement.HeldEnd(program, member) : end;
+                            EmitAt(cue, member, start, memberEnd, duty, parameters, settings, placement.Index + 1, overlayEffects);
+                        }
+                    }
+                    else
+                    {
+                        placedMembers.UnionWith(members);
+                        EmitSingle(cue, target, start, ends.FirstOrDefault(end), duty, parameters, layout, settings, placement.Index + 1, overlayEffects);
+                    }
+                }
+            }
+            if (cue.PaletteSlot is { } slot && settings.PaletteLibrary.TryGetValue(slot, out var palette))
+            {
+                var index = palettes.IndexOf(palette);
+                if (index < 0)
+                {
+                    index = palettes.Count;
+                    palettes.Add(palette);
+                }
+                for (var i = firstPlacement; i < overlayEffects.Count; i++)
+                {
+                    overlayEffects[i] = overlayEffects[i] with { PaletteIndex = index };
+                }
             }
         }
 
-        return baseIr with { Effects = [.. baseIr.Effects, .. overlayEffects] };
+        var compiled = baseIr with { Effects = [.. baseEffects, .. overlayEffects], Palettes = palettes };
+        return brightnessCatalog is null ? compiled : EmphasisContrastPlanner.ApplyTimelineContrast(
+            compiled, resolved, context, layout, settings, brightnessCatalog, program);
     }
+
+    internal static List<EffectInstance> MaskProtectedBase(
+        IReadOnlyList<EffectInstance> baseEffects, DisplayGraph layout, TimeWindow section, IReadOnlyList<SectionCueWindow> program)
+    {
+        var result = baseEffects.ToList();
+        foreach (var (window, models) in ProtectedWindows(program))
+        {
+            if (window.StartTicks < section.EndTicks && window.EndTicks > section.StartTicks)
+            {
+                result = TimelineEffectMask.Remove(result, layout, window, models);
+            }
+        }
+        return result;
+    }
+
+    internal static IEnumerable<(TimeWindow Window, IReadOnlySet<ModelId> Models)> ProtectedWindows(
+        IReadOnlyList<SectionCueWindow> program) =>
+        program.Where(c => c.IsHeld || c.Cue.Intensity == IntensityTier.Off)
+            .SelectMany(c => c.Models.GroupBy(m => c.IsHeld ? c.HeldEnd(program, m) : c.Window.EndTicks)
+                .Select(g => (new TimeWindow(c.Window.StartTicks, g.Key), (IReadOnlySet<ModelId>)g.ToHashSet())));
 
     /// <summary>Build-plan Phase 28a §5 item 4: a real two-prop stagger between <paramref name="fromProps"/> (handing off) and <paramref name="cue"/>'s own Props (receiving), anchored to this cue's own resolved <paramref name="start"/> tick -- a genuine timed handoff, never two independent effects that happen to be adjacent.</summary>
     private static void EmitHandoffPair(
@@ -173,7 +240,8 @@ public static class SectionTimelineCompiler
 
         var effect = settings.RecipeRegistry.CreateVerified(LookCompiler.RecipeIdFor(cue.Effect, settings.RecipeCatalog), target, start, litEnd)
             with
-        { Layer = layerZ, Parameters = new Dictionary<string, string>(parameters, StringComparer.Ordinal), PaletteIndex = 0, SourceAnnotation = cue.Annotation };
+        { Layer = layerZ, Parameters = new Dictionary<string, string>(parameters, StringComparer.Ordinal), PaletteIndex = 0,
+            SourceAnnotation = cue.Annotation, CueTraceId = cue.TraceId };
         overlayEffects.Add(effect);
     }
 

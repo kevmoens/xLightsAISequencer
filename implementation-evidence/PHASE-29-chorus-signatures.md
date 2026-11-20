@@ -1,0 +1,3 @@
+# Phase 29.3 — Chorus signatures
+
+**PASS — deterministic planning and final scripted XSQ.** Confident motif links between choruses share a target, effect, palette, and section-start anchor. The planner alternates the accent intensity, and unrelated same-label sections stay independent. The fixture changes the return's base Look and palette but verifies the shared cue palette in the exported XSQ. When an eligible exemplar supplies the signature, both choruses retain the two retimed roles and the return adds a supporting echo. The same family decision survives a targeted repair. Human recognizability remains a separate blocked gate.

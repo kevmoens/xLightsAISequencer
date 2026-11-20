@@ -55,7 +55,8 @@ public sealed record EffectInstance(
     string BlendMode = "Normal",
     IReadOnlyList<EffectTransition>? Transitions = null,
     IReadOnlyList<EffectValueCurve>? ValueCurves = null,
-    string? SourceAnnotation = null)
+    string? SourceAnnotation = null,
+    string? CueTraceId = null)
 {
     public IReadOnlyList<EffectTransition> TransitionsOrEmpty => Transitions ?? [];
 

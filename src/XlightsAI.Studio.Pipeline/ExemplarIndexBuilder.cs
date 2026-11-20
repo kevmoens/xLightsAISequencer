@@ -47,7 +47,7 @@ public static class ExemplarIndexBuilder
             }
 
             var energyValues = bars.Select(b => b.Features.Count > 0 ? b.Features[0] : 0.0).ToList();
-            var tempoBpm = song.BeatGrid.SelectedTempo?.Bpm ?? 0.0;
+            var axis = new ExemplarBeatAxis(song.BeatGrid.Beats.Select(b => b.TimeTicks));
 
             foreach (var phrase in song.Phrases.Phrases)
             {
@@ -61,10 +61,16 @@ public static class ExemplarIndexBuilder
                 var percentile = PercentileRank(energyValues, meanEnergy);
                 var sectionKind = MajoritySectionKind(song.Labels, phrase.StartBarIndex, phrase.EndBarIndexExclusive);
 
+                var start = phrase.StartTicks;
+                var end = phrase.EndTicks;
                 var effects = song.AlignedEffects
-                    .Where(a => a.StartBarIndex >= phrase.StartBarIndex && a.StartBarIndex < phrase.EndBarIndexExclusive)
-                    .OrderBy(a => a.Effect.StartTimeMs)
+                    .Where(a => Ticks(a.Effect.StartTimeMs) < end && Ticks(a.Effect.EndTimeMs) > start)
+                    .OrderBy(a => a.Effect.StartTimeMs).ThenBy(a => a.Effect.ModelName, StringComparer.Ordinal)
+                    .ThenBy(a => a.Effect.LayerIndex).ThenBy(a => a.Effect.EndTimeMs).ThenBy(a => a.Effect.EffectName, StringComparer.Ordinal)
                     .ToList();
+                var tempoBpm = axis.IsUsable && end > start
+                    ? (axis.BeatAt(end) - axis.BeatAt(start)) * TimeSpan.TicksPerMinute / (end - start)
+                    : song.BeatGrid.SelectedTempo?.Bpm ?? 0;
 
                 var fingerprint = new ExemplarFingerprint(
                     SongTitle: song.Entry.SongTitle,
@@ -76,13 +82,47 @@ public static class ExemplarIndexBuilder
                     SectionKind: sectionKind,
                     BandBalance: MeanBandBalance(song.BandEnergy, phrase.StartBarIndex, phrase.EndBarIndexExclusive, bars),
                     VocalActivityHint: VocalActivityWithinWindow(song.VocalActivity, phrase.StartBarIndex, phrase.EndBarIndexExclusive, bars),
-                    PeakConcurrentLayerCount: LayerComplexityAnalyzer.PeakConcurrentLayerCount(effects));
+                    PeakConcurrentLayerCount: LayerComplexityAnalyzer.PeakConcurrentLayerCount(effects.Select(a =>
+                        a with { Effect = a.Effect with
+                        {
+                            StartTimeMs = Math.Max(a.Effect.StartTimeMs, start / TimeSpan.TicksPerMillisecond),
+                            EndTimeMs = Math.Min(a.Effect.EndTimeMs, end / TimeSpan.TicksPerMillisecond),
+                        } }).ToArray()));
 
-                entries.Add(new ExemplarEntry(fingerprint, effects));
+                var key = $"{song.Entry.SequencePath.ToUpperInvariant()}|{phrase.StartBarIndex}|{phrase.EndBarIndexExclusive}";
+                var id = Convert.ToHexString(System.Security.Cryptography.SHA256.HashData(System.Text.Encoding.UTF8.GetBytes(key)))[..24];
+                entries.Add(new ExemplarEntry(fingerprint, effects, Id: id,
+                    Gestures: axis.IsUsable ? BuildGestures(effects, axis, start, end) : []));
             }
         }
 
-        return new ExemplarIndex(DateTimeOffset.UtcNow, entries);
+        return new ExemplarIndex(DateTimeOffset.UtcNow, entries, ExemplarIndex.GestureSchemaVersion);
+    }
+
+    private static long Ticks(long ms) => ms * TimeSpan.TicksPerMillisecond;
+
+    private static IReadOnlyList<ExemplarGesture> BuildGestures(
+        IReadOnlyList<AlignedEffectInstance> effects, ExemplarBeatAxis axis, long start, long end)
+    {
+        var origin = axis.BeatAt(start);
+        var windows = effects.Select((item, index) =>
+        {
+            var e = item.Effect;
+            var onset = axis.BeatAt(Math.Max(start, Ticks(e.StartTimeMs))) - origin;
+            var offset = axis.BeatAt(Math.Min(end, Ticks(e.EndTimeMs))) - origin;
+            var role = offset - onset >= 1.5 || Ticks(e.StartTimeMs) < start ? "foundation"
+                : e.LayerIndex == 0 ? "accent" : "support";
+            return (Id: $"g{index + 1}", Effect: e, Start: onset, End: offset, Role: role);
+        }).Where(x => x.End > x.Start).ToArray();
+        return windows.Select((w, index) =>
+        {
+            var next = windows.Skip(index + 1).FirstOrDefault(n => n.Role == w.Role &&
+                n.Effect.ModelName == w.Effect.ModelName && n.Start > w.Start);
+            return new ExemplarGesture(w.Id, w.Role, w.Effect.EffectName, w.Start, w.End - w.Start,
+                w.Effect.LayerIndex, Ticks(w.Effect.StartTimeMs) < start, Ticks(w.Effect.EndTimeMs) > end,
+                next.Id is null ? null : next.Start - w.Start,
+                windows.Where(o => o.Id != w.Id && o.Start < w.End && o.End > w.Start).Select(o => o.Id).ToArray());
+        }).ToArray();
     }
 
     /// <summary>

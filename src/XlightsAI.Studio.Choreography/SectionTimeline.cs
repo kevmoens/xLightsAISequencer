@@ -33,6 +33,13 @@ public static class IntensityTier
     public const string Full = "Full";
 }
 
+public static class CueKind
+{
+    public const string Hold = "hold";
+    public const string Accent = "accent";
+    public const string Takeover = "takeover";
+}
+
 /// <summary>
 /// Build-plan Phase 28a. One real, timed, model-level decision. Replaces "pick one LookId for the whole
 /// section" with "here is what happens, where, and when" -- a sparse list, not a keyframe track: a prop
@@ -71,7 +78,20 @@ public sealed record SectionCue(
     string Role,
     string? HoldUntilAnchorId = null,
     string? HandoffFromProps = null,
-    string? Annotation = null);
+    string? Annotation = null,
+    string Kind = CueKind.Accent,
+    IReadOnlyList<string>? Targets = null,
+    string? PaletteSlot = null)
+{
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string? TraceId { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public bool IsMeasuredLitSpan { get; init; }
+
+    [System.Text.Json.Serialization.JsonIgnore]
+    public IReadOnlyList<string> TargetReferences => Targets is { Count: > 0 } ? Targets : [Props];
+}
 
 /// <summary>
 /// Build-plan Phase 28a: the per-section output, additive alongside the existing <see cref="SectionScript"/>.
@@ -102,6 +122,7 @@ public sealed record SectionTimeline(
     IReadOnlyList<string>? FillerEffects = null,
     IReadOnlyDictionary<string, IReadOnlyList<string>>? FillerEffectsByRole = null)
 {
+    [System.Text.Json.Serialization.JsonIgnore]
     public IReadOnlyList<SectionCue> CuesOrEmpty => Cues ?? [];
 
     [System.Text.Json.Serialization.JsonIgnore]

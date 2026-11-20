@@ -11,4 +11,5 @@ namespace XlightsAI.Studio.Pipeline;
 /// never makes LLM calls -- see its own class remarks) and every pre-existing caller keep compiling;
 /// <see langword="null"/> means "not yet enriched," never a fabricated placeholder string.
 /// </param>
-public sealed record ExemplarEntry(ExemplarFingerprint Fingerprint, IReadOnlyList<AlignedEffectInstance> Effects, string? Description = null);
+public sealed record ExemplarEntry(ExemplarFingerprint Fingerprint, IReadOnlyList<AlignedEffectInstance> Effects,
+    string? Description = null, string? Id = null, IReadOnlyList<ExemplarGesture>? Gestures = null);

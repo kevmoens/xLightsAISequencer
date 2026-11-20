@@ -11,7 +11,7 @@
 
     <TextBlock Classes="busy" IsVisible="{Binding ExemplarLibrary.IsLoading}" Text="Loading exemplar library…" />
     <TextBlock Classes="hint" IsVisible="{Binding ExemplarLibrary.IsEmpty}"
-               Text="No exemplars yet. Run corpus mining from Show Import first." />
+               Text="No exemplars yet. In Generate &amp; export, open Developer tools and run corpus mining." />
     <TextBlock Classes="error" IsVisible="{Binding ExemplarLibrary.IsError}" Text="{Binding ExemplarLibrary.ErrorMessage}" />
 
     <TextBlock Classes="hint" IsVisible="{Binding ExemplarLibrary.IsLoaded}">

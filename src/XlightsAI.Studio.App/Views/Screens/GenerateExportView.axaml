@@ -280,24 +280,13 @@
     <!-- ================= Developer tools ================= -->
     <Expander Header="Developer tools" IsVisible="{Binding ShowImport.IsLoaded}">
       <StackPanel Spacing="8" Margin="0,8">
-        <!-- PHASE-02 Step 012: hardcoded three-effect plan on selected real props. A debugging
-             aid for the export path that does not require the analysis pipeline to run. -->
-        <TextBlock Classes="section" Text="Three-effect demo plan" />
-        <TextBlock Classes="hint"
-                   Text="Writes a fixed three-effect plan onto named props, bypassing song analysis entirely. Useful for exercising export without waiting for a real generation; it is not choreography." />
-        <TextBlock Classes="field" Text="THREE PROP NAMES, COMMA-SEPARATED" />
-        <TextBox Text="{Binding ShowImport.EffectTargetNamesCsv}" Watermark="Roofline, Arch 1, Arch 2" />
-        <TextBlock Classes="field" Text="SONG DURATION (100 NS TICKS)" />
-        <TextBox Text="{Binding ShowImport.SongDurationTicks}" Width="220" HorizontalAlignment="Left" />
-        <Button Content="Generate 3 effects" Command="{Binding GenerateEffectPlanCommand}" HorizontalAlignment="Left" />
-
         <!-- Build-plan Phase 10 §3f: the real, reachable invocation path for CorpusMiningRunner:
              runs manifest-build/per-song-analysis/PatternLibrary-ExemplarIndex-CraftRules against a
              real xLights-shaped corpus directory and persists the result for AiChoreographyWholeSongGenerator
              to load on every subsequent generation. -->
-        <TextBlock Classes="section" Text="Run corpus mining" Margin="0,16,0,0" />
+        <TextBlock Classes="section" Text="Run corpus mining" />
         <TextBlock Classes="hint"
-                   Text="Analyzes every real song folder under the corpus root (or a representative subset) and persists CraftRules/ExemplarIndex for the Director to use on future generations. Can take up to roughly an hour against a full real corpus; progress is shown below." />
+                   Text="Rebuilds the Exemplar Library from the xLights sequences under this folder. A large corpus can take about an hour." />
         <TextBlock Classes="field" Text="CORPUS ROOT DIRECTORY" />
         <TextBox Text="{Binding ShowImport.CorpusRootDirectory}" Watermark="C:\xLights" />
         <StackPanel Orientation="Horizontal" Spacing="10">
@@ -311,6 +300,17 @@
         <TextBlock Classes="error"
                    IsVisible="{Binding ShowImport.CorpusMiningErrorMessage, Converter={x:Static conv:StringConverters.IsNotNullOrEmpty}}"
                    Text="{Binding ShowImport.CorpusMiningErrorMessage}" />
+
+        <!-- PHASE-02 Step 012: hardcoded three-effect plan on selected real props. A debugging
+             aid for the export path that does not require the analysis pipeline to run. -->
+        <TextBlock Classes="section" Text="Three-effect demo plan" Margin="0,16,0,0" />
+        <TextBlock Classes="hint"
+                   Text="Writes a fixed three-effect plan onto named props, bypassing song analysis entirely. Useful for exercising export without waiting for a real generation; it is not choreography." />
+        <TextBlock Classes="field" Text="THREE PROP NAMES, COMMA-SEPARATED" />
+        <TextBox Text="{Binding ShowImport.EffectTargetNamesCsv}" Watermark="Roofline, Arch 1, Arch 2" />
+        <TextBlock Classes="field" Text="SONG DURATION (100 NS TICKS)" />
+        <TextBox Text="{Binding ShowImport.SongDurationTicks}" Width="220" HorizontalAlignment="Left" />
+        <Button Content="Generate 3 effects" Command="{Binding GenerateEffectPlanCommand}" HorizontalAlignment="Left" />
       </StackPanel>
     </Expander>
   </StackPanel>

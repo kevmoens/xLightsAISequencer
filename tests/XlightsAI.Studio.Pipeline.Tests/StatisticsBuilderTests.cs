@@ -72,6 +72,33 @@ public sealed class StatisticsBuilderTests
     }
 
     [Fact]
+    public void ExemplarIndex_RoundTripsAClippedFoundationOnAVariableTempoGrid()
+    {
+        var song = BuildSongFromEffects("Song", CorpusProvenanceTag.UserAuthored,
+            [new ParsedEffectInstance("Source prop", "model", "On", 250, 1600, 0, 0, "", ""),
+             new ParsedEffectInstance("Another prop", "group", "Twinkle", 900, 1100, 0, 0, "", "")]);
+        var phrase = song.Phrases.Phrases[0] with { StartTicks = 5_000_000, EndTicks = 13_000_000 };
+        var ticks = new long[] { 0, 5_000_000, 9_000_000, 13_000_000, 19_000_000 };
+        song = song with
+        {
+            Phrases = song.Phrases with { Phrases = [phrase] },
+            BeatGrid = song.BeatGrid with { Beats = ticks.Select((t, i) => song.BeatGrid.Beats[i] with { TimeTicks = t }).ToArray() },
+        };
+        var index = ExemplarIndexBuilder.Build([song]);
+        var roundTrip = System.Text.Json.JsonSerializer.Deserialize<ExemplarIndex>(System.Text.Json.JsonSerializer.Serialize(index))!;
+        Assert.Equal(ExemplarIndex.GestureSchemaVersion, roundTrip.SchemaVersion);
+        var entry = Assert.Single(roundTrip.Entries);
+        Assert.Equal(150, entry.Fingerprint.TempoBpm);
+        var gestures = entry.Gestures!;
+        Assert.True(gestures[0].ContinuesIn && gestures[0].ContinuesOut);
+        Assert.Equal((0, 2), (gestures[0].OnsetBeats, gestures[0].DurationBeats));
+        Assert.Equal((1, .5), (gestures[1].OnsetBeats, gestures[1].DurationBeats));
+        Assert.Equal(gestures[1].Id, Assert.Single(gestures[0].Overlaps));
+        var legacy = System.Text.Json.JsonSerializer.Deserialize<ExemplarIndex>("""{"Entries":[]}""")!;
+        Assert.Equal(0, legacy.SchemaVersion);
+    }
+
+    [Fact]
     public void ExemplarIndexBuilder_ExcludesExternalReferenceSong()
     {
         var reference = BuildSong("Dubstep Christmas Light Show", CorpusProvenanceTag.ExternalReference, effectName: "Shockwave", isModeA: true);

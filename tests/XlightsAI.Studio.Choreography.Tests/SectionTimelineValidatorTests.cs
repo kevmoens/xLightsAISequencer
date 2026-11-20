@@ -19,7 +19,7 @@ public sealed class SectionTimelineValidatorTests
             new DisplayModel(new ModelId("MiniStar1"), "MiniStar1", "Star", [], [], NodeCount: 60),
             new DisplayModel(new ModelId("MiniStar2"), "MiniStar2", "Star", [], [], NodeCount: 40),
         ],
-        Groups: [],
+        Groups: [new DisplayModelGroup("Front", [new DisplayGroupMember("Tree", DisplayGroupMemberKind.Model), new DisplayGroupMember("MiniStar1", DisplayGroupMemberKind.Model)])],
         Warnings: []);
 
     private static SectionMusicContext BuildContext()
@@ -70,7 +70,7 @@ public sealed class SectionTimelineValidatorTests
     }
 
     [Fact]
-    public void Validate_BrightThenBrightOnSamePropsWithNoHandoff_FailsNamingBothCues()
+    public void Validate_BackToBackAccents_AllowsCompilerToProvideContrast()
     {
         var layout = BuildLayout();
         var context = BuildContext();
@@ -84,9 +84,30 @@ public sealed class SectionTimelineValidatorTests
 
         var errors = SectionTimelineValidator.Validate(timeline, library, layout, context, transientHits: TwoHits);
 
-        var error = Assert.Single(errors);
-        Assert.Contains("transient-1", error.Message, StringComparison.Ordinal);
-        Assert.Contains("transient-2", error.Message, StringComparison.Ordinal);
+        Assert.Empty(errors);
+    }
+
+    [Theory]
+    [InlineData(CueKind.Accent, "group:Front", "section-timeline-held-target")]
+    [InlineData(CueKind.Accent, "MiniStar2", null)]
+    [InlineData(CueKind.Takeover, "Tree", null)]
+    public void Validate_HeldTargetMayContinueOrBeExplicitlyTakenOver(string kind, string target, string? errorRule)
+    {
+        var timeline = new SectionTimeline(Guid.NewGuid(), "test-look", Cues:
+        [
+            new SectionCue("section-start", "Tree", "On", IntensityTier.Bright, LookLayer.RoleSubject, Kind: CueKind.Hold),
+            new SectionCue("transient-1", target, "On", IntensityTier.Full, LookLayer.RoleSupport, Kind: kind),
+        ]);
+        var errors = SectionTimelineValidator.Validate(timeline, LibraryWith(BuildLook("Tree", "MiniStar1", "MiniStar2")),
+            BuildLayout(), BuildContext(), transientHits: TwoHits);
+        if (errorRule is null)
+        {
+            Assert.Empty(errors);
+        }
+        else
+        {
+            Assert.Equal(errorRule, Assert.Single(errors).Rule);
+        }
     }
 
     [Fact]

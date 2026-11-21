@@ -1,0 +1,92 @@
+# Phase 30 step 30.4 -- real-corpus-mined effect-family clusters (scratch output)
+
+35 real files scanned from `C:\xLights`. 46 distinct real
+effect names observed across any (Model, EffectLayer) slot. 44 clusters found via
+same-slot substitution union-find.
+
+- (2 effects): Color Wash, On
+- (2 effects): Pinwheel, Shockwave
+- (1 effects): Butterfly
+- (1 effects): Morph
+- (1 effects): Twinkle
+- (1 effects): Galaxy
+- (1 effects): Plasma
+- (1 effects): Snowflakes
+- (1 effects): Marquee
+- (1 effects): SingleStrand
+- (1 effects): Bars
+- (1 effects): Fan
+- (1 effects): Garlands
+- (1 effects): Spirals
+- (1 effects): VU Meter
+- (1 effects): Wave
+- (1 effects): Tree
+- (1 effects): Fire
+- (1 effects): Meteors
+- (1 effects): Pictures
+- (1 effects): Text
+- (1 effects): Life
+- (1 effects): Lightning
+- (1 effects): Ripple
+- (1 effects): Shape
+- (1 effects): Strobe
+- (1 effects): Fireworks
+- (1 effects): Curtain
+- (1 effects): Shader
+- (1 effects): Video
+- (1 effects): Warp
+- (1 effects): Faces
+- (1 effects): Kaleidoscope
+- (1 effects): Off
+- (1 effects): Shimmer
+- (1 effects): Fill
+- (1 effects): Circles
+- (1 effects): Music Effect
+- (1 effects): Liquid
+- (1 effects): Candle
+- (1 effects): Spirograph
+- (1 effects): Tendril
+- (1 effects): Lines
+- (1 effects): Snowstorm
+
+Top edges by evidence count:
+- Pinwheel <-> Shockwave: 30
+- Color Wash <-> On: 16
+- Morph <-> Shockwave: 9
+- On <-> Shockwave: 9
+- On <-> VU Meter: 9
+- SingleStrand <-> Twinkle: 8
+- Morph <-> Shape: 7
+- Marquee <-> On: 6
+- Color Wash <-> SingleStrand: 6
+- Morph <-> Off: 6
+- SingleStrand <-> VU Meter: 5
+- Color Wash <-> Pinwheel: 5
+- Ripple <-> VU Meter: 4
+- Morph <-> Spirals: 4
+- Pinwheel <-> SingleStrand: 4
+- Off <-> Pictures: 4
+- Fill <-> Shockwave: 4
+- Shockwave <-> Text: 4
+- Morph <-> VU Meter: 4
+- Fire <-> On: 4
+- Color Wash <-> Curtain: 4
+- Color Wash <-> Shape: 3
+- Bars <-> Ripple: 3
+- Fireworks <-> SingleStrand: 3
+- Shockwave <-> Warp: 3
+- Morph <-> Video: 3
+- Fan <-> Fire: 3
+- Morph <-> Pictures: 3
+- Pictures <-> Text: 3
+- Morph <-> Pinwheel: 2
+- On <-> SingleStrand: 2
+- Meteors <-> Shockwave: 2
+- Shockwave <-> SingleStrand: 2
+- Off <-> VU Meter: 2
+- Pinwheel <-> Twinkle: 2
+- Shockwave <-> Twinkle: 2
+- Twinkle <-> VU Meter: 2
+- Morph <-> Plasma: 2
+- Pinwheel <-> Ripple: 2
+- Morph <-> Text: 2

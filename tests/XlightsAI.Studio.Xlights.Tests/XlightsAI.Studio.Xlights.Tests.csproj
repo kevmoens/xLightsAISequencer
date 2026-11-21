@@ -20,6 +20,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\XlightsAI.Studio.Xlights\XlightsAI.Studio.Xlights.csproj" />
+    <ProjectReference Include="..\..\src\XlightsAI.Studio.Knowledge\XlightsAI.Studio.Knowledge.csproj" />
   </ItemGroup>
 
   <ItemGroup>

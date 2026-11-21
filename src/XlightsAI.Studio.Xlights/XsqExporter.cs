@@ -582,15 +582,38 @@ public sealed class XsqExporter : IXsqExporter
     /// own plain <see cref="XlightsAI.Studio.Xlights.EffectValueCurve.ParameterKey"/> to the real
     /// <c>ValueCurveSettingKey</c> the vocabulary declares for that property (never invented — an
     /// unresolvable/ineligible key is an export failure, not a silently dropped curve).
-    /// <see cref="BlendMode"/>/<see cref="EffectTransition"/> are deliberately NOT serialized here: the
-    /// generated vocabulary's own <c>LayerMethod</c>/transition-type rows are modeled as UI-only "custom"
-    /// controls with no verified choice list (see <c>EffectVocabularyBuilder</c>'s own disclosed gap) --
-    /// serializing them would mean inventing xLights enum values this build has never verified, which
-    /// this exporter's own documented discipline forbids. They remain IR-only, same as before.
+    /// <see cref="EffectTransition"/> is deliberately NOT serialized here: the generated vocabulary's own
+    /// transition-type rows are modeled as UI-only "custom" controls with no verified choice list (see
+    /// <c>EffectVocabularyBuilder</c>'s own disclosed gap) -- serializing them would mean inventing
+    /// xLights enum values this build has never verified, which this exporter's own documented discipline
+    /// forbids. It remains IR-only, same as before.
+    /// <see cref="BlendMode"/> is the one exception, as of build-plan Phase 30 step 30.1: now that
+    /// <see cref="ConfirmedLayerBlendModeCatalog"/> has confirmed real <c>T_CHOICE_LayerMethod</c> XML
+    /// values against real author-created <c>.xsq</c> files (see
+    /// <c>implementation-evidence/PHASE-30-blend-mode-baseline.md</c>), this exporter serializes it --
+    /// but ONLY when <see cref="EffectInstance.BlendMode"/> is one of those 8 confirmed values; the
+    /// implicit default (<see cref="ConfirmedLayerBlendModeCatalog.DefaultXmlValue"/>, <c>"Normal"</c>)
+    /// is omitted entirely, matching architecture §8a's own "defaults are omitted" rule and this project's
+    /// own real corpus evidence that an explicit <c>Normal</c> is comparatively rare. Any other string
+    /// (an unverified value <see cref="LookCompiler"/>'s own gate should already have caught earlier, or
+    /// a pre-Phase-30 placeholder on an old <see cref="EffectInstance"/>) is treated exactly like the
+    /// default -- omitted, never emitted -- so this exporter can never write an unconfirmed
+    /// <c>T_CHOICE_LayerMethod</c> value even if an upstream caller's own gate were ever bypassed.
     /// </summary>
     private static string BuildSettingsString(
         EffectInstance effect, string xlightsEffectName, EffectVocabularyCatalog vocabulary, EffectSettingsSerializer serializer)
     {
+        var parameters = effect.Parameters;
+        if (ConfirmedLayerBlendModeCatalog.IsConfirmedXmlValue(effect.BlendMode) &&
+            !string.Equals(effect.BlendMode, ConfirmedLayerBlendModeCatalog.DefaultXmlValue, StringComparison.Ordinal))
+        {
+            var withBlendMode = new Dictionary<string, string>(effect.Parameters, StringComparer.Ordinal)
+            {
+                ["T_CHOICE_LayerMethod"] = effect.BlendMode,
+            };
+            parameters = withBlendMode;
+        }
+
         IReadOnlyDictionary<string, Knowledge.EffectValueCurve>? valueCurves = null;
         if (effect.ValueCurvesOrEmpty.Count > 0)
         {
@@ -614,7 +637,7 @@ public sealed class XsqExporter : IXsqExporter
 
         try
         {
-            return serializer.Serialize(xlightsEffectName, effect.Parameters, valueCurves);
+            return serializer.Serialize(xlightsEffectName, parameters, valueCurves);
         }
         catch (ArgumentException ex)
         {

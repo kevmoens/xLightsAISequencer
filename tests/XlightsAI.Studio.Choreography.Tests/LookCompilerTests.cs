@@ -121,6 +121,56 @@ public sealed class LookCompilerTests
         Assert.Contains(effect.Parameters, p => p.Key.Contains("SingleStrand_TimingTrack", StringComparison.Ordinal) && p.Value == "Beats");
     }
 
+    /// <summary>Build-plan Phase 30 step 30.1: a <see cref="LookLayer.Blend"/> confirmed by <see cref="ConfirmedLayerBlendModeCatalog"/> now reaches the compiled <see cref="Xlights.EffectInstance.BlendMode"/> (Mode A).</summary>
+    [Fact]
+    public void Compile_ModeA_ConfirmedBlend_FlowsIntoCompiledEffectInstanceBlendMode()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = BuildLayout();
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(5, barTicks);
+        var section = BuildSection(barGrid, barTicks, 5, 0.5);
+        var settings = BuildSettings();
+
+        var look = new Look(
+            "test-blend-confirmed", "Test Blend Confirmed", "test", 0.5, "hold", "warm-gold", "Tree",
+            [new LookLayer(1, "Tree", "SingleStrand", LookLayer.RoleSubject, null, "2 is Mask", "Beats", 0.35)]);
+
+        var ir = LookCompiler.Compile(look, section, layout, settings);
+
+        var effect = Assert.Single(ir.Effects);
+        Assert.Equal("2 is Mask", effect.BlendMode);
+    }
+
+    /// <summary>An unconfirmed/placeholder <see cref="LookLayer.Blend"/> value (never one of the 8 confirmed candidates) must never reach the compiled IR -- it silently falls back to the harmless default, same discipline <see cref="Xlights.XsqExporter"/> has always followed for every other unverified xLights XML value.</summary>
+    [Fact]
+    public void Compile_ModeA_UnconfirmedBlend_FallsBackToNormal_NeverReachesCompiledEffectInstance()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = BuildLayout();
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(5, barTicks);
+        var section = BuildSection(barGrid, barTicks, 5, 0.5);
+        var settings = BuildSettings();
+
+        var look = new Look(
+            "test-blend-unconfirmed", "Test Blend Unconfirmed", "test", 0.5, "hold", "warm-gold", "Tree",
+            [new LookLayer(1, "Tree", "SingleStrand", LookLayer.RoleSubject, null, "Bright", "Beats", 0.35)]);
+
+        var ir = LookCompiler.Compile(look, section, layout, settings);
+
+        var effect = Assert.Single(ir.Effects);
+        Assert.Equal("Normal", effect.BlendMode);
+    }
+
     [Fact]
     public void Compile_ModeB_TwinkleWithNoTimingTrackInput_EmitsOneDiscreteEffectPerBar()
     {

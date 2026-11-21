@@ -15,13 +15,29 @@ namespace XlightsAI.Studio.Knowledge;
 /// <param name="DutyMax">Upper bound of this layer's approximate duty-cycle target in <c>[0,1]</c>.</param>
 /// <param name="Cadence">A short, human-readable cadence/timescale hint (e.g. <c>"beat"</c>, <c>"1-2 beats"</c>, <c>"phrase"</c>, <c>"every 5-6 seconds"</c>) -- deliberately prose, not a literal <c>Timescale</c> enum value, since the research this is derived from describes cadence more precisely than a single discrete bucket.</param>
 /// <param name="Notes">A short, palette-free, song-free description of what this layer actually does and why, carried into the Director prompt verbatim.</param>
+/// <param name="BlendModeToPrevious">
+/// Build-plan Phase 30 step 30.1: the <see cref="ConfirmedLayerBlendMode.CandidateName"/> (e.g.
+/// <c>"Reveal 1-on-2"</c>) real, mined corpus evidence associated with the real
+/// <c>T_CHOICE_LayerMethod</c> xLights wrote between this layer and the layer immediately below it
+/// (index-1, the layer this one is "on top of" in document z-order) -- or <see langword="null"/> when
+/// no mined blend-mode evidence exists for this layer (the real corpus entries this stack was averaged
+/// from either omitted the setting entirely -- the implicit "Normal" default -- or used a raw value
+/// this build has not confirmed, which is treated as "no signal," never guessed). Always
+/// <see langword="null"/> for the first/base layer (index 0 -- nothing sits below it to blend
+/// against). Defaults to <see langword="null"/> so every existing hand-curated seed template and every
+/// already-written <c>multilayer-templates-mined.json</c>/<c>multilayer-templates-showcase.json</c>
+/// file (from before this field existed) keeps deserializing and behaving identically -- same additive,
+/// backward-compatible-default discipline <see cref="MultiLayerTemplate.ConfidenceTier"/> already
+/// established.
+/// </param>
 public sealed record MultiLayerTemplateLayer(
     string Role,
     string Effect,
     double DutyMin,
     double DutyMax,
     string Cadence,
-    string Notes);
+    string Notes,
+    string? BlendModeToPrevious = null);
 
 /// <summary>
 /// A generic, palette-free/song-free multi-layer composition pattern for a dense, high-resolution prop

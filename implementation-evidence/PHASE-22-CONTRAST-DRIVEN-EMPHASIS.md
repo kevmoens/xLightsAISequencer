@@ -4,11 +4,11 @@ Real layout: `C:\xLights\xlights_rgbeffects.xml`. Choreographer model: `qwen2.5-
 `dubstep-30s-clip.mp3 (30s real clip)`. Real transient hits: 11. Real vocal/melody
 note onsets (full-mix pitch track, same fallback `CorpusSongAnalyzer` itself uses): 0.
 
-- Real (instant, target) pairs measured: 16
-- Real §2b adoption rate BEFORE any §2d fallback: 31.2% (5/16)
-- §2d deterministic fallback patches applied: 6
-- Distinct models/groups the fallback landed contrast on: 2 (Arches, MiniTrees)
-- §2c permanently-advisory violations remaining in the FINAL compiled IR (never blocking -- export still succeeded above): 4
+- Real (instant, target) pairs measured: 24
+- Real §2b adoption rate BEFORE any §2d fallback: 37.5% (9/24)
+- §2d deterministic fallback patches applied: 10
+- Distinct models/groups the fallback landed contrast on: 3 (MiniTrees, Arches, Matrixes)
+- §2c permanently-advisory violations remaining in the FINAL compiled IR (never blocking -- export still succeeded above): 6
 
 Always-moving regression check: largest real gap across every real pixel-bearing model in the final compiled IR
 is 0 ticks, against an approximate one-bar budget of 15789568 ticks

@@ -18,6 +18,10 @@
          baked into this assembly so a normal dotnet build/publish of any referencing project carries it
          with no separate manual-copy step; see EffectVisualCharacterCatalogLoader's own doc comment. -->
     <EmbeddedResource Include="SeedData\effect-visual-characters.json" />
+    <!-- Build-plan Phase 30 step 30.4: the real-corpus-mined effect-family substitution index, same
+         "baked into the assembly, no separate manual-copy step" rationale; see
+         EffectFamilyIndexLoader's own doc comment. -->
+    <EmbeddedResource Include="SeedData\effect-family-index.json" />
     <!-- User feedback (2026-11-14): the Director's own prompt guidance, externalized out of
          DirectorPromptBuilder.cs's hardcoded C# string literals into plain Markdown lesson files,
          same "baked into the assembly, no separate manual-copy step" rationale as the two entries

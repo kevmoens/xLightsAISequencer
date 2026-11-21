@@ -1,0 +1,70 @@
+<?xml version="1.0" encoding="utf-8"?>
+<xsequence BaseChannel="0" ChanCtrlBasic="0" ChanCtrlColor="0" FixedPointTiming="1" ModelBlending="true">
+  <head>
+    <version>2026.03</version>
+    <author></author>
+    <author-email></author-email>
+    <author-website></author-website>
+    <song></song>
+    <artist></artist>
+    <album></album>
+    <MusicURL></MusicURL>
+    <comment>Phase 30 step 30.0 blend-mode fixture. T_CHOICE_LayerMethod values below are NOT invented:
+      each exact string was confirmed by grepping real, author-created xLights .xsq show files on the
+      verification machine (C:\xLights\*.xsq, versions 2020.47-2026.17 inclusive, installed build
+      2026.17). See implementation-evidence/PHASE-30-blend-mode-baseline.md for the full evidence
+      trail, including which values were independently reconfirmed in a 2026.17-authored file. This
+      file's own grammar (EffectDB dedup table + ref-indexed EffectLayer placements) mirrors that same
+      real-file structure and the Studio's own XsqExporter/XsqStructuralReader convention
+      (golden-three-effect-sequence.xsq), not an invented layout. The head/version value below is
+      stamped 2026.03 to match this build plan's pinned target version, per the same convention as
+      golden-three-effect-sequence.xsq; the actual verification evidence was gathered against the
+      2026.17 install present on this machine (no exact-2026.03 install was available) -- see the
+      evidence file for that gap recorded transparently.</comment>
+    <sequenceTiming>25 ms</sequenceTiming>
+    <sequenceType>Animation</sequenceType>
+    <mediaFile></mediaFile>
+    <sequenceDuration>8.000</sequenceDuration>
+    <imageDir></imageDir>
+  </head>
+  <nextid>1</nextid>
+  <Jukebox></Jukebox>
+  <ColorPalettes>
+    <ColorPalette>C_BUTTON_Palette1=#FFFFFF</ColorPalette>
+  </ColorPalettes>
+  <EffectDB>
+    <Effect></Effect>
+    <Effect>T_CHOICE_LayerMethod=2 is Mask</Effect>
+    <Effect>T_CHOICE_LayerMethod=2 is Unmask</Effect>
+    <Effect>T_CHOICE_LayerMethod=1 reveals 2</Effect>
+    <Effect>T_CHOICE_LayerMethod=2 reveals 1</Effect>
+    <Effect>T_CHOICE_LayerMethod=Average</Effect>
+    <Effect>T_CHOICE_LayerMethod=Subtractive</Effect>
+    <Effect>T_CHOICE_LayerMethod=Shadow 1 on 2</Effect>
+    <Effect>T_CHOICE_LayerMethod=Shadow 2 on 1</Effect>
+  </EffectDB>
+  <DataLayers></DataLayers>
+  <DisplayElements>
+    <Element type="model" name="Everything" visible="1" />
+  </DisplayElements>
+  <ElementEffects>
+    <Element type="model" name="Everything">
+      <EffectLayer>
+        <Effect ref="0" name="On" startTime="0" endTime="8000" palette="0" />
+      </EffectLayer>
+      <EffectLayer>
+        <Effect ref="1" name="Bars" startTime="0" endTime="1000" palette="0" />
+        <Effect ref="2" name="Bars" startTime="1000" endTime="2000" palette="0" />
+        <Effect ref="3" name="Bars" startTime="2000" endTime="3000" palette="0" />
+        <Effect ref="4" name="Bars" startTime="3000" endTime="4000" palette="0" />
+        <Effect ref="5" name="Bars" startTime="4000" endTime="5000" palette="0" />
+        <Effect ref="6" name="Bars" startTime="5000" endTime="6000" palette="0" />
+        <Effect ref="7" name="Bars" startTime="6000" endTime="7000" palette="0" />
+        <Effect ref="8" name="Bars" startTime="7000" endTime="8000" palette="0" />
+      </EffectLayer>
+    </Element>
+  </ElementEffects>
+  <TimingTags>
+    <Tag number="0" position="-1" />
+  </TimingTags>
+</xsequence>

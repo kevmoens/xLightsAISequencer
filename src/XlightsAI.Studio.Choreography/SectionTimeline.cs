@@ -70,6 +70,15 @@ public static class CueKind
 /// THIS ONE IS CONSUMED: written into the compiled <c>EffectInstance.SourceAnnotation</c>. Never a guess;
 /// omit rather than invent.
 /// </param>
+/// <param name="Compound">
+/// Build-plan Phase 30 step 30.2 ("hit-motion-compound"): opt-in, per-cue -- never a blanket rule, same
+/// discipline as every other Phase 30 addition. Only takes effect for a <see cref="CueKind.Accent"/> cue
+/// (ignored otherwise, same silent-no-op convention <see cref="HandoffFromProps"/> already uses for a
+/// non-accent cue). When <see langword="true"/>, <see cref="SectionTimelineCompiler"/> pairs this cue's
+/// own base hit effect with a second, independent movement-overlay layer
+/// (<see cref="HitMotionCompound.TryBuild"/>) spanning the identical resolved cue window, instead of the
+/// flat single-layer hit every other accent cue still gets.
+/// </param>
 public sealed record SectionCue(
     string AnchorId,
     string Props,
@@ -81,7 +90,8 @@ public sealed record SectionCue(
     string? Annotation = null,
     string Kind = CueKind.Accent,
     IReadOnlyList<string>? Targets = null,
-    string? PaletteSlot = null)
+    string? PaletteSlot = null,
+    bool Compound = false)
 {
     [System.Text.Json.Serialization.JsonIgnore]
     public string? TraceId { get; init; }

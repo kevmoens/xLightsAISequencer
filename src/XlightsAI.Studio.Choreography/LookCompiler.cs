@@ -268,7 +268,7 @@ public static class LookCompiler
         // a multi-layer Look would silently collide onto the same exported EffectLayer.
         var effect = settings.RecipeRegistry.CreateVerified(RecipeIdFor(layer.Effect, settings.RecipeCatalog), model, start, end)
             with
-        { Layer = layer.Z, Parameters = parameters, PaletteIndex = 0 };
+        { Layer = layer.Z, Parameters = parameters, PaletteIndex = 0, BlendMode = ResolveConfirmedBlendMode(layer.Blend) };
 
         if (layer.CurvesOrEmpty.Count == 0)
         {
@@ -319,11 +319,23 @@ public static class LookCompiler
 
             result.Add(settings.RecipeRegistry.CreateVerified(RecipeIdFor(layer.Effect, settings.RecipeCatalog), model, window.StartTicks, effectEnd)
                 with
-            { Layer = layer.Z, Parameters = parameters, PaletteIndex = 0 });
+            { Layer = layer.Z, Parameters = parameters, PaletteIndex = 0, BlendMode = ResolveConfirmedBlendMode(layer.Blend) });
         }
 
         return result;
     }
+
+    /// <summary>
+    /// Build-plan Phase 30 step 30.1: <see cref="LookLayer.Blend"/> only ever reaches the compiled
+    /// <see cref="EffectInstance.BlendMode"/> (and, from there, <c>XsqExporter</c>'s own serialized
+    /// output) when it is one of <see cref="ConfirmedLayerBlendModeCatalog"/>'s real, fixture-confirmed
+    /// XML values (or the harmless default) -- a Look declaring anything else (a pre-Phase-30 Look's own
+    /// placeholder value like <c>"Bright"</c>/<c>"Additive"</c>, from before any blend mode had been
+    /// confirmed) silently falls back to <c>"Normal"</c> rather than ever emitting an unverified value,
+    /// same "never invent/guess an xLights XML value" discipline <c>XsqExporter</c> has always followed.
+    /// </summary>
+    private static string ResolveConfirmedBlendMode(string declaredBlend) =>
+        ConfirmedLayerBlendModeCatalog.IsConfirmedXmlValue(declaredBlend) ? declaredBlend : ConfirmedLayerBlendModeCatalog.DefaultXmlValue;
 
     private static List<TimeWindow> ResolveEventWindows(LookLayer layer, long start, long end, SectionMusicContext section)
     {

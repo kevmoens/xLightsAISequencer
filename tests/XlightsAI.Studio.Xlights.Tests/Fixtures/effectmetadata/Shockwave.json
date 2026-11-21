@@ -1,0 +1,196 @@
+{
+    "effectName": "Shockwave",
+    "properties": [
+        {
+            "id": "Shockwave_CenterX",
+            "label": "Center X",
+            "type": "int",
+            "controlType": "slider",
+            "default": 50,
+            "min": 0,
+            "max": 100,
+            "valueCurve": true,
+            "lockable": true,
+            "description": "Horizontal center of the shockwave ring as a percentage of the buffer width."
+        },
+        {
+            "id": "Shockwave_CenterY",
+            "label": "Center Y",
+            "type": "int",
+            "controlType": "slider",
+            "default": 50,
+            "min": 0,
+            "max": 100,
+            "valueCurve": true,
+            "lockable": true,
+            "description": "Vertical center of the shockwave ring as a percentage of the buffer height."
+        },
+        {
+            "id": "Shockwave_Start_Radius",
+            "label": "Radius1",
+            "type": "int",
+            "controlType": "slider",
+            "default": 1,
+            "min": 0,
+            "max": 750,
+            "valueCurve": true,
+            "lockable": true,
+            "description": "Starting radius of the expanding ring at the beginning of each cycle."
+        },
+        {
+            "id": "Shockwave_End_Radius",
+            "label": "Radius2",
+            "type": "int",
+            "controlType": "slider",
+            "default": 10,
+            "min": 0,
+            "max": 750,
+            "valueCurve": true,
+            "lockable": true,
+            "description": "Ending radius of the expanding ring at the end of each cycle."
+        },
+        {
+            "id": "Shockwave_Start_Width",
+            "label": "Width1",
+            "type": "int",
+            "controlType": "slider",
+            "default": 5,
+            "min": 0,
+            "max": 255,
+            "valueCurve": true,
+            "lockable": true,
+            "description": "Thickness of the ring band at the start of each cycle."
+        },
+        {
+            "id": "Shockwave_End_Width",
+            "label": "Width2",
+            "type": "int",
+            "controlType": "slider",
+            "default": 10,
+            "min": 0,
+            "max": 255,
+            "valueCurve": true,
+            "lockable": true,
+            "description": "Thickness of the ring band at the end of each cycle."
+        },
+        {
+            "id": "Shockwave_Accel",
+            "label": "Acceleration",
+            "type": "int",
+            "controlType": "slider",
+            "default": 0,
+            "min": -10,
+            "max": 10,
+            "lockable": true,
+            "description": "Adjusts the expansion speed curve. Positive values make the ring expand slowly then accelerate; negative values make it start fast then decelerate."
+        },
+        {
+            "id": "Shockwave_Cycles",
+            "label": "Cycles",
+            "type": "int",
+            "controlType": "slider",
+            "default": 1,
+            "min": 1,
+            "max": 100,
+            "lockable": true,
+            "description": "Number of times the shockwave ring expands from Radius1 to Radius2 over the effect duration. In timing track mode, this many rings fire per timing mark."
+        },
+        {
+            "id": "Shockwave_Blend_Edges",
+            "label": "Blend Edges",
+            "type": "bool",
+            "controlType": "checkbox",
+            "default": true,
+            "description": "When enabled, the ring edges fade out smoothly based on distance from the ring center, creating a soft glow instead of hard edges."
+        },
+        {
+            "id": "Shockwave_Scale",
+            "label": "Scale to Buffer",
+            "type": "bool",
+            "controlType": "checkbox",
+            "default": true,
+            "description": "When enabled, radius and width values are treated as percentages of the buffer size. When disabled, values are in absolute pixels."
+        },
+        {
+            "id": "Shockwave_TimingTrack",
+            "label": "Timing Track",
+            "type": "enum",
+            "controlType": "choice",
+            "options": [],
+            "default": "",
+            "dynamicOptions": "timingTracks",
+            "lockable": true,
+            "description": "When set, each timing mark triggers a new shockwave ring expansion. Duration controls how long each expansion lasts.",
+            "expandToFill": true
+        },
+        {
+            "id": "Shockwave_FilterLabel",
+            "label": "Filter",
+            "type": "string",
+            "controlType": "text",
+            "default": "",
+            "description": "Text filter applied to timing track labels. Only timing marks whose labels match this filter text will trigger a shockwave."
+        },
+        {
+            "id": "Shockwave_FilterRegex",
+            "label": "Regex",
+            "type": "bool",
+            "controlType": "checkbox",
+            "default": false,
+            "description": "When enabled, the filter text is treated as a regular expression pattern instead of a plain text match."
+        },
+        {
+            "id": "Shockwave_Duration",
+            "label": "Duration (ms)",
+            "type": "int",
+            "controlType": "slider",
+            "default": 1000,
+            "min": 50,
+            "max": 5000,
+            "lockable": true,
+            "description": "How long each shockwave ring expansion lasts in milliseconds after a timing mark fires. Only active when a Timing Track is selected."
+        }
+    ],
+    "groups": [
+        {
+            "type": "tabs",
+            "tabs": [
+                {
+                    "label": "Position",
+                    "properties": [
+                        "Shockwave_CenterX",
+                        "Shockwave_CenterY",
+                        "Shockwave_Start_Radius",
+                        "Shockwave_End_Radius",
+                        "Shockwave_Start_Width",
+                        "Shockwave_End_Width"
+                    ]
+                },
+                {
+                    "label": "Options",
+                    "properties": [
+                        "Shockwave_Accel",
+                        "Shockwave_Cycles",
+                        "Shockwave_Blend_Edges",
+                        "Shockwave_Scale",
+                        "Shockwave_TimingTrack",
+                        "Shockwave_FilterLabel",
+                        "Shockwave_FilterRegex",
+                        "Shockwave_Duration"
+                    ]
+                }
+            ],
+            "settingKey": "E_NOTEBOOK_Shockwave"
+        }
+    ],
+    "visibilityRules": [
+        {
+            "when": { "property": "Shockwave_TimingTrack", "notOneOf": [""] },
+            "enable": ["Shockwave_FilterLabel", "Shockwave_FilterRegex", "Shockwave_Duration"]
+        },
+        {
+            "when": { "property": "Shockwave_TimingTrack", "oneOf": [""] },
+            "disable": ["Shockwave_FilterLabel", "Shockwave_FilterRegex", "Shockwave_Duration"]
+        }
+    ]
+}

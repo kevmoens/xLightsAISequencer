@@ -242,4 +242,152 @@ public sealed class SectionTimelineCompilerTests
         var fromEffect = Assert.Single(ir.Effects, e => e.Target == new ModelId("MiniStar1"));
         Assert.NotEqual(toEffect.StartTicks, fromEffect.StartTicks); // a real stagger, not two simultaneous independent effects.
     }
+
+    /// <summary>
+    /// Build-plan Phase 30 step 30.2 ("hit-motion-compound") gate, per the acceptance definition's own
+    /// wording: "a compound cue exports as exactly two layers over its cue's resolved span (base hit
+    /// effect + movement overlay), both within frame tolerance (±1 frame) of the cue's declared bounds,
+    /// and the movement layer's value-curve or effect parameters differ from the pipeline's flat/static
+    /// default for that effect type." Uses the real xLights install's own vocabulary (Shockwave's real
+    /// Shockwave_End_Radius property) -- never a portable/synthetic one -- so this exercises the real
+    /// confirmed shape, not a stand-in. Also confirms the compound reaches a real exported XSQ, not just
+    /// the compiled IR.
+    /// </summary>
+    [Fact]
+    public async Task Compile_CompoundAccentCue_ExportsExactlyTwoLayersWithinFrameToleranceAndARealRampCurve()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = BuildLayout();
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(5, barTicks);
+        var section = BuildSection(barGrid, 5, barTicks);
+        var settings = BuildSettings();
+
+        var look = new Look(
+            "test-compound", "Test Compound", "test", 0.5, "hold", "warm-gold", "Tree",
+            [new LookLayer(1, "Tree", "On", LookLayer.RoleSubject, null, "Normal", "Bars", 0.9)]);
+
+        var transient = new TransientHit(2 * TicksPerSecond, 0.9f);
+        var timeline = new SectionTimeline(Guid.NewGuid(), "test-compound", Cues:
+        [
+            new SectionCue("transient-1", "MiniStar1", "On", IntensityTier.Full, LookLayer.RoleSubject, Compound: true),
+        ]);
+
+        var ir = SectionTimelineCompiler.Compile(look, timeline, section, layout, settings, transientHits: [transient]);
+
+        var placements = ir.Effects.Where(e => e.Target == new ModelId("MiniStar1")).ToArray();
+        Assert.Equal(2, placements.Length);
+
+        var baseHit = Assert.Single(placements, e => e.Layer > 0);
+        var movement = Assert.Single(placements, e => e.Layer < 0);
+        Assert.Equal(-baseHit.Layer, movement.Layer); // a distinct IR layer, never colliding with the base hit's own.
+
+        const long frameTolerance = 500_000; // 50ms real xLights frame grid, expressed in 100ns ticks.
+        Assert.InRange(Math.Abs(movement.StartTicks - baseHit.StartTicks), 0, frameTolerance);
+        Assert.InRange(Math.Abs(movement.EndTicks - baseHit.EndTicks), 0, frameTolerance);
+
+        var curve = Assert.Single(movement.ValueCurvesOrEmpty);
+        Assert.Equal(HitMotionCompound.MovementValueCurveParameterKey, curve.ParameterKey);
+        Assert.Equal(HitMotionCompound.MovementCurveType, curve.CurveType);
+        Assert.NotEqual(curve.P1, curve.P2); // a real ramp -- never the effect's own flat/static default.
+
+        var path = Path.Combine(Path.GetTempPath(), $"{Guid.NewGuid():N}.xsq");
+        try
+        {
+            await new XsqExporter(settings.RecipeCatalog, settings.Vocabulary)
+                .ExportNewAsync(layout, ir.ToSequenceDocument(), path, "2026.03", CancellationToken.None);
+            var xsq = new XsqStructuralReader().Read(path);
+
+            var exported = Assert.Single(xsq.ElementEffects, e => e.Name == "MiniStar1").Effects;
+            Assert.Equal(2, exported.Count);
+            Assert.Contains(exported, e => e.Name == "On");
+            Assert.Contains(exported, e => e.Name == "Shockwave");
+
+            var exportedStart = exported[0].StartTimeMs;
+            var exportedEnd = exported[0].EndTimeMs;
+            foreach (var effect in exported)
+            {
+                Assert.InRange(Math.Abs(effect.StartTimeMs - exportedStart), 0, xsq.FrameIntervalMs);
+                Assert.InRange(Math.Abs(effect.EndTimeMs - exportedEnd), 0, xsq.FrameIntervalMs);
+            }
+
+            Assert.Contains(xsq.EffectDb, s => s.Contains("E_VALUECURVE_Shockwave_End_Radius", StringComparison.Ordinal));
+        }
+        finally
+        {
+            File.Delete(path);
+        }
+    }
+
+    /// <summary>
+    /// Build-plan Phase 30 step 30.2: opt-in, per cue -- a cue that does NOT declare <see cref="SectionCue.Compound"/>
+    /// compiles to exactly one effect on its target, same as every pre-existing accent cue, never a
+    /// blanket second layer.
+    /// </summary>
+    [Fact]
+    public void Compile_NonCompoundAccentCue_CompilesToExactlyOneLayer()
+    {
+        if (!RealXLightsFixture.IsAvailable)
+        {
+            return;
+        }
+
+        var layout = BuildLayout();
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(5, barTicks);
+        var section = BuildSection(barGrid, 5, barTicks);
+        var settings = BuildSettings();
+
+        var look = new Look(
+            "test-noncompound", "Test NonCompound", "test", 0.5, "hold", "warm-gold", "Tree",
+            [new LookLayer(1, "Tree", "On", LookLayer.RoleSubject, null, "Normal", "Bars", 0.9)]);
+
+        var transient = new TransientHit(2 * TicksPerSecond, 0.9f);
+        var timeline = new SectionTimeline(Guid.NewGuid(), "test-noncompound", Cues:
+        [
+            new SectionCue("transient-1", "MiniStar1", "On", IntensityTier.Full, LookLayer.RoleSubject),
+        ]);
+
+        var ir = SectionTimelineCompiler.Compile(look, timeline, section, layout, settings, transientHits: [transient]);
+
+        Assert.Single(ir.Effects, e => e.Target == new ModelId("MiniStar1"));
+    }
+
+    /// <summary>
+    /// Build-plan Phase 30 step 30.2's own gate: "A section using compounds must still pass existing
+    /// contrast/hold/accent validation unchanged." Builds the same hold+accent shape
+    /// <see cref="SectionTimelineValidatorTests"/> already exercises, but with the accent cue declaring
+    /// <see cref="SectionCue.Compound"/> -- the real <see cref="SectionTimelineValidator"/> must report
+    /// the identical (empty) result either way.
+    /// </summary>
+    [Fact]
+    public void Validate_HoldPlusCompoundAccent_PassesTheSameAsHoldPlusPlainAccent()
+    {
+        var layout = BuildLayout();
+        const long barTicks = 2 * TicksPerSecond;
+        var barGrid = BuildBarGrid(5, barTicks);
+        var section = BuildSection(barGrid, 5, barTicks);
+        var settings = BuildPortableSettings();
+        var lookLibrary = new LookLibrary([BuildBaseLook()]);
+
+        SectionTimeline BuildTimeline(bool compound) => new(Guid.NewGuid(), "base", Cues:
+        [
+            new SectionCue("section-start", "Tree", "On", IntensityTier.Full, LookLayer.RoleSubject, Kind: CueKind.Hold),
+            new SectionCue("transient-1", "MiniStar1", "On", IntensityTier.Bright, LookLayer.RoleSupport, Compound: compound),
+            new SectionCue("transient-2", "MiniStar2", "On", IntensityTier.Bright, LookLayer.RoleSupport),
+        ]);
+
+        var transientHits = new[] { new TransientHit(2 * TicksPerSecond, .9f), new TransientHit(3 * TicksPerSecond, .9f) };
+        var plainErrors = SectionTimelineValidator.Validate(
+            BuildTimeline(compound: false), lookLibrary, layout, section, transientHits: transientHits, vocabulary: settings.Vocabulary);
+        var compoundErrors = SectionTimelineValidator.Validate(
+            BuildTimeline(compound: true), lookLibrary, layout, section, transientHits: transientHits, vocabulary: settings.Vocabulary);
+
+        Assert.Empty(plainErrors);
+        Assert.Empty(compoundErrors);
+    }
 }

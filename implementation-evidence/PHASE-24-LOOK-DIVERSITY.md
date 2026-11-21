@@ -20,18 +20,18 @@ Chorus repeats 5 times: bars [0,3), [3,6), [6,9), [9,12), [12,18) (note: the las
 ## §2d: real measured Look/effect diversity across the Chorus sections, before vs after
 | Bible | Distinct LookIds used across 5 Chorus sections | Distinct xLights effect names compiled across those sections |
 |---|---:|---:|
-| Baseline (1 eligible Look) | 2 | 6 |
-| Diverse (ceil(5/2)=3 eligible Looks) | 5 | 6 |
+| Baseline (1 eligible Look) | 3 | 6 |
+| Diverse (ceil(5/2)=3 eligible Looks) | 3 | 6 |
 
-Real section-by-section LookId assignment (baseline): look-9, look-0, look-9, look-0, look-9
-Real section-by-section LookId assignment (diverse): look-1, look-3, look-8, look-2, look-9
+Real section-by-section LookId assignment (baseline): look-9, look-9, look-2, look-3, look-9
+Real section-by-section LookId assignment (diverse): look-1, look-8, look-1, look-9, look-9
 
 **Disclosed finding, measured directly by this real run, not assumed:** a Look's own
 `AllowedSectionKinds` is advisory to the real Choreographer call, not a hard filter --
 `SectionScriptPromptBuilder` lists every Look (not just the eligible ones) with a `sections=`
 annotation, and neither `SectionScriptValidator` nor `SectionScriptCompiler` ever rejects a
 SectionScript whose `LookId` ignores it. The baseline run above measured
-2 distinct Looks used even though only 1 was declared
+3 distinct Looks used even though only 1 was declared
 eligible for Chorus -- the real local 7B Choreographer model did not reliably honor the
 restriction. §2a's validator floor and §2b's repeat-structure prompt line (both verified above)
 are real and working as designed; they raise how many Looks a repeating Kind COULD legitimately

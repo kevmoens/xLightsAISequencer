@@ -143,6 +143,90 @@ public sealed class MultiLayerStackMinerTests
         Assert.Equal(["Any"], template.Props);
     }
 
+    /// <summary>Build-plan Phase 30 step 30.1: a confirmed <c>T_CHOICE_LayerMethod</c> value, repeated identically across enough real occurrences to promote, is mined onto the real layer that carried it.</summary>
+    [Fact]
+    public void ConfirmedBlendMode_MinedOntoTopLayer_WhenConsistentlyPresentAcrossPromotedOccurrences()
+    {
+        var effects = new[]
+        {
+            Effect("Matrix1", "On", layerIndex: 0, start: 0, end: 10_000),
+            Effect("Matrix1", "Twinkle", layerIndex: 1, start: 0, end: 10_000, settingsString: "T_CHOICE_LayerMethod=1 reveals 2"),
+            Effect("Matrix1", "Shockwave", layerIndex: 2, start: 0, end: 10_000, settingsString: "T_CHOICE_LayerMethod=2 is Mask"),
+        };
+
+        var songs = Enumerable.Range(0, 6).Select(i => BuildSong($"Song {i}", effects, SectionKind.Chorus)).ToList();
+        var catalog = MultiLayerStackMiner.Build(songs, minSongCount: 5);
+
+        var template = Assert.Single(catalog.Templates);
+        Assert.Null(template.Layers[0].BlendModeToPrevious);
+        Assert.Equal("Reveal 1-on-2", template.Layers[1].BlendModeToPrevious);
+        Assert.Equal("Mask", template.Layers[2].BlendModeToPrevious);
+    }
+
+    /// <summary>A non-candidate real value (out of this phase's 8-mode scope) is real signal, but mines to "no evidence," never guessed into a candidate.</summary>
+    [Fact]
+    public void NonCandidateRealBlendModeValue_MinesToNull_NeverGuessedIntoACandidate()
+    {
+        var effects = new[]
+        {
+            Effect("Matrix1", "On", layerIndex: 0, start: 0, end: 10_000),
+            Effect("Matrix1", "Twinkle", layerIndex: 1, start: 0, end: 10_000, settingsString: "T_CHOICE_LayerMethod=Brightness"),
+            Effect("Matrix1", "Shockwave", layerIndex: 2, start: 0, end: 10_000),
+        };
+
+        var songs = Enumerable.Range(0, 6).Select(i => BuildSong($"Song {i}", effects, SectionKind.Chorus)).ToList();
+        var catalog = MultiLayerStackMiner.Build(songs, minSongCount: 5);
+
+        var template = Assert.Single(catalog.Templates);
+        Assert.Null(template.Layers[1].BlendModeToPrevious);
+    }
+
+    /// <summary>A stack whose real occurrences mostly omit the setting (implicit "Normal" default) never has a blend mode fabricated for it, even when a minority of occurrences carried one.</summary>
+    [Fact]
+    public void MostlyAbsentBlendMode_MinesToNull_EvenWhenAMinorityOfOccurrencesCarryAConfirmedValue()
+    {
+        var withBlend = new[]
+        {
+            Effect("Matrix1", "On", layerIndex: 0, start: 0, end: 10_000),
+            Effect("Matrix1", "Twinkle", layerIndex: 1, start: 0, end: 10_000, settingsString: "T_CHOICE_LayerMethod=Average"),
+            Effect("Matrix1", "Shockwave", layerIndex: 2, start: 0, end: 10_000),
+        };
+        var withoutBlend = new[]
+        {
+            Effect("Matrix1", "On", layerIndex: 0, start: 0, end: 10_000),
+            Effect("Matrix1", "Twinkle", layerIndex: 1, start: 0, end: 10_000),
+            Effect("Matrix1", "Shockwave", layerIndex: 2, start: 0, end: 10_000),
+        };
+
+        var songs = new List<CorpusSongAnalysis> { BuildSong("Song 0", withBlend, SectionKind.Chorus) };
+        songs.AddRange(Enumerable.Range(1, 5).Select(i => BuildSong($"Song {i}", withoutBlend, SectionKind.Chorus)));
+        var catalog = MultiLayerStackMiner.Build(songs, minSongCount: 5);
+
+        var template = Assert.Single(catalog.Templates);
+        Assert.Null(template.Layers[1].BlendModeToPrevious);
+    }
+
+    [Theory]
+    [InlineData("T_CHOICE_LayerMethod=2 is Mask", "Mask")]
+    [InlineData("T_CHOICE_LayerMethod=1 is Mask", "Mask")]
+    [InlineData("T_CHOICE_LayerMethod=2 is Unmask", "Unmask")]
+    [InlineData("T_CHOICE_LayerMethod=1 is Unmask", "Unmask")]
+    [InlineData("T_CHOICE_LayerMethod=1 reveals 2", "Reveal 1-on-2")]
+    [InlineData("T_CHOICE_LayerMethod=2 reveals 1", "Reveal 2-on-1")]
+    [InlineData("T_CHOICE_LayerMethod=Average", "Average")]
+    [InlineData("T_CHOICE_LayerMethod=Subtractive", "Subtractive")]
+    [InlineData("T_CHOICE_LayerMethod=Shadow 1 on 2", "Shadow 1-on-2")]
+    [InlineData("T_CHOICE_LayerMethod=Shadow 2 on 1", "Shadow 2-on-1")]
+    [InlineData("T_CHOICE_LayerMethod=Layered", null)]
+    [InlineData("T_CHOICE_LayerMethod=1 is True Unmask", null)]
+    [InlineData("T_CHOICE_LayerMethod=Normal", null)]
+    [InlineData("E_SLIDER_Bars_BarCount=4", null)]
+    [InlineData("", null)]
+    public void TryMapRawBlendModeToCandidate_MapsEveryReal2026CorpusSpelling_ConfirmedCandidatesOnly(string settingsString, string? expected)
+    {
+        Assert.Equal(expected, MultiLayerStackMiner.TryMapRawBlendModeToCandidate(settingsString));
+    }
+
     [Fact]
     public void LowEnergySection_ClassifiedAsLowTier()
     {
@@ -160,9 +244,9 @@ public sealed class MultiLayerStackMinerTests
         Assert.Equal("low", template.EnergyBand);
     }
 
-    private static ParsedEffectInstance Effect(string modelName, string effectName, int layerIndex, long start, long end) => new(
+    private static ParsedEffectInstance Effect(string modelName, string effectName, int layerIndex, long start, long end, string settingsString = "") => new(
         modelName, "model", effectName, StartTimeMs: start, EndTimeMs: end,
-        LayerIndex: layerIndex, PaletteIndex: 0, SettingsString: "", PaletteString: "");
+        LayerIndex: layerIndex, PaletteIndex: 0, SettingsString: settingsString, PaletteString: "");
 
     private static CorpusSongAnalysis BuildSong(string title, IReadOnlyList<ParsedEffectInstance> effects, SectionKind sectionKind)
     {

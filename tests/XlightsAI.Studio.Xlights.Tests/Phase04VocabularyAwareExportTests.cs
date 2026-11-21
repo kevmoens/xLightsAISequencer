@@ -104,6 +104,78 @@ public sealed class Phase04VocabularyAwareExportTests : IDisposable
         Assert.Contains("FT=kick", settingsString);
     }
 
+    /// <summary>Build-plan Phase 30 step 30.1: a confirmed <see cref="EffectInstance.BlendMode"/> now serializes as a real <c>T_CHOICE_LayerMethod</c> key -- the one exception to this exporter's own "BlendMode is IR-only" discipline, now that the value is fixture-confirmed rather than guessed.</summary>
+    [Fact]
+    public async Task ExportAsync_WithVocabulary_ConfirmedBlendMode_SerializesAsLayerMethodSetting()
+    {
+        var (recipeCatalog, vocabulary) = BuildCatalogs();
+        var layout = OneModelLayout();
+
+        var effect = new EffectInstance(
+            Guid.NewGuid(), new ModelId("Tree"), Layer: 1, StartTicks: 0, EndTicks: 10_000_000,
+            RecipeId: "effect.generated.bars.v1", RecipeVersion: "1",
+            Parameters: new Dictionary<string, string>(), BlendMode: "2 is Mask");
+        var document = new SequenceDocument(Guid.NewGuid(), Revision: 1, Effects: [effect]);
+
+        var exporter = new XsqExporter(recipeCatalog, vocabulary);
+        var outputPath = Path.Combine(_root, "sequence.xsq");
+        await exporter.ExportAsync(layout, document, outputPath, "2026.03", XsqExportPolicy.RejectIfExists, CancellationToken.None);
+
+        var reader = new XsqStructuralReader();
+        var structural = reader.Read(outputPath);
+
+        Assert.Single(structural.EffectDb);
+        Assert.Equal("T_CHOICE_LayerMethod=2 is Mask", structural.EffectDb[0]);
+    }
+
+    /// <summary>The implicit default ("Normal") is omitted entirely, same as every other default-valued setting -- never written out explicitly.</summary>
+    [Fact]
+    public async Task ExportAsync_WithVocabulary_DefaultBlendMode_IsOmittedFromSettingsString()
+    {
+        var (recipeCatalog, vocabulary) = BuildCatalogs();
+        var layout = OneModelLayout();
+
+        var effect = new EffectInstance(
+            Guid.NewGuid(), new ModelId("Tree"), Layer: 0, StartTicks: 0, EndTicks: 10_000_000,
+            RecipeId: "effect.generated.bars.v1", RecipeVersion: "1",
+            Parameters: new Dictionary<string, string>(), BlendMode: "Normal");
+        var document = new SequenceDocument(Guid.NewGuid(), Revision: 1, Effects: [effect]);
+
+        var exporter = new XsqExporter(recipeCatalog, vocabulary);
+        var outputPath = Path.Combine(_root, "sequence.xsq");
+        await exporter.ExportAsync(layout, document, outputPath, "2026.03", XsqExportPolicy.RejectIfExists, CancellationToken.None);
+
+        var reader = new XsqStructuralReader();
+        var structural = reader.Read(outputPath);
+
+        Assert.Single(structural.EffectDb);
+        Assert.Equal(string.Empty, structural.EffectDb[0]);
+    }
+
+    /// <summary>An unconfirmed blend-mode value (never one of the 8 fixture-confirmed candidates) is never serialized -- treated exactly like the default, never emitted as an unverified xLights XML value.</summary>
+    [Fact]
+    public async Task ExportAsync_WithVocabulary_UnconfirmedBlendMode_IsOmittedFromSettingsString_NeverGuessed()
+    {
+        var (recipeCatalog, vocabulary) = BuildCatalogs();
+        var layout = OneModelLayout();
+
+        var effect = new EffectInstance(
+            Guid.NewGuid(), new ModelId("Tree"), Layer: 0, StartTicks: 0, EndTicks: 10_000_000,
+            RecipeId: "effect.generated.bars.v1", RecipeVersion: "1",
+            Parameters: new Dictionary<string, string>(), BlendMode: "Bright");
+        var document = new SequenceDocument(Guid.NewGuid(), Revision: 1, Effects: [effect]);
+
+        var exporter = new XsqExporter(recipeCatalog, vocabulary);
+        var outputPath = Path.Combine(_root, "sequence.xsq");
+        await exporter.ExportAsync(layout, document, outputPath, "2026.03", XsqExportPolicy.RejectIfExists, CancellationToken.None);
+
+        var reader = new XsqStructuralReader();
+        var structural = reader.Read(outputPath);
+
+        Assert.Single(structural.EffectDb);
+        Assert.Equal(string.Empty, structural.EffectDb[0]);
+    }
+
     [Fact]
     public async Task ExportAsync_WithVocabulary_TwoEffectsWithIdenticalSettings_ShareOneEffectDbEntry()
     {

@@ -117,8 +117,12 @@ public static class SectionTimelineCompiler
             }
 
             var parameters = new Dictionary<string, string>(recipe.CreateDefaultParameters(), StringComparer.Ordinal);
-            // Mined gestures already describe the lit interval of a real placement.
-            var duty = cue.Kind == CueKind.Accent && !cue.IsMeasuredLitSpan
+            // Mined gestures already describe the lit interval of a real placement. Build-plan Phase 30
+            // step 30.2: a compound cue's base hit always spans its own full resolved window (never
+            // duty-shortened) so the movement overlay it pairs with below can declare the EXACT same
+            // [start, end) span, per the acceptance definition's own "scoped to the same cue's span"
+            // wording.
+            var duty = cue.Kind == CueKind.Accent && !cue.IsMeasuredLitSpan && !cue.Compound
                 ? IntensityTierMapping.ResolveDuty(cue.Intensity) : 1;
 
             if (cue.Targets is not { Count: > 0 } && cue.Kind == CueKind.Accent && cue.HandoffFromProps is { Length: > 0 } fromProps &&
@@ -243,6 +247,17 @@ public static class SectionTimelineCompiler
         { Layer = layerZ, Parameters = new Dictionary<string, string>(parameters, StringComparer.Ordinal), PaletteIndex = 0,
             SourceAnnotation = cue.Annotation, CueTraceId = cue.TraceId };
         overlayEffects.Add(effect);
+
+        // Build-plan Phase 30 step 30.2: an opt-in, per-cue compound -- only ever for an Accent cue that
+        // explicitly declared it (never a blanket rule); a cue that doesn't opt in compiles exactly as
+        // before. Skips silently (never throws) when the confirmed movement shape isn't available for
+        // this vocabulary/recipe set, same "resolve, or skip rather than invent" discipline as the rest
+        // of this compiler.
+        if (cue.Kind == CueKind.Accent && cue.Compound &&
+            HitMotionCompound.TryBuild(target, start, litEnd, layerZ, settings, cue.Annotation, cue.TraceId) is { } movementOverlay)
+        {
+            overlayEffects.Add(movementOverlay);
+        }
     }
 
     /// <summary>Resolves <paramref name="propsRef"/> to the one real target an emitted <see cref="EffectInstance"/> should carry -- a real group's own <see cref="ModelId"/> when it names a group (same group-collapse LookCompiler's own base layer prefers), or the single resolved model otherwise.</summary>

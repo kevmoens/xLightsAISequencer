@@ -1,3 +1,4 @@
+using System.Text.RegularExpressions;
 using XlightsAI.Studio.Knowledge;
 using XlightsAI.Studio.Structure;
 
@@ -19,6 +20,44 @@ public static class MultiLayerStackMiner
 
     private static readonly HashSet<SectionKind> HighEnergyKinds = [SectionKind.Chorus, SectionKind.PreChorus, SectionKind.Solo];
     private static readonly HashSet<SectionKind> LowEnergyKinds = [SectionKind.Intro, SectionKind.Outro, SectionKind.Bridge];
+
+    private static readonly Regex BlendModeSettingPattern = new(@"T_CHOICE_LayerMethod=([^,]+)", RegexOptions.Compiled);
+
+    /// <summary>
+    /// Build-plan Phase 30 step 30.1: maps a real, raw <c>T_CHOICE_LayerMethod</c> XML value (as actually
+    /// written by xLights in a real corpus file -- see <c>implementation-evidence/PHASE-30-blend-mode-baseline.md</c>'s
+    /// own occurrence tally) to its <see cref="ConfirmedLayerBlendMode.CandidateName"/>, for every real
+    /// spelling 30.0's corpus grep found (both the "1 is ..."/"2 is ..." directional spellings for
+    /// Mask/Unmask alike -- <see cref="ConfirmedLayerBlendModeCatalog"/> only ever EMITS the single
+    /// canonical "2 is ..." spelling per candidate, but mining must recognize both real spellings as
+    /// equally real evidence of that same candidate, per the catalog's own doc comment). A raw value with
+    /// no entry here (a real, confirmed-to-exist-in-the-corpus value that is nonetheless not one of this
+    /// phase's 8 build-plan candidates -- <c>"Layered"</c>, <c>"Effect 1"</c>/<c>"Effect 2"</c>,
+    /// <c>"Brightness"</c>, <c>"Additive"</c>, <c>"Bottom-Top"</c>, <c>"Min"</c>, <c>"Left-Right"</c>, the
+    /// <c>"True Unmask"</c> variants, or the implicit default <c>"Normal"</c>) maps to <see langword="null"/>
+    /// -- real signal, but out of this phase's candidate scope, never guessed into one.
+    /// </summary>
+    public static readonly IReadOnlyDictionary<string, string> RawBlendModeToCandidateName = new Dictionary<string, string>(StringComparer.Ordinal)
+    {
+        ["2 is Mask"] = "Mask",
+        ["1 is Mask"] = "Mask",
+        ["2 is Unmask"] = "Unmask",
+        ["1 is Unmask"] = "Unmask",
+        ["1 reveals 2"] = "Reveal 1-on-2",
+        ["2 reveals 1"] = "Reveal 2-on-1",
+        ["Average"] = "Average",
+        ["Subtractive"] = "Subtractive",
+        ["Shadow 1 on 2"] = "Shadow 1-on-2",
+        ["Shadow 2 on 1"] = "Shadow 2-on-1",
+    };
+
+    /// <summary>Returns the confirmed <see cref="ConfirmedLayerBlendMode.CandidateName"/> this real effect's own settings string carries evidence of (between it and whatever sits immediately below it in z-order), or <see langword="null"/> when the settings string has no <c>T_CHOICE_LayerMethod</c> key at all, or carries one this phase does not recognize as a candidate.</summary>
+    public static string? TryMapRawBlendModeToCandidate(string settingsString)
+    {
+        ArgumentNullException.ThrowIfNull(settingsString);
+        var match = BlendModeSettingPattern.Match(settingsString);
+        return match.Success && RawBlendModeToCandidateName.TryGetValue(match.Groups[1].Value, out var candidate) ? candidate : null;
+    }
 
     /// <summary>
     /// Build-plan Phase 25 Part D.1: <paramref name="minDistinctLayers"/> defaults to
@@ -126,6 +165,7 @@ public static class MultiLayerStackMiner
                     for (var i = 0; i < occurrence.Layers.Count; i++)
                     {
                         aggregate.DutyByPosition[i].Add(occurrence.Layers[i].DutyCycle);
+                        aggregate.BlendModeVotesByPosition[i].Add(occurrence.Layers[i].BlendModeToPrevious);
                     }
                 }
             }
@@ -156,13 +196,18 @@ public static class MultiLayerStackMiner
             var stackLayers = window.ActiveAtPeak
                 .GroupBy(a => a.Effect.LayerIndex)
                 .OrderBy(g => g.Key)
-                .Select(g =>
+                .Select((g, position) =>
                 {
                     var representative = g.OrderBy(a => a.Effect.StartTimeMs).First();
                     var presentMs = window.ClusterEffects.Where(a => a.Effect.LayerIndex == g.Key)
                         .Sum(a => Math.Max(0, Math.Min(a.Effect.EndTimeMs, window.ClusterEnd) - Math.Max(a.Effect.StartTimeMs, window.ClusterStart)));
                     var duty = Math.Clamp(presentMs / clusterSpan, 0.0, 1.0);
-                    return (representative.Effect.EffectName, DutyCycle: duty);
+                    // Build-plan Phase 30 step 30.1: the first/base position (0) has nothing below it in
+                    // this stack's own declared z-order to carry a real "blend against the previous layer"
+                    // reading for -- only position 1+ ever gets a real mined candidate here, same
+                    // "nothing invented" discipline as every duty-cycle/cadence field beside it.
+                    var blendModeToPrevious = position == 0 ? null : TryMapRawBlendModeToCandidate(representative.Effect.SettingsString);
+                    return (representative.Effect.EffectName, DutyCycle: duty, BlendModeToPrevious: blendModeToPrevious);
                 })
                 .ToList();
 
@@ -170,7 +215,7 @@ public static class MultiLayerStackMiner
             var segmentDurationMs = (double)(window.PeakSegmentEnd - window.PeakSegmentStart);
             var cadence = ClassifyCadence(segmentDurationMs, beatMs, window.ClusterEffects[0].PhraseBars);
 
-            yield return new StackOccurrence(tier, cadence, stackLayers.Select(l => (l.EffectName, l.DutyCycle)).ToList());
+            yield return new StackOccurrence(tier, cadence, stackLayers.Select(l => (l.EffectName, l.DutyCycle, l.BlendModeToPrevious)).ToList());
         }
     }
 
@@ -209,6 +254,27 @@ public static class MultiLayerStackMiner
         return segmentDurationMs <= phraseMs ? "phrase" : "section";
     }
 
+    /// <summary>
+    /// Build-plan Phase 30 step 30.1: the plurality vote across every real occurrence's own reading at
+    /// this layer position -- same "most common wins" discipline <see cref="BuildTemplate"/> already uses
+    /// for <see cref="ClassifyCadence"/>'s own votes. <see langword="null"/> ("no mined evidence")
+    /// competes as its own candidate, so a stack whose real corpus occurrences mostly left the setting at
+    /// its implicit default correctly yields <see langword="null"/> rather than whatever confirmed mode
+    /// happened to show up in a minority of occurrences.
+    /// </summary>
+    private static string? MajorityBlendModeVote(IReadOnlyList<string?> votes)
+    {
+        if (votes.Count == 0)
+        {
+            return null;
+        }
+
+        return votes
+            .GroupBy(v => v, StringComparer.Ordinal)
+            .OrderByDescending(g => g.Count())
+            .First().Key;
+    }
+
     private static MultiLayerTemplate BuildTemplate(
         StackAggregate aggregate, int index, int minSongCount, string idPrefix = "mined", string confidenceTier = "corpus-validated")
     {
@@ -235,13 +301,15 @@ public static class MultiLayerStackMiner
             }
 
             var role = i == 0 ? "subject" : i == aggregate.EffectNames.Count - 1 ? "secondary" : "support";
+            var blendModeToPrevious = MajorityBlendModeVote(aggregate.BlendModeVotesByPosition[i]);
             return new MultiLayerTemplateLayer(
                 Role: role,
                 Effect: effectName,
                 DutyMin: dutyMin,
                 DutyMax: dutyMax,
                 Cadence: cadence,
-                Notes: $"Auto-mined layer role -- real measured duty cycle across {duties.Count} occurrence(s) in this stack's own promoted songs.");
+                Notes: $"Auto-mined layer role -- real measured duty cycle across {duties.Count} occurrence(s) in this stack's own promoted songs.",
+                BlendModeToPrevious: blendModeToPrevious);
         }).ToList();
 
         var exampleSongs = aggregate.SongTitles.OrderBy(s => s, StringComparer.Ordinal).Take(3).ToList();
@@ -282,7 +350,7 @@ public static class MultiLayerStackMiner
     /// <summary>One real candidate multi-layer stack signature and how many distinct real songs it was seen in, whether or not it actually promoted -- see <see cref="BuildCandidates"/>.</summary>
     public sealed record MultiLayerStackCandidate(string Tier, IReadOnlyList<string> EffectNames, int SongCount, bool Promoted, IReadOnlyList<string> ExampleSongs);
 
-    private sealed record StackOccurrence(string Tier, string Cadence, IReadOnlyList<(string EffectName, double DutyCycle)> Layers);
+    private sealed record StackOccurrence(string Tier, string Cadence, IReadOnlyList<(string EffectName, double DutyCycle, string? BlendModeToPrevious)> Layers);
 
     private sealed class StackAggregate(string tier, List<string> effectNames)
     {
@@ -292,5 +360,8 @@ public static class MultiLayerStackMiner
         public List<string> CadenceVotes { get; } = [];
         public List<bool> IsTreeOrMatrixVotes { get; } = [];
         public Dictionary<int, List<double>> DutyByPosition { get; } = Enumerable.Range(0, effectNames.Count).ToDictionary(i => i, _ => new List<double>());
+
+        /// <summary>Build-plan Phase 30 step 30.1: one vote (a confirmed candidate name, or <see langword="null"/> for "no mined blend-mode evidence this occurrence") per position, per real occurrence -- <see cref="BuildTemplate"/> takes the plurality vote, same discipline as <see cref="CadenceVotes"/>.</summary>
+        public Dictionary<int, List<string?>> BlendModeVotesByPosition { get; } = Enumerable.Range(0, effectNames.Count).ToDictionary(i => i, _ => new List<string?>());
     }
 }
